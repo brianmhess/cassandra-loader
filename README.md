@@ -1,0 +1,117 @@
+# CASSANDRA-LOADER
+
+## Introduction
+cassandra-loader is a general-purpose, delimited-file, bulk loader for 
+Cassandra. It supports a number of configuration options to enable bulk 
+loading of various types of delimited files, including
+* comma-separated values
+* tab-separated values
+* customer delimiter-separated values
+* header row
+* comma as decimal separator
+* ...
+
+## Getting it
+
+### Downloading
+This utility has already been built, and is available at
+http://goo.gl/4HweRC
+
+Get it with wget:
+```
+wget http://goo.gl/4HweRC
+```
+
+### Building
+To build this repository, simply clone this repo and run:
+```
+make cassandra-loader
+```
+
+All of the dependencies are included (namely, the Java driver - currently
+version 2.1.4).
+
+## Documentation 
+To extract this README document, simply run:
+```
+jar xf cassandra-loader README.md
+```
+
+## Run
+To run cassandra-loader, simply run the cassandra-loader executable:
+```
+./cassandra-loader
+```
+
+This will print the usage statment.
+
+This will load the myFileToLoad.csv file into the Cassandra cluster at IP address 1.2.3.4 into the test.ltest 
+column family where the myFileToLoad file has the format of 4 columns - the first and second as integers, 
+the third as text, and the fourth as double-precision floating point - and using the default options:
+```
+cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a int, b int, c text, d double)"
+```
+
+## Options:
+
+ Switch           | Option             | Default                    | Description
+-----------------:|-------------------:|---------------------------:|:----------
+ `-f`             | Filename           | <REQUIRED>                 | Filename to load - required.
+ `-host`          | IP Address         | <REQUIRED>                 | Cassandra connection point - required.
+ `-schema`        | CQL schema         | <REQUIRED>                 | Schema of input data - required. Standard CQL schema (without PRIMARY KEY clause) and in the order that the data will be in the file.
+ `-port`          | Port Number        | 9042                       | Cassandra native protocol port number
+ `-numFutures`    | Number of Futures  | 1000                       | Number of Java driver futures in flight
+ `-delim`         | Delimiter          | ,                          | Delimiter to use
+ `-delimInQuotes` | True/False         | false                      | Are delimiters allowed inside quoted strings? This is more expensive to parse, so we default to false.
+ `-nullString`    | Null String        | <empty string>             | String to represent NULL data
+ `-boolStyle`     | Boolean Style      | TRUE_FALSE                 | String for boolean values.  Options are "1_0", "Y_N", "T_F", "YES_NO", "TRUE_FALSE".
+ `-decimalDelim`  | Decimal delimiter  | .                          | Delimiter for decimal values.  Options are "." or ","
+ `-dateFormat`    | Date Format String | default for Locale.ENGLISH | Date format string as specified in the SimpleDateFormat Java class: http://docs.oracle.com/javase/7/docs/api/java/text/SimpleDateFormat.html
+ `-skipRows`      | Rows to skip       | 0                          | Number of rows to skip at the beginning of the file
+ `-maxRows`       | Max rows to read   | -1                         | Maximum rows to read (after optional skipping of rows).  -1 signifies all rows.
+ `-maxErrors`     | Max parse errors   | 10                         | Maximum number of rows that do not parse to allow before exiting.
+ `-badFile`       | Bad File           | <none>                     | File to write out badly parsed rows.
+
+## Comments
+You can send data in on stdin by specifying the filename (via the -f switch) as "stdin" (case insensitive).
+That way, you could pipe data in from other commands:
+```
+grep IMPORTANT data.csv | cassandra-loader -f stdin -h 1.2.3.4 -cql "test.itest(a text, b text)"
+```
+
+If you do not have delimiters inside quoted text fields, then leave the -delimInQuotes option false.
+Enabling it will result in slower parsing times.
+
+numFutures is a way to control the level of parallelism, but at some point too many
+will actually slow down the load.  The default of 1000 is a decent place to start.
+
+boolStyle is a case-insensitive test of the True and False strings.  For the
+different styles, the True and False strings are as follows:
+
+```
+    Style   | True | False
+------------|------|-------
+     0_1    |    1 |     0 
+     Y_N    |    Y |     N 
+     T_F    |    T |     F 
+   YES_NO   |  YES |    NO 
+ TRUE_FALSE | TRUE | FALSE 
+```
+
+## Usage Statement:
+```
+Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]
+OPTIONS:
+  -delim <delimiter>             Delimiter to use [,]
+  -delmInQuotes true             Set to 'true' if delimiter can be inside quoted fields [false]  -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]
+  -nullString <nullString>       String that signifies NULL [none]
+  -skipRows <skipRows>           Number of rows to skip [0]
+  -maxRows <maxRows>             Maximum number of rows to read (-1 means all) [-1]
+  -maxErrors <maxErrors>         Maximum errors to endure [10]
+  -badFile <badFilename>         Filename for where to place badly parsed rows. [none]
+  -port <portNumber>             CQL Port Number [9042]
+  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]
+  -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','
+  -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]
+```
+
