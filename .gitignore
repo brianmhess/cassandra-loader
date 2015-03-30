@@ -1,0 +1,4 @@
+build/
+cassandra-loader
+cassandra-loader.jar
+*~

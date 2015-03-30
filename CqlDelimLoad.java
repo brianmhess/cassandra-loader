@@ -10,7 +10,12 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Deque;
+import java.util.ArrayDeque;
 import java.util.Locale;
+import java.io.File;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.BufferedReader;
@@ -18,6 +23,11 @@ import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+import java.util.concurrent.ExecutionException;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
@@ -40,7 +50,7 @@ public class CqlDelimLoad {
     private long maxErrors = 10;
     private long skipRows = 0;
     private long maxRows = -1;
-    private String badFile = null;
+    private String badDir = null;
     private BufferedWriter badWriter = null;
     private String filename = null;
 
@@ -50,6 +60,8 @@ public class CqlDelimLoad {
     private String nullString = null;
     private String delimiter = null;
     private boolean delimiterInQuotes = false;
+
+    private int numThreads = 5;
 
     private String usage() {
 	String usage = "Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]\n";
@@ -61,37 +73,15 @@ public class CqlDelimLoad {
 	usage = usage + "  -skipRows <skipRows>           Number of rows to skip [0]\n";
 	usage = usage + "  -maxRows <maxRows>             Maximum number of rows to read (-1 means all) [-1]\n";
 	usage = usage + "  -maxErrors <maxErrors>         Maximum errors to endure [10]\n";
-	usage = usage + "  -badFile <badFilename>         Filename for where to place badly parsed rows. [none]\n";
+	usage = usage + "  -badDir <badDirectory>         Directory for where to place badly parsed rows. [none]\n";
 	usage = usage + "  -port <portNumber>             CQL Port Number [9042]\n";
 	usage = usage + "  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]\n";
 	usage = usage + "  -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','\n";
 	usage = usage + "  -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]\n";
+	usage = usage + "  -numThreads <numThreads>       Number of concurrent threads (files) to load\n";
 	return usage;
     }
     
-    private void setup() throws IOException {
-	// Prepare Badfile
-	if (null != badFile)
-	    badWriter = new BufferedWriter(new FileWriter(badFile));
-
-	// Connect to Cassandra
-	cluster = Cluster.builder()
-	    .addContactPoint(host)
-	    .withPort(port)
-	    .withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy()))
-	    .build();
-	session = cluster.newSession();
-    }
-
-    private void cleanup() throws IOException {
-	if (null != badWriter)
-	    badWriter.close();
-	if (null != session)
-	    session.close();
-	if (null != cluster)
-	    cluster.close();
-    }
-
     private boolean validateArgs() {
 	if (0 >= numFutures) {
 	    System.err.println("Number of futures must be positive");
@@ -127,6 +117,14 @@ public class CqlDelimLoad {
 	filename = amap.remove("-f");
 	if (null == filename) // filename is required
 	    return false;
+	File infile = new File(filename);
+	if ((!infile.isFile()) && (!infile.isDirectory()))
+	    return false;
+	if (infile.isDirectory()) {
+	    File[] infileList = infile.listFiles();
+	    if (infileList.length < 1)
+		return false;
+	}
 
 	cqlSchema = amap.remove("-schema");
 	if (null == cqlSchema) // schema is required
@@ -138,7 +136,7 @@ public class CqlDelimLoad {
 	if (null != (tkey = amap.remove("-maxErrors")))     maxErrors = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-skipRows")))      skipRows = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-maxRows")))       maxRows = Integer.parseInt(tkey);
-	if (null != (tkey = amap.remove("-badFile")))       badFile = tkey;
+	if (null != (tkey = amap.remove("-badDir")))        badDir = tkey;
 	if (null != (tkey = amap.remove("-dateFormat")))    dateFormatString = tkey;
 	if (null != (tkey = amap.remove("-nullString")))    nullString = tkey;
 	if (null != (tkey = amap.remove("-delim")))         delimiter = tkey;
@@ -154,6 +152,9 @@ public class CqlDelimLoad {
 		return false;
 	    }
 	}
+	if (null != (tkey = amap.remove("-numThreads")))       numThreads = Integer.parseInt(tkey);
+	if (numThreads < 1)
+	    return false;
 	if (-1 == maxRows)
 	    maxRows = Long.MAX_VALUE;
 	if (-1 == maxErrors)
@@ -167,14 +168,7 @@ public class CqlDelimLoad {
 	return validateArgs();
     }
 
-    private void purgeFutures(List<ResultSetFuture> futures) {
-	for (ResultSetFuture future: futures) {
-	    future.getUninterruptibly();
-	}
-	futures.clear();
-    }
-
-    public boolean run(String[] args) throws IOException, ParseException {
+    public boolean run(String[] args) throws IOException, ParseException, InterruptedException, ExecutionException {
 	if (false == parseArgs(args)) {
 	    System.err.println("Bad arguments");
 	    System.err.println(usage());
@@ -183,70 +177,222 @@ public class CqlDelimLoad {
 	
 	// open file
 	BufferedReader reader = null;
-	if (filename.equalsIgnoreCase("stdin"))
+	String readerName = "";
+	Deque<File> fileList = new ArrayDeque<File>();
+	if (filename.equalsIgnoreCase("stdin")) {
 	    reader = new BufferedReader(new InputStreamReader(System.in));
-	else
-	    reader = new BufferedReader(new FileReader(filename));
-
-	// setup CQL stuff - parser, connection
-	CqlDelimParser cdp = new CqlDelimParser(cqlSchema, delimiter, nullString, delimiterInQuotes, 
-						dateFormatString, boolStyle, locale);
-	String insert = cdp.generateInsert();
-	setup();
-	PreparedStatement statement = session.prepare(insert);
-	List<ResultSetFuture> futures = new ArrayList<ResultSetFuture>();
-	String line;
-	int lineNumber = 0;
-	int numInserted = 0;
-	int numErrors = 0;
-	List<Object> elements;
-
-	while ((line = reader.readLine()) != null) {
-	    lineNumber++;
-	    if (skipRows > 0) {
-		skipRows--;
-		continue;
-	    }
-	    if (maxRows-- < 0)
-		break;
-
-	    if (0 == line.trim().length())
-		continue;
-
-	    if (0 == lineNumber % numFutures)
-		purgeFutures(futures);
-
-	    if (null != (elements = cdp.parse(line))) {
-		BoundStatement bind = statement.bind(elements.toArray());
-		ResultSetFuture resultSetFuture = session.executeAsync(bind);
-		futures.add(resultSetFuture);
-		numInserted++;
+	    readerName = "stdin";
+	}
+	else {
+	    File infile = new File(filename);
+	    if (infile.isFile()) {
+		reader = new BufferedReader(new FileReader(infile));
+		readerName = filename;
 	    }
 	    else {
-		System.err.println(String.format("Error parsing line %d in %s: %s", lineNumber, filename, line));
-		if (null != badWriter) {
-		    badWriter.write(line);
-		    badWriter.newLine();
-		}
-		numErrors++;
-		if (maxErrors <= numErrors) {
-		    System.err.println(String.format("Maximum number of errors exceeded (%d)", numErrors));
-		    cluster.close();
-		    return false;
-		}
+		File[] inFileList = infile.listFiles();
+		if (inFileList.length < 1)
+		    throw new IOException("directory is empty");
+		for (int i = 0; i < inFileList.length; i++)
+		    fileList.push(inFileList[i]);
 	    }
 	}
-	purgeFutures(futures);
 
-	System.err.println("*** DONE: " + filename + "  number of lines processed: " + lineNumber + " (" + numInserted + " inserted)");
+	// Launch Threads
+	ExecutorService executor;
+	long total = 0;
+	if (null != reader) {
+	    // One file/stdin to process
+	    executor = Executors.newSingleThreadExecutor();
+	    Callable<Long> worker = new ThreadExecute(cqlSchema, delimiter, nullString,
+						delimiterInQuotes, 
+						dateFormatString, boolStyle,
+						locale, maxErrors, skipRows,
+						maxRows, badDir, reader, readerName,
+						host, port, numFutures);
+	    Future<Long> res = executor.submit(worker);
+	    total = res.get();
+	}
+	else {
+	    executor = Executors.newFixedThreadPool(numThreads);
+	    Set<Future<Long>> results = new HashSet<Future<Long>>();
+	    while (!fileList.isEmpty()) {
+		File tFile = fileList.pop();
+		BufferedReader r = new BufferedReader(new FileReader(tFile));
+		String rName = tFile.getName();
+		Callable<Long> worker = new ThreadExecute(cqlSchema, delimiter, nullString,
+						    delimiterInQuotes, 
+						    dateFormatString, boolStyle,
+						    locale, maxErrors, skipRows,
+						    maxRows, badDir, r, rName,
+						    host, port, numFutures);
+		results.add(executor.submit(worker));
+	    }
+	    executor.shutdown();
+	    for (Future<Long> res : results)
+		total += res.get();
+	}
+	System.err.println("Total rows inserted: " + total);
 
-	cleanup();
 	return true;
     }
 
-    public static void main(String[] args) throws IOException, ParseException {
+    public static void main(String[] args) throws IOException, ParseException, InterruptedException, ExecutionException {
 	CqlDelimLoad cdl = new CqlDelimLoad();
 	cdl.run(args);
+    }
+
+    class ThreadExecute implements Callable<Long> {
+	private Cluster cluster;
+	private Session session;
+	private CqlDelimParser cdp;
+	private long maxErrors;
+	private long skipRows;
+	private long maxRows;
+	private String badDir;
+	private BufferedWriter badWriter = null;
+	private BufferedReader reader;
+	private String readerName;
+	private String host;
+	private int port;
+	private int numFutures;
+	private long numInserted;
+
+	private String cqlSchema;
+	private Locale locale = null;
+	private BooleanParser.BoolStyle boolStyle = null;
+	private String nullString = null;
+	private String delimiter = null;
+	private boolean delimiterInQuotes;
+	private String insert;
+	private PreparedStatement statement;
+
+	public ThreadExecute(String inCqlSchema, String inDelimiter, 
+			     String inNullString, boolean inDelimiterInQuotes, 
+			     String inDateFormatString,
+			     BooleanParser.BoolStyle inBoolStyle, Locale inLocale, 
+			     long inMaxErrors, long inSkipRows, long inMaxRows,
+			     String inBadDir, BufferedReader inReader,
+			     String inReaderName, String inHost, int inPort,
+			     int inNumFutures) {
+	    super();
+	    cqlSchema = inCqlSchema;
+	    delimiter = inDelimiter;
+	    nullString = inNullString;
+	    delimiterInQuotes = inDelimiterInQuotes;
+	    dateFormatString = inDateFormatString;
+	    boolStyle = inBoolStyle;
+	    locale = inLocale;
+	    maxErrors = inMaxErrors;
+	    skipRows = inSkipRows;
+	    maxRows = inMaxRows;
+	    badDir = inBadDir;
+	    reader = inReader;
+	    readerName = inReaderName;
+	    host = inHost;
+	    port = inPort;
+	    numFutures = inNumFutures;
+	}
+
+	public Long call() throws IOException, ParseException {
+	    setup();
+	    numInserted = execute();
+	    cleanup();
+	    return numInserted;
+	}
+
+	private void setup() throws IOException, ParseException {
+	    // Prepare Badfile
+	    if (null != badDir)
+		badWriter = new BufferedWriter(new FileWriter(badDir + "/" 
+							      + readerName
+							      + ".BAD"));
+	    
+	    // Connect to Cassandra
+	    cluster = Cluster.builder()
+		.addContactPoint(host)
+		.withPort(port)
+		.withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy()))
+		.build();
+	    session = cluster.newSession();
+
+	    cdp = new CqlDelimParser(cqlSchema, delimiter, nullString, 
+				     delimiterInQuotes, dateFormatString, 
+				     boolStyle, locale);
+	    insert = cdp.generateInsert();
+	    statement = session.prepare(insert);
+	}
+	
+	private void cleanup() throws IOException {
+	    if (null != badWriter)
+		badWriter.close();
+	    if (null != session)
+		session.close();
+	    if (null != cluster)
+		cluster.close();
+	}
+
+	private long execute() throws IOException {
+	    List<ResultSetFuture> futures = new ArrayList<ResultSetFuture>();
+	    String line;
+	    int lineNumber = 0;
+	    int numInserted = 0;
+	    int numErrors = 0;
+	    List<Object> elements;
+
+	    System.err.println("*** Processing " + readerName);
+	    while ((line = reader.readLine()) != null) {
+		lineNumber++;
+		if (skipRows > 0) {
+		    skipRows--;
+		    continue;
+		}
+		if (maxRows-- < 0)
+		    break;
+		
+		if (0 == line.trim().length())
+		    continue;
+		
+		if (0 == lineNumber % numFutures)
+		    purgeFutures(futures);
+		
+		if (null != (elements = cdp.parse(line))) {
+		    BoundStatement bind = statement.bind(elements.toArray());
+		    ResultSetFuture resultSetFuture = session.executeAsync(bind);
+		    futures.add(resultSetFuture);
+		    numInserted++;
+		}
+		else {
+		    System.err.println(String.format("Error parsing line %d in %s: %s", lineNumber, readerName, line));
+		    if (null != badWriter) {
+			badWriter.write(line);
+			badWriter.newLine();
+		    }
+		    numErrors++;
+		    if (maxErrors <= numErrors) {
+			System.err.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
+			cluster.close();
+			return -1;
+		    }
+		}
+	    }
+	    purgeFutures(futures);
+	    
+	    System.err.println("*** DONE: " + filename + "  number of lines processed: " + lineNumber + " (" + numInserted + " inserted)");
+
+	    return numInserted;
+	}
+
+	private void purgeFutures(List<ResultSetFuture> futures) {
+	    for (ResultSetFuture future: futures) {
+		future.getUninterruptibly();
+	    }
+	    futures.clear();
+	}
+
+	long getNumInserted() {
+	    return numInserted;
+	}
     }
 }
 
