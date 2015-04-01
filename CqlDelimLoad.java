@@ -41,6 +41,8 @@ import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 public class CqlDelimLoad {
     private String host = null;
     private int port = 9042;
+    private String username = null;
+    private String password = null;
     private Cluster cluster = null;
     private Session session = null;
     private int numFutures = 1000;
@@ -75,10 +77,16 @@ public class CqlDelimLoad {
 	usage = usage + "  -maxErrors <maxErrors>         Maximum errors to endure [10]\n";
 	usage = usage + "  -badDir <badDirectory>         Directory for where to place badly parsed rows. [none]\n";
 	usage = usage + "  -port <portNumber>             CQL Port Number [9042]\n";
+	usage = usage + "  -user <username>               Cassandra username [none]\n";
+	usage = usage + "  -pw <password>                 Password for user [none]\n";
 	usage = usage + "  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]\n";
 	usage = usage + "  -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','\n";
 	usage = usage + "  -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]\n";
 	usage = usage + "  -numThreads <numThreads>       Number of concurrent threads (files) to load\n";
+	usage = usage + "\n\nExamples:\n";
+	usage = usage + "cassandra-loader -f /path/to/file.csv -host localhost -schema \"test.test3(a int, b int, c int)\"\n";
+	usage = usage + "cassandra-loader -f /path/to/directory -host 1.2.3.4 -schema \"test.test3(a int, b int, c int)\" -delim \"\\t\" -numThreads 10\n";
+	usage = usage + "cassandra-loader -f stdin -host localhost -schema \"test.test3(a int, b int, c int)\" -user myuser -pw mypassword\n";
 	return usage;
     }
     
@@ -99,6 +107,32 @@ public class CqlDelimLoad {
 	    System.err.println("Maximum number of errors must be non-negative");
 	    return false;
 	}
+	if (numThreads < 1) {
+	    System.err.println("Number of threads must be non-negative");
+	    return false;
+	}
+	if (!filename.equalsIgnoreCase("stdin")) {
+	    File infile = new File(filename);
+	    if ((!infile.isFile()) && (!infile.isDirectory())) {
+		System.err.println("The -f argument needs to be a file or a directory");
+		return false;
+	    }
+	    if (infile.isDirectory()) {
+		File[] infileList = infile.listFiles();
+		if (infileList.length < 1) {
+		    System.err.println("The directory supplied is empty");
+		    return false;
+		}
+	    }
+	}
+	if ((null == username) && (null != password)) {
+	    System.err.println("If you supply the password, you must supply the username");
+	    return false;
+	}
+	if ((null != username) && (null == password)) {
+	    System.err.println("If you supply the username, you must supply the password");
+	    return false;
+	}
 
 	return true;
     }
@@ -111,27 +145,27 @@ public class CqlDelimLoad {
 	    amap.put(args[i], args[i+1]);
 
 	host = amap.remove("-host");
-	if (null == host) // host is required
+	if (null == host) { // host is required
+	    System.err.println("Must provide a host");
 	    return false;
+	}
 
 	filename = amap.remove("-f");
-	if (null == filename) // filename is required
+	if (null == filename) { // filename is required
+	    System.err.println("Must provide a filename/directory");
 	    return false;
-	File infile = new File(filename);
-	if ((!infile.isFile()) && (!infile.isDirectory()))
-	    return false;
-	if (infile.isDirectory()) {
-	    File[] infileList = infile.listFiles();
-	    if (infileList.length < 1)
-		return false;
 	}
 
 	cqlSchema = amap.remove("-schema");
-	if (null == cqlSchema) // schema is required
-	    return false; 
+	if (null == cqlSchema) { // schema is required
+	    System.err.println("Must provide a schema");
+	    return false;
+	}
 
 	String tkey;
 	if (null != (tkey = amap.remove("-port")))          port = Integer.parseInt(tkey);
+	if (null != (tkey = amap.remove("-user")))          username = tkey;
+	if (null != (tkey = amap.remove("-pw")))            password = tkey;
 	if (null != (tkey = amap.remove("-numFutures")))    numFutures = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-maxErrors")))     maxErrors = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-skipRows")))      skipRows = Integer.parseInt(tkey);
@@ -153,8 +187,6 @@ public class CqlDelimLoad {
 	    }
 	}
 	if (null != (tkey = amap.remove("-numThreads")))       numThreads = Integer.parseInt(tkey);
-	if (numThreads < 1)
-	    return false;
 	if (-1 == maxRows)
 	    maxRows = Long.MAX_VALUE;
 	if (-1 == maxErrors)
@@ -309,11 +341,13 @@ public class CqlDelimLoad {
 							      + ".BAD"));
 	    
 	    // Connect to Cassandra
-	    cluster = Cluster.builder()
+	    Cluster.Builder clusterBuilder = Cluster.builder()
 		.addContactPoint(host)
 		.withPort(port)
-		.withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy()))
-		.build();
+		.withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy()));
+	    if (null != username)
+		clusterBuilder = clusterBuilder.withCredentials(username, password);
+	    cluster = clusterBuilder.build();
 	    session = cluster.newSession();
 
 	    cdp = new CqlDelimParser(cqlSchema, delimiter, nullString, 
