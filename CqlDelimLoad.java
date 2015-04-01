@@ -27,10 +27,12 @@ import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
-
 public class CqlDelimLoad {
+    private String version = "0.0.2";
     private String host = null;
     private int port = 9042;
+    private String username = null;
+    private String password = null;
     private Cluster cluster = null;
     private Session session = null;
     private int numFutures = 1000;
@@ -52,7 +54,8 @@ public class CqlDelimLoad {
     private boolean delimiterInQuotes = false;
 
     private String usage() {
-	String usage = "Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]\n";
+	String usage = "Version " + version;
+	usage = usage + "Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]\n";
 	usage = usage + "OPTIONS:\n";
 	usage = usage + "  -delim <delimiter>             Delimiter to use [,]\n";
 	usage = usage + "  -delmInQuotes true             Set to 'true' if delimiter can be inside quoted fields [false]\n";
@@ -63,6 +66,8 @@ public class CqlDelimLoad {
 	usage = usage + "  -maxErrors <maxErrors>         Maximum errors to endure [10]\n";
 	usage = usage + "  -badFile <badFilename>         Filename for where to place badly parsed rows. [none]\n";
 	usage = usage + "  -port <portNumber>             CQL Port Number [9042]\n";
+	usage = usage + "  -user <username>               Cassandra username [none]\n";
+	usage = usage + "  -pw <password>                 Password for user [none]\n";
 	usage = usage + "  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]\n";
 	usage = usage + "  -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','\n";
 	usage = usage + "  -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]\n";
@@ -75,11 +80,13 @@ public class CqlDelimLoad {
 	    badWriter = new BufferedWriter(new FileWriter(badFile));
 
 	// Connect to Cassandra
-	cluster = Cluster.builder()
+	Cluster.Builder clusterBuilder = Cluster.builder()
 	    .addContactPoint(host)
 	    .withPort(port)
-	    .withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy()))
-	    .build();
+	    .withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy() ));
+	if (null != username)
+	    clusterBuilder = clusterBuilder.withCredentials(username, password);
+	cluster = clusterBuilder.build();
 	session = cluster.newSession();
     }
 
@@ -109,6 +116,14 @@ public class CqlDelimLoad {
 	    System.err.println("Maximum number of errors must be non-negative");
 	    return false;
 	}
+	if ((null == username) && (null != password)) {
+	    System.err.println("If you supply the password, you must supply the username");
+	    return false;
+	}
+	if ((null != username) && (null == password)) {
+	    System.err.println("If you supply the username, you must supply the password");
+	    return false;
+	}
 
 	return true;
     }
@@ -134,6 +149,8 @@ public class CqlDelimLoad {
 
 	String tkey;
 	if (null != (tkey = amap.remove("-port")))          port = Integer.parseInt(tkey);
+	if (null != (tkey = amap.remove("-user")))          username = tkey;
+	if (null != (tkey = amap.remove("-pw")))            password = tkey;
 	if (null != (tkey = amap.remove("-numFutures")))    numFutures = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-maxErrors")))     maxErrors = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-skipRows")))      skipRows = Integer.parseInt(tkey);

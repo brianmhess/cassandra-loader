@@ -15,11 +15,11 @@ loading of various types of delimited files, including
 
 ### Downloading
 This utility has already been built, and is available at
-http://goo.gl/4HweRC
+http://goo.gl/jeAixD
 
 Get it with wget:
 ```
-wget http://goo.gl/4HweRC
+wget http://goo.gl/jeAixD
 ```
 
 ### Building
@@ -60,6 +60,8 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a int, b 
  `-host`          | IP Address         | <REQUIRED>                 | Cassandra connection point - required.
  `-schema`        | CQL schema         | <REQUIRED>                 | Schema of input data - required. Standard CQL schema (without PRIMARY KEY clause) and in the order that the data will be in the file.
  `-port`          | Port Number        | 9042                       | Cassandra native protocol port number
+ `-user`          | Username           | none                       | Cassandra username
+ `-pw`            | Password           | none                       | Cassandra password
  `-numFutures`    | Number of Futures  | 1000                       | Number of Java driver futures in flight
  `-delim`         | Delimiter          | ,                          | Delimiter to use
  `-delimInQuotes` | True/False         | false                      | Are delimiters allowed inside quoted strings? This is more expensive to parse, so we default to false.
@@ -78,6 +80,8 @@ That way, you could pipe data in from other commands:
 ```
 grep IMPORTANT data.csv | cassandra-loader -f stdin -h 1.2.3.4 -cql "test.itest(a text, b text)"
 ```
+
+If you specify either the username or the password, then you must specify both.
 
 If you do not have delimiters inside quoted text fields, then leave the -delimInQuotes option false.
 Enabling it will result in slower parsing times.

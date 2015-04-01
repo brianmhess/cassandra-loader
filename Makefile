@@ -54,7 +54,7 @@ CqlDelimParser: parser/CqlDelimParser.java
 CqlDelimLoad: CqlDelimLoad.java
 	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" CqlDelimLoad.java
 
-jar: cload.jar
+jar: cassandra-loader.jar
 
 explode: dirs
 	unzip -oq lib/cassandra-java-driver/cassandra-driver-mapping-2.1.4.jar -d build
