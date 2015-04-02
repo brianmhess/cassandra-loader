@@ -1,0 +1,34 @@
+apply plugin: 'java'
+apply plugin: 'application'
+
+mainClassName = 'com.datastax.loader.CqlDelimLoad'
+versionNum = '0.0.2'
+
+task buildit(type: Exec,dependsOn:['uberjar']) {
+    commandLine './buildit.sh'
+}
+
+jar {
+    baseName = 'cassandra-loader'
+    version =  versionNum
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'com.datastax.cassandra:cassandra-driver-core:2.1.4'
+}
+
+task uberjar(type: Jar,dependsOn:[':compileJava', ':jar']) {
+    from files(sourceSets.main.output.classesDir)
+    from(configurations.runtime.asFileTree.files.collect { zipTree(it) }) {
+        exclude "META-INF/**"
+    }
+    manifest {
+        attributes "Main-Class" : mainClassName
+    }
+    baseName = 'cassandra-loader-uber'
+    version =  versionNum
+}
