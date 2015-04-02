@@ -3,56 +3,56 @@ dirs:
 
 compile: dirs Parser NumberParser BigDecimalParser BigIntegerParser BooleanParser ByteBufferParser DateParser DoubleParser FloatParser InetAddressParser IntegerParser LongParser StringParser UUIDParser DelimParser CqlDelimParser CqlDelimLoad
 
-Parser: parser/Parser.java
-	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" parser/Parser.java
+Parser: src/main/java/com/datastax/loader/parser/Parser.java
+	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" src/main/java/com/datastax/loader/parser/Parser.java
 
-BigDecimalParser: parser/BigDecimalParser.java
-	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" parser/BigDecimalParser.java
+BigDecimalParser: src/main/java/com/datastax/loader/parser/BigDecimalParser.java
+	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" src/main/java/com/datastax/loader/parser/BigDecimalParser.java
 
-BigIntegerParser: parser/BigIntegerParser.java
-	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" parser/BigIntegerParser.java
+BigIntegerParser: src/main/java/com/datastax/loader/parser/BigIntegerParser.java
+	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" src/main/java/com/datastax/loader/parser/BigIntegerParser.java
 
-BooleanParser: parser/BooleanParser.java
-	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" parser/BooleanParser.java
+BooleanParser: src/main/java/com/datastax/loader/parser/BooleanParser.java
+	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" src/main/java/com/datastax/loader/parser/BooleanParser.java
 
-ByteBufferParser: parser/ByteBufferParser.java
-	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" parser/ByteBufferParser.java
+ByteBufferParser: src/main/java/com/datastax/loader/parser/ByteBufferParser.java
+	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" src/main/java/com/datastax/loader/parser/ByteBufferParser.java
 
-DateParser: parser/DateParser.java
-	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" parser/DateParser.java
+DateParser: src/main/java/com/datastax/loader/parser/DateParser.java
+	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" src/main/java/com/datastax/loader/parser/DateParser.java
 
-DoubleParser: parser/DoubleParser.java
-	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" parser/DoubleParser.java
+DoubleParser: src/main/java/com/datastax/loader/parser/DoubleParser.java
+	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" src/main/java/com/datastax/loader/parser/DoubleParser.java
 
-FloatParser: parser/FloatParser.java
-	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" parser/FloatParser.java
+FloatParser: src/main/java/com/datastax/loader/parser/FloatParser.java
+	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" src/main/java/com/datastax/loader/parser/FloatParser.java
 
-InetAddressParser: parser/InetAddressParser.java
-	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" parser/InetAddressParser.java
+InetAddressParser: src/main/java/com/datastax/loader/parser/InetAddressParser.java
+	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" src/main/java/com/datastax/loader/parser/InetAddressParser.java
 
-IntegerParser: parser/IntegerParser.java
-	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" parser/IntegerParser.java
+IntegerParser: src/main/java/com/datastax/loader/parser/IntegerParser.java
+	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" src/main/java/com/datastax/loader/parser/IntegerParser.java
 
-LongParser: parser/LongParser.java
-	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" parser/LongParser.java
+LongParser: src/main/java/com/datastax/loader/parser/LongParser.java
+	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" src/main/java/com/datastax/loader/parser/LongParser.java
 
-NumberParser: parser/NumberParser.java
-	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" parser/NumberParser.java
+NumberParser: src/main/java/com/datastax/loader/parser/NumberParser.java
+	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" src/main/java/com/datastax/loader/parser/NumberParser.java
 
-StringParser: parser/StringParser.java
-	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" parser/StringParser.java
+StringParser: src/main/java/com/datastax/loader/parser/StringParser.java
+	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" src/main/java/com/datastax/loader/parser/StringParser.java
 
-UUIDParser: parser/UUIDParser.java
-	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" parser/UUIDParser.java
+UUIDParser: src/main/java/com/datastax/loader/parser/UUIDParser.java
+	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" src/main/java/com/datastax/loader/parser/UUIDParser.java
 
-DelimParser: parser/DelimParser.java
-	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" parser/DelimParser.java
+DelimParser: src/main/java/com/datastax/loader/parser/DelimParser.java
+	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" src/main/java/com/datastax/loader/parser/DelimParser.java
 
-CqlDelimParser: parser/CqlDelimParser.java
-	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" parser/CqlDelimParser.java
+CqlDelimParser: src/main/java/com/datastax/loader/parser/CqlDelimParser.java
+	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" src/main/java/com/datastax/loader/parser/CqlDelimParser.java
 
-CqlDelimLoad: CqlDelimLoad.java
-	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" CqlDelimLoad.java
+CqlDelimLoad: src/main/java/com/datastax/loader/CqlDelimLoad.java
+	javac -d build -cp "build:lib/cassandra-java-driver/*:lib/cassandra-java-driver/lib/*" src/main/java/com/datastax/loader/CqlDelimLoad.java
 
 jar: cassandra-loader.jar
 
@@ -69,7 +69,7 @@ explode: dirs
 	rm -rf build/META-INF
 
 cassandra-loader.jar: compile explode
-	jar cfe cassandra-loader.jar hess.loader.CqlDelimLoad README.md lib/cassandra-java-driver -C build .
+	jar cfe cassandra-loader.jar com.datastax.loader.CqlDelimLoad README.md lib/cassandra-java-driver -C build .
 
 cassandra-loader: cassandra-loader.jar cassandra-loader.sh
 	cat cassandra-loader.sh cassandra-loader.jar > cassandra-loader
