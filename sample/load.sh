@@ -1,0 +1,1 @@
+../build/cassandra-loader -f titanic.csv -host localhost -schema "titanic.survivors(id varchar, survived boolean, passenger_class int, name varchar, sex varchar, age int, num_siblings_spouse int, num_parents_children int, ticket_id varchar, fare varchar, cabin varchar, port_of_embarkation varchar)" -delimInQuotes true -boolStyle 1_0 -user jeremy -pw fishy
