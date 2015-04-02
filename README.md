@@ -15,11 +15,11 @@ loading of various types of delimited files, including
 
 ### Downloading
 This utility has already been built, and is available at
-http://goo.gl/...
+http://goo.gl/eMVGKz
 
 Get it with wget:
 ```
-wget http://goo.gl/...
+wget http://goo.gl/eMVGKz
 ```
 
 ### Building
