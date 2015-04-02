@@ -15,11 +15,11 @@ loading of various types of delimited files, including
 
 ### Downloading
 This utility has already been built, and is available at
-http://goo.gl/jeAixD
+http://goo.gl/...
 
 Get it with wget:
 ```
-wget http://goo.gl/jeAixD
+wget http://goo.gl/...
 ```
 
 ### Building
@@ -107,15 +107,25 @@ different styles, the True and False strings are as follows:
 Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]
 OPTIONS:
   -delim <delimiter>             Delimiter to use [,]
-  -delmInQuotes true             Set to 'true' if delimiter can be inside quoted fields [false]  -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]
+  -delmInQuotes true             Set to 'true' if delimiter can be inside quoted fields [false]
+  -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]
   -nullString <nullString>       String that signifies NULL [none]
   -skipRows <skipRows>           Number of rows to skip [0]
   -maxRows <maxRows>             Maximum number of rows to read (-1 means all) [-1]
   -maxErrors <maxErrors>         Maximum errors to endure [10]
-  -badFile <badFilename>         Filename for where to place badly parsed rows. [none]
+  -badDir <badDirectory>         Directory for where to place badly parsed rows. [none]
   -port <portNumber>             CQL Port Number [9042]
+  -user <username>               Cassandra username [none]
+  -pw <password>                 Password for user [none]
   -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]
   -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','
   -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]
+  -numThreads <numThreads>       Number of concurrent threads (files) to load
+
+
+Examples:
+cassandra-loader -f /path/to/file.csv -host localhost -schema "test.test3(a int, b int, c int)"
+cassandra-loader -f /path/to/directory -host 1.2.3.4 -schema "test.test3(a int, b int, c int)" -delim "\t" -numThreads 10
+cassandra-loader -f stdin -host localhost -schema "test.test3(a int, b int, c int)" -user myuser -pw mypassword
 ```
 

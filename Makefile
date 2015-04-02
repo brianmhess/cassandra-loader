@@ -66,9 +66,10 @@ explode: dirs
 	unzip -oq lib/cassandra-java-driver/lib/slf4j-api-1.7.5.jar -d build
 	unzip -oq lib/cassandra-java-driver/cassandra-driver-dse-2.1.4.jar -d build
 	unzip -oq lib/cassandra-java-driver/cassandra-driver-core-2.1.4.jar -d build
+	rm -rf build/META-INF
 
-cassandra-loader.jar: compile explode cassandra-loader.mf
-	jar cfm cassandra-loader.jar cassandra-loader.mf README.md lib/cassandra-java-driver -C build .
+cassandra-loader.jar: compile explode
+	jar cfe cassandra-loader.jar hess.loader.CqlDelimLoad README.md lib/cassandra-java-driver -C build .
 
 cassandra-loader: cassandra-loader.jar cassandra-loader.sh
 	cat cassandra-loader.sh cassandra-loader.jar > cassandra-loader
