@@ -4,8 +4,9 @@ apply plugin: 'application'
 mainClassName = 'com.datastax.loader.CqlDelimLoad'
 versionNum = '0.0.2'
 
-task buildit(type: Exec,dependsOn:['uberjar']) {
-    commandLine './buildit.sh'
+task buildit(type: Exec) {
+    dependsOn << 'uberjar'
+    commandLine './src/make/buildit.sh'
 }
 
 jar {
@@ -21,7 +22,8 @@ dependencies {
     compile 'com.datastax.cassandra:cassandra-driver-core:2.1.4'
 }
 
-task uberjar(type: Jar,dependsOn:[':compileJava', ':jar']) {
+task uberjar(type: Jar) {
+    dependsOn << 'compileJava'
     from files(sourceSets.main.output.classesDir)
     from(configurations.runtime.asFileTree.files.collect { zipTree(it) }) {
         exclude "META-INF/**"
