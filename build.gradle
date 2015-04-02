@@ -2,7 +2,7 @@ apply plugin: 'java'
 apply plugin: 'application'
 
 mainClassName = 'com.datastax.loader.CqlDelimLoad'
-versionNum = '0.0.2'
+def versionNum = '0.0.2'
 
 task buildit(type: Exec) {
     dependsOn << 'uberjar'
@@ -11,7 +11,7 @@ task buildit(type: Exec) {
 
 jar {
     baseName = 'cassandra-loader'
-    version =  versionNum
+    version = versionNum
 }
 
 repositories {
