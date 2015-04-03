@@ -25,29 +25,39 @@ wget http://goo.gl/eMVGKz
 ### Building
 To build this repository, simply clone this repo and run:
 ```
-make cassandra-loader
+gradle buildit
 ```
 
 All of the dependencies are included (namely, the Java driver - currently
-version 2.1.4).
+version 2.1.4).  The output will be the cassandra-loader executable
+in the build directory.  There will also be an jar with all of the
+dependencies included in the build/libs/cassandra-loader-uber-<version>.jar
 
 ## Documentation 
-To extract this README document, simply run:
+To extract this README document, simply run (on the cassandra-loader
+executable - (e.g., on build/cassandra-loader):
 ```
 jar xf cassandra-loader README.md
 ```
 
 ## Run
-To run cassandra-loader, simply run the cassandra-loader executable:
+To run cassandra-loader, simply run the cassandra-loader executable 
+(e.g., located at build/cassandra-loader):
 ```
-./cassandra-loader
+cassandra-loader
+```
+If you built this with gradle, you can also run:
+```
+gradle run
 ```
 
 This will print the usage statment.
 
-This will load the myFileToLoad.csv file into the Cassandra cluster at IP address 1.2.3.4 into the test.ltest 
-column family where the myFileToLoad file has the format of 4 columns - the first and second as integers, 
-the third as text, and the fourth as double-precision floating point - and using the default options:
+The following will load the myFileToLoad.csv file into the Cassandra 
+cluster at IP address 1.2.3.4 into the test.ltest column family where 
+the myFileToLoad file has the format of 4 columns - the first and 
+second as integers, the third as text, and the fourth as 
+double-precision floating point - and using the default options:
 ```
 cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a int, b int, c text, d double)"
 ```
@@ -83,11 +93,12 @@ grep IMPORTANT data.csv | cassandra-loader -f stdin -h 1.2.3.4 -cql "test.itest(
 
 If you specify either the username or the password, then you must specify both.
 
-If you do not have delimiters inside quoted text fields, then leave the -delimInQuotes option false.
-Enabling it will result in slower parsing times.
+If you do not have delimiters inside quoted text fields, then leave the 
+-delimInQuotes option false. Enabling it will result in slower parsing times.
 
-numFutures is a way to control the level of parallelism, but at some point too many
-will actually slow down the load.  The default of 1000 is a decent place to start.
+numFutures is a way to control the level of parallelism, but at some point 
+too many will actually slow down the load.  The default of 500 is a decent 
+place to start.
 
 boolStyle is a case-insensitive test of the True and False strings.  For the
 different styles, the True and False strings are as follows:
@@ -120,7 +131,7 @@ OPTIONS:
   -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]
   -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','
   -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]
-  -numThreads <numThreads>       Number of concurrent threads (files) to load
+  -numThreads <numThreads>       Number of concurrent threads (files) to load [5]
 
 
 Examples:
@@ -128,4 +139,46 @@ cassandra-loader -f /path/to/file.csv -host localhost -schema "test.test3(a int,
 cassandra-loader -f /path/to/directory -host 1.2.3.4 -schema "test.test3(a int, b int, c int)" -delim "\t" -numThreads 10
 cassandra-loader -f stdin -host localhost -schema "test.test3(a int, b int, c int)" -user myuser -pw mypassword
 ```
+
+##Examples:
+Load file /path/to/file.csv into the test3 table in the test keyspace using
+the cluster at localhost.  Use the default options:
+```
+cassandra-loader -f /path/to/file.csv -host localhost -schema "test.test3(a int, b int, c int)"
+```
+Load all the files from /path/to/directory into the test3 table in the test
+keyspace using the cluster at 1.2.3.4.  Use 10 threads and use tab as the
+delimiter:
+```
+cassandra-loader -f /path/to/directory -host 1.2.3.4 -schema "test.test3(a int, b int, c int)" -delim "\t" -numThreads 10
+```
+Load the data from stdin into the test3 table in the test keyspace using the
+cluster at localhost.  Use "myuser" as the username and "mypassword" as the
+password:
+```
+cassandra-loader -f stdin -host localhost -schema "test.test3(a int, b int, c int)" -user myuser -pw mypassword
+```
+
+##Sample
+Included here is a set of sample data.  It is in the sample/ directory.
+You can set up the table and keyspace by running:
+```
+cqlsh -f sample/cassandra-schema.cql
+```
+
+To load the data, run:
+```
+cd sample
+./load.sh
+```
+
+To check that things have succeeded, you can run:
+```
+wc -l titanic.csv
+``
+And:
+```
+cqlsh -e "SELECT COUNT(*) FROM titanic.surviors"
+```
+Both should return 891.
 

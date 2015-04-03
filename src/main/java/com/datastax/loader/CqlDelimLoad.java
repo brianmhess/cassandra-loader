@@ -97,7 +97,7 @@ public class CqlDelimLoad {
 	usage = usage + "  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]\n";
 	usage = usage + "  -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','\n";
 	usage = usage + "  -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]\n";
-	usage = usage + "  -numThreads <numThreads>       Number of concurrent threads (files) to load\n";
+	usage = usage + "  -numThreads <numThreads>       Number of concurrent threads (files) to load [5]\n";
 	usage = usage + "\n\nExamples:\n";
 	usage = usage + "cassandra-loader -f /path/to/file.csv -host localhost -schema \"test.test3(a int, b int, c int)\"\n";
 	usage = usage + "cassandra-loader -f /path/to/directory -host 1.2.3.4 -schema \"test.test3(a int, b int, c int)\" -delim \"\\t\" -numThreads 10\n";
