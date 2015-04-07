@@ -175,7 +175,7 @@ cd sample
 To check that things have succeeded, you can run:
 ```
 wc -l titanic.csv
-``
+```
 And:
 ```
 cqlsh -e "SELECT COUNT(*) FROM titanic.surviors"
