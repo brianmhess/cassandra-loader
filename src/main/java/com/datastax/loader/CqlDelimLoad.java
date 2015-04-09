@@ -56,6 +56,7 @@ import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
 
 public class CqlDelimLoad {
+    private String version = "0.0.3";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -86,7 +87,8 @@ public class CqlDelimLoad {
     private int numThreads = 5;
 
     private String usage() {
-	String usage = "Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]\n";
+	String usage = "version: " + version;
+	usage = usage + "Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]\n";
 	usage = usage + "OPTIONS:\n";
 	usage = usage + "  -delim <delimiter>             Delimiter to use [,]\n";
 	usage = usage + "  -delmInQuotes true             Set to 'true' if delimiter can be inside quoted fields [false]\n";
