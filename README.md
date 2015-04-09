@@ -19,7 +19,7 @@ https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.3/cassandr
 
 Get it with wget:
 ```
-https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.3/cassandra-loader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.3/cassandra-loader
 ```
 
 ### Building
