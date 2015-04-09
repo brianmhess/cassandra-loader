@@ -73,7 +73,7 @@ public class CqlDelimLoad {
     private long maxErrors = 10;
     private long skipRows = 0;
     private long maxRows = -1;
-    private String badDir = null;
+    private String badDir = ".";
     private BufferedWriter badWriter = null;
     private String filename = null;
 
@@ -463,7 +463,7 @@ public class CqlDelimLoad {
 	    Map<ResultSetFuture,String> futures = new HashMap<ResultSetFuture,String>();
 	    String line;
 	    int lineNumber = 0;
-	    int numInserted = 0;
+	    long numInserted = 0;
 	    int numErrors = 0;
 	    List<Object> elements;
 
