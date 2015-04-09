@@ -15,11 +15,11 @@ loading of various types of delimited files, including
 
 ### Downloading
 This utility has already been built, and is available at
-http://goo.gl/akt2zR
+https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.3/cassandra-loader
 
 Get it with wget:
 ```
-http://goo.gl/akt2zR
+https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.3/cassandra-loader
 ```
 
 ### Building
@@ -72,7 +72,10 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a int, b 
  `-port`          | Port Number        | 9042                       | Cassandra native protocol port number
  `-user`          | Username           | none                       | Cassandra username
  `-pw`            | Password           | none                       | Cassandra password
- `-numFutures`    | Number of Futures  | 1000                       | Number of Java driver futures in flight
+ `-numFutures`    | Number of Futures  | 1000                       | Number of Java driver futures in flight.
+ `-numRetries`    | Number of retries  | 1                          | Number of times to retry the INSERT before declaring defeat.
+ `-numInserErrors` | Number of errors  | 10                         | Number of INSERT errors to tolerate before stopping.
+ `-queryTimeout   | Timeout in seconds | 2                          | Amount of time to wait for a query to finish before timing out.
  `-delim`         | Delimiter          | ,                          | Delimiter to use
  `-delimInQuotes` | True/False         | false                      | Are delimiters allowed inside quoted strings? This is more expensive to parse, so we default to false.
  `-nullString`    | Null String        | <empty string>             | String to represent NULL data
