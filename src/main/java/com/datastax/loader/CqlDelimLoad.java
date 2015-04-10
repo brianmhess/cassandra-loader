@@ -544,7 +544,7 @@ public class CqlDelimLoad {
 		    badInsertWriter.write(line);
 		    badInsertWriter.newLine();
 		    insertErrors++;
-		    if (maxInsertErrors >= insertErrors) {
+		    if (maxInsertErrors <= insertErrors) {
 			logWriter.println("Too many INSERT errors (" + insertErrors + ")... Stopping");
 			cleanup();
 			return false;
