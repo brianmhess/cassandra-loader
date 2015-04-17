@@ -20,6 +20,9 @@ import java.lang.Number;
 import java.util.Locale;
 import java.text.NumberFormat;
 import java.text.ParseException;
+import java.lang.IndexOutOfBoundsException;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // General number parser
 // This is useful as it can take care of Locales for us
@@ -42,4 +45,8 @@ public class NumberParser implements Parser {
 	    return null;
 	return nf.parse(toparse);
     }
+
+    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
+	throw new InvalidTypeException("Should not call Number.format()");
+    } 
 }

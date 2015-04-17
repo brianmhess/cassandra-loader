@@ -18,6 +18,9 @@ package com.datastax.loader.parser;
 import java.lang.String;
 import java.lang.Boolean;
 import java.text.ParseException;
+import java.lang.IndexOutOfBoundsException;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // Boolean parser - handles any way that Booleans can be expressed in Java
 public class BooleanParser implements Parser {
@@ -104,6 +107,15 @@ public class BooleanParser implements Parser {
 	if (boolFalse.equalsIgnoreCase(toparse))
 	    return new Boolean("FALSE");
 	throw new ParseException("Boolean was not TRUE (" + boolTrue + ") or FALSE (" + boolFalse + ")", 0);
+    }
+
+    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
+	if (row.isNull(index))
+	    return null;
+	boolean val = row.getBool(index);
+	if (val)
+	    return boolTrue;
+	return boolFalse;
     }
 }
 

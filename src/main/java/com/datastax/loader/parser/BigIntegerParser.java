@@ -18,6 +18,9 @@ package com.datastax.loader.parser;
 import java.lang.String;
 import java.math.BigInteger;
 import java.lang.NumberFormatException;
+import java.lang.IndexOutOfBoundsException;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // BigInteger parser
 public class BigIntegerParser implements Parser {
@@ -25,5 +28,9 @@ public class BigIntegerParser implements Parser {
 	if (null == toparse)
 	    return null;
 	return new BigInteger(toparse);
+    }
+
+    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
+	return row.isNull(index) ? null : row.getVarint(index).toString();
     }
 }

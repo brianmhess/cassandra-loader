@@ -18,6 +18,9 @@ package com.datastax.loader.parser;
 import java.lang.String;
 import java.math.BigDecimal;
 import java.lang.NumberFormatException;
+import java.lang.IndexOutOfBoundsException;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // BigDecimal parser
 public class BigDecimalParser implements Parser {
@@ -25,5 +28,9 @@ public class BigDecimalParser implements Parser {
 	if (null == toparse)
 	    return null;
 	return new BigDecimal(toparse);
+    }
+
+    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
+	return row.isNull(index) ? null : row.getDecimal(index).toString();
     }
 }

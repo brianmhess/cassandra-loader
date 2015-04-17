@@ -24,6 +24,11 @@ import java.text.ParseException;
 import java.util.Locale;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import java.lang.IndexOutOfBoundsException;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.ColumnDefinitions;
+import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 public class CqlDelimParser {
     private Map<String, Parser> pmap;
@@ -32,23 +37,23 @@ public class CqlDelimParser {
     private String tablename;
     private DelimParser delimParser;
 
-    public CqlDelimParser(String inCqlSchema) throws ParseException {
+    public CqlDelimParser(String inCqlSchema, Session session) throws ParseException {
 	// Must supply a CQL schema
-	this(inCqlSchema, null, null, false);
+	this(inCqlSchema, null, null, false, session);
     }
 
     public CqlDelimParser(String inCqlSchema, String inDelimiter, String inNullString,
-			  boolean delimiterInQuotes) throws ParseException {
+			  boolean delimiterInQuotes, Session session) throws ParseException {
 	// Optionally provide things for the DelimParser - delmiter, null string
-	this(inCqlSchema, inDelimiter, inNullString, delimiterInQuotes, null, null, null);
+	this(inCqlSchema, inDelimiter, inNullString, delimiterInQuotes, null, null, null, session);
     }	
 
     public CqlDelimParser(String inCqlSchema, String inDelimiter, String inNullString,
 			  boolean delimiterInQuotes, String inDateFormatString, 
-			  BooleanParser.BoolStyle inBoolStyle, Locale inLocale) throws ParseException {
+			  BooleanParser.BoolStyle inBoolStyle, Locale inLocale, Session session) throws ParseException {
 	// Optionally provide things for the line parser - date format, boolean format, locale
 	initPmap(inDateFormatString, inBoolStyle, inLocale);
-	processCqlSchema(inCqlSchema);
+	processCqlSchema(inCqlSchema, session);
 	createDelimParser(inDelimiter, inNullString, delimiterInQuotes);
     }	
 
@@ -95,8 +100,8 @@ public class CqlDelimParser {
     }
 
     // Validate the CQL schema, extract the keyspace and tablename, and process the rest of the schema
-    private void processCqlSchema(String cqlSchema) throws ParseException {
-	String kstnRegex = "^\\s*(\\w+)\\.(\\w+)\\s*[\\(]\\s*(\\w+\\s+\\w+\\s*(,\\s*\\w+\\s+\\w+\\s*)*)[\\)]\\s*$";
+    private void processCqlSchema(String cqlSchema, Session session) throws ParseException {
+	String kstnRegex = "^\\s*(\\w+)\\.(\\w+)\\s*[\\(]\\s*(\\w+\\s*(,\\s*\\w+\\s*)*)[\\)]\\s*$";
 	Pattern p = Pattern.compile(kstnRegex);
 	Matcher m = p.matcher(cqlSchema);
 	if (!m.find()) {
@@ -105,32 +110,25 @@ public class CqlDelimParser {
 	keyspace = m.group(1);
 	tablename = m.group(2);
 	String schemaString = m.group(3);
-	sbl = parseSchema(schemaString);
+	sbl = schemaBits(schemaString, session);
     }
 
-    // Validate the schema and extract name and data type information.  Builds up the list of parsers
-    private List<SchemaBits> parseSchema(String in) throws ParseException {
-	String schemaRegex = ",*\\s*(\\w+)\\s+(\\w+)\\s*";
-	Pattern p = Pattern.compile(schemaRegex);
-	Matcher m = p.matcher(in);
-
-	if (!m.find()) {
-	    throw new ParseException("Badly formatted CQL schema", 0);
-	}
-
+    private List<SchemaBits> schemaBits(String in, Session session) throws ParseException {
+	String query = "SELECT " + in + " FROM " + keyspace + "." + tablename + " LIMIT 1";
+	ColumnDefinitions cd = session.execute(query).getColumnDefinitions();
+	String[] inList = in.split(",");
 	List<SchemaBits> sbl = new ArrayList<SchemaBits>();
-	int i = 1;
-	do {
+	for (int i = 0; i < inList.length; i++) {
+	    String col = inList[i].trim();
 	    SchemaBits sb = new SchemaBits();
-	    sb.name = m.group(1);
-	    sb.datatype = m.group(2).toUpperCase();
+	    sb.name = col;
+	    sb.datatype = cd.getType(col).getName().toString().toUpperCase();
 	    sb.parser = pmap.get(sb.datatype);
 	    if (null == sb.parser) {
 		throw new ParseException("Column data type not recognized (" + sb.datatype + ")", i);
 	    }
 	    sbl.add(sb);
-	    i++;
-	} while (m.find());
+	}
 	return sbl;
     }
 
@@ -153,9 +151,30 @@ public class CqlDelimParser {
 	return insert;
     }
 
+    public String generateSelect() {
+	String select = "SELECT " + sbl.get(0).name;
+	for (int i = 1; i < sbl.size(); i++) {
+	    select = select + ", " + sbl.get(i).name;
+	}
+	select += " FROM " + keyspace + "." + tablename;
+	return select;
+    }
+    
+    public String getKeyspace() {
+	return keyspace;
+    }
+
+    public String getTable() {
+	return tablename;
+    }
+
     // Pass through to parse the line - the DelimParser we created will be used.
     public List<Object> parse(String line) {
 	return delimParser.parse(line);
+    }
+
+    public String format(Row row) throws IndexOutOfBoundsException, InvalidTypeException {
+	return delimParser.format(row);
     }
 }
 

@@ -23,6 +23,9 @@ import java.lang.String;
 import java.lang.System;
 import java.lang.NumberFormatException;
 import java.text.ParseException;
+import java.lang.IndexOutOfBoundsException;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 public class DelimParser {
     private List<Parser> parsers;
@@ -119,4 +122,13 @@ public class DelimParser {
     public Object[] getElements() {
 	return elements.toArray();
     }
+
+    public String format(Row row) throws IndexOutOfBoundsException, InvalidTypeException {
+	String retVal = parsers.get(0).format(row, 0);
+	for (int i = 1; i < parsersSize; i++) {
+	    retVal = retVal + delimiter + parsers.get(i).format(row, i);
+	}
+	return retVal;
+    }
+
 }

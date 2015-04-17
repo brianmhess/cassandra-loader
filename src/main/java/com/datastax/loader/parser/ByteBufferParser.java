@@ -17,6 +17,9 @@ package com.datastax.loader.parser;
 
 import java.lang.String;
 import java.nio.ByteBuffer;
+import java.lang.IndexOutOfBoundsException;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // ByteBuffer parser
 public class ByteBufferParser implements Parser {
@@ -26,4 +29,9 @@ public class ByteBufferParser implements Parser {
 	ByteBuffer bb = ByteBuffer.allocate(toparse.length());
 	return bb.put(toparse.getBytes());
     }
+
+    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
+	// TODO: NOT SURE ABOUT THIS ONE
+	return row.isNull(index) ? null : row.getBytes(index).toString();
+    }    
 }

@@ -21,6 +21,9 @@ import java.util.Locale;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.text.ParseException;
+import java.lang.IndexOutOfBoundsException;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // Date parser - takes a format string
 public class DateParser implements Parser {
@@ -36,5 +39,9 @@ public class DateParser implements Parser {
 	if (null == toparse)
 	    return null;
 	return format.parse(toparse);
+    }
+
+    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
+	return row.isNull(index) ? null : format.format(row.getDate(index));
     }
 }

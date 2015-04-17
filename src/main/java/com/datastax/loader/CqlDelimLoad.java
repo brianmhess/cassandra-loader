@@ -29,6 +29,8 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.Deque;
 import java.util.ArrayDeque;
+import java.util.Comparator;
+import java.util.Arrays;
 import java.util.Locale;
 import java.io.File;
 import java.io.PrintWriter;
@@ -56,7 +58,7 @@ import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
 
 public class CqlDelimLoad {
-    private String version = "0.0.3";
+    private String version = "0.0.4";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -87,7 +89,7 @@ public class CqlDelimLoad {
     private int numThreads = 5;
 
     private String usage() {
-	String usage = "version: " + version;
+	String usage = "version: " + version + "\n";
 	usage = usage + "Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]\n";
 	usage = usage + "OPTIONS:\n";
 	usage = usage + "  -delim <delimiter>             Delimiter to use [,]\n";
@@ -109,9 +111,9 @@ public class CqlDelimLoad {
 	usage = usage + "  -numRetries <numRetries>       Number of times to retry the INSERT [1]\n";
 	usage = usage + "  -maxInsertErrors <# errors>    Maximum INSERT errors to endure [10]\n";
 	usage = usage + "\n\nExamples:\n";
-	usage = usage + "cassandra-loader -f /path/to/file.csv -host localhost -schema \"test.test3(a int, b int, c int)\"\n";
-	usage = usage + "cassandra-loader -f /path/to/directory -host 1.2.3.4 -schema \"test.test3(a int, b int, c int)\" -delim \"\\t\" -numThreads 10\n";
-	usage = usage + "cassandra-loader -f stdin -host localhost -schema \"test.test3(a int, b int, c int)\" -user myuser -pw mypassword\n";
+	usage = usage + "cassandra-loader -f /path/to/file.csv -host localhost -schema \"test.test3(a, b, c)\"\n";
+	usage = usage + "cassandra-loader -f /path/to/directory -host 1.2.3.4 -schema \"test.test3(a, b, c)\" -delim \"\\t\" -numThreads 10\n";
+	usage = usage + "cassandra-loader -f stdin -host localhost -schema \"test.test3(a, b, c)\" -user myuser -pw mypassword\n";
 	return usage;
     }
     
@@ -219,6 +221,7 @@ public class CqlDelimLoad {
 	if (null != (tkey = amap.remove("-nullString")))    nullString = tkey;
 	if (null != (tkey = amap.remove("-delim")))         delimiter = tkey;
 	if (null != (tkey = amap.remove("-delimInQuotes"))) delimiterInQuotes = Boolean.parseBoolean(tkey);
+	if (null != (tkey = amap.remove("-numThreads")))    numThreads = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-decimalDelim"))) {
 	    if (tkey.equals(","))
 		locale = Locale.FRANCE;
@@ -230,11 +233,12 @@ public class CqlDelimLoad {
 		return false;
 	    }
 	}
-	if (null != (tkey = amap.remove("-numThreads")))       numThreads = Integer.parseInt(tkey);
 	if (-1 == maxRows)
 	    maxRows = Long.MAX_VALUE;
 	if (-1 == maxErrors)
 	    maxErrors = Long.MAX_VALUE;
+	if (-1 == maxInsertErrors)
+	    maxInsertErrors = Long.MAX_VALUE;
 	
 	if (!amap.isEmpty()) {
 	    for (String k : amap.keySet())
@@ -285,12 +289,18 @@ public class CqlDelimLoad {
 	    File infile = new File(filename);
 	    if (infile.isFile()) {
 		reader = new BufferedReader(new FileReader(infile));
-		readerName = filename;
+		readerName = infile.getName();
 	    }
 	    else {
 		File[] inFileList = infile.listFiles();
 		if (inFileList.length < 1)
 		    throw new IOException("directory is empty");
+		Arrays.sort(inFileList, 
+			    new Comparator<File>() {
+				public int compare(File f1, File f2) {
+				    return f1.getName().compareTo(f2.getName());
+				}
+			    });
 		for (int i = 0; i < inFileList.length; i++)
 		    fileList.push(inFileList[i]);
 	    }
@@ -443,7 +453,7 @@ public class CqlDelimLoad {
 	    
 	    cdp = new CqlDelimParser(cqlSchema, delimiter, nullString, 
 				     delimiterInQuotes, dateFormatString, 
-				     boolStyle, locale);
+				     boolStyle, locale, session);
 	    insert = cdp.generateInsert();
 	    statement = session.prepare(insert);
 	    statement.setRetryPolicy(new LoaderRetryPolicy(numRetries));
@@ -459,8 +469,8 @@ public class CqlDelimLoad {
 	}
 
 	private long execute() throws IOException {
-	    //List<ResultSetFuture> futures = new ArrayList<ResultSetFuture>();
-	    Map<ResultSetFuture,String> futures = new HashMap<ResultSetFuture,String>();
+	    FutureList fl = new FutureList(numFutures, queryTimeout, maxInsertErrors, 
+					   logWriter, badInsertWriter);
 	    String line;
 	    int lineNumber = 0;
 	    long numInserted = 0;
@@ -480,15 +490,13 @@ public class CqlDelimLoad {
 		if (0 == line.trim().length())
 		    continue;
 		
-		if (0 == lineNumber % numFutures)
-		    if (!purgeFutures(futures))
-			return -1;
-		
 		if (null != (elements = cdp.parse(line))) {
 		    BoundStatement bind = statement.bind(elements.toArray());
 		    ResultSetFuture resultSetFuture = session.executeAsync(bind);
-		    //futures.add(resultSetFuture);
-		    futures.put(resultSetFuture, line);
+		    if (!fl.add(resultSetFuture, line)) {
+			cleanup();
+			return -2;
+		    }
 		    numInserted++;
 		}
 		else {
@@ -511,8 +519,10 @@ public class CqlDelimLoad {
 		    }
 		}
 	    }
-	    if (!purgeFutures(futures))
+	    if (!fl.purgeFutures()) {
+		cleanup();
 		return -1;
+	    }
 
 	    if (null != logWriter) {
 		logWriter.println("*** DONE: " + filename + "  number of lines processed: " + lineNumber + " (" + numInserted + " inserted)");
@@ -520,41 +530,6 @@ public class CqlDelimLoad {
 	    System.err.println("*** DONE: " + filename + "  number of lines processed: " + lineNumber + " (" + numInserted + " inserted)");
 
 	    cleanup();
-	    return numInserted;
-	}
-
-	/*private boolean purgeFutures(List<ResultSetFuture> futures) {
-	    for (ResultSetFuture future: futures) {
-		future.getUninterruptibly();
-	    }
-	    futures.clear();
-	    return true;
-	}
-	*/
-	private boolean purgeFutures(Map<ResultSetFuture,String> futures) throws IOException {
-	    for (Map.Entry<ResultSetFuture,String> entry : futures.entrySet()) {
-		ResultSetFuture future = entry.getKey();
-		String line = entry.getValue();
-		try {
-		    future.getUninterruptibly(queryTimeout, unit);
-		}
-		catch (Exception e) {
-		    logWriter.println("Error inserting: " + e.getMessage());
-		    e.printStackTrace(logWriter);
-		    badInsertWriter.write(line);
-		    badInsertWriter.newLine();
-		    insertErrors++;
-		    if (maxInsertErrors <= insertErrors) {
-			logWriter.println("Too many INSERT errors (" + insertErrors + ")... Stopping");
-			cleanup();
-			return false;
-		    }
-		}
-	    }
-	    return true;
-	}
-
-	long getNumInserted() {
 	    return numInserted;
 	}
     }

@@ -15,17 +15,17 @@ loading of various types of delimited files, including
 
 ### Downloading
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.3/cassandra-loader
+https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.4/cassandra-loader
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.3/cassandra-loader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.4/cassandra-loader
 ```
 
 ### Building
 To build this repository, simply clone this repo and run:
 ```
-gradle buildit
+gradle loader
 ```
 
 All of the dependencies are included (namely, the Java driver - currently
@@ -55,11 +55,10 @@ This will print the usage statment.
 
 The following will load the myFileToLoad.csv file into the Cassandra 
 cluster at IP address 1.2.3.4 into the test.ltest column family where 
-the myFileToLoad file has the format of 4 columns - the first and 
-second as integers, the third as text, and the fourth as 
-double-precision floating point - and using the default options:
+the myFileToLoad file has the format of 4 columns - and it gets the
+data type information from the database - and using the default options:
 ```
-cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a int, b int, c text, d double)"
+cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, d)"
 ```
 
 ## Options:
@@ -68,7 +67,7 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a int, b 
 -----------------:|-------------------:|---------------------------:|:----------
  `-f`             | Filename           | <REQUIRED>                 | Filename to load - required.
  `-host`          | IP Address         | <REQUIRED>                 | Cassandra connection point - required.
- `-schema`        | CQL schema         | <REQUIRED>                 | Schema of input data - required. Standard CQL schema (without PRIMARY KEY clause) and in the order that the data will be in the file.
+ `-schema`        | CQL schema         | <REQUIRED>                 | Schema of input data - required In the format "keySpace.table(col1,col2,...)" and in the order that the data will be in the file.
  `-port`          | Port Number        | 9042                       | Cassandra native protocol port number
  `-user`          | Username           | none                       | Cassandra username
  `-pw`            | Password           | none                       | Cassandra password
@@ -91,7 +90,7 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a int, b 
 You can send data in on stdin by specifying the filename (via the -f switch) as "stdin" (case insensitive).
 That way, you could pipe data in from other commands:
 ```
-grep IMPORTANT data.csv | cassandra-loader -f stdin -h 1.2.3.4 -cql "test.itest(a text, b text)"
+grep IMPORTANT data.csv | cassandra-loader -f stdin -h 1.2.3.4 -cql "test.itest(a, b)"
 ```
 
 If you specify either the username or the password, then you must specify both.
@@ -126,7 +125,7 @@ OPTIONS:
   -nullString <nullString>       String that signifies NULL [none]
   -skipRows <skipRows>           Number of rows to skip [0]
   -maxRows <maxRows>             Maximum number of rows to read (-1 means all) [-1]
-  -maxErrors <maxErrors>         Maximum errors to endure [10]
+  -maxErrors <maxErrors>         Maximum parse errors to endure [10]
   -badDir <badDirectory>         Directory for where to place badly parsed rows. [none]
   -port <portNumber>             CQL Port Number [9042]
   -user <username>               Cassandra username [none]
@@ -135,31 +134,34 @@ OPTIONS:
   -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','
   -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]
   -numThreads <numThreads>       Number of concurrent threads (files) to load [5]
+  -queryTimeout <# seconds>      Query timeout (in seconds) [2]
+  -numRetries <numRetries>       Number of times to retry the INSERT [1]
+  -maxInsertErrors <# errors>    Maximum INSERT errors to endure [10]
 
 
 Examples:
-cassandra-loader -f /path/to/file.csv -host localhost -schema "test.test3(a int, b int, c int)"
-cassandra-loader -f /path/to/directory -host 1.2.3.4 -schema "test.test3(a int, b int, c int)" -delim "\t" -numThreads 10
-cassandra-loader -f stdin -host localhost -schema "test.test3(a int, b int, c int)" -user myuser -pw mypassword
+cassandra-loader -f /path/to/file.csv -host localhost -schema "test.test3(a, b, c)"
+cassandra-loader -f /path/to/directory -host 1.2.3.4 -schema "test.test3(a, b, c)" -delim "\t" -numThreads 10
+cassandra-loader -f stdin -host localhost -schema "test.test3(a, b, c)" -user myuser -pw mypassword
 ```
 
 ##Examples:
 Load file /path/to/file.csv into the test3 table in the test keyspace using
 the cluster at localhost.  Use the default options:
 ```
-cassandra-loader -f /path/to/file.csv -host localhost -schema "test.test3(a int, b int, c int)"
+cassandra-loader -f /path/to/file.csv -host localhost -schema "test.test3(a, b, c)"
 ```
 Load all the files from /path/to/directory into the test3 table in the test
 keyspace using the cluster at 1.2.3.4.  Use 10 threads and use tab as the
 delimiter:
 ```
-cassandra-loader -f /path/to/directory -host 1.2.3.4 -schema "test.test3(a int, b int, c int)" -delim "\t" -numThreads 10
+cassandra-loader -f /path/to/directory -host 1.2.3.4 -schema "test.test3(a, b, c)" -delim "\t" -numThreads 10
 ```
 Load the data from stdin into the test3 table in the test keyspace using the
 cluster at localhost.  Use "myuser" as the username and "mypassword" as the
 password:
 ```
-cassandra-loader -f stdin -host localhost -schema "test.test3(a int, b int, c int)" -user myuser -pw mypassword
+cassandra-loader -f stdin -host localhost -schema "test.test3(a, b, c)" -user myuser -pw mypassword
 ```
 
 ##Sample
@@ -185,3 +187,42 @@ cqlsh -e "SELECT COUNT(*) FROM titanic.surviors"
 ```
 Both should return 891.
 
+
+
+## cassandra-unloader
+cassandra-unloader is a utility to dump the contents
+of a Cassandra table to delimited file format.  It uses
+the same sorts of options as cassandra-loader so that the
+output of cassandra-unloader could be piped into 
+cassandra-loader:
+```
+cassandra-unloader -f stdout -host host1 -schema "ks.table(a,b,c)" | cassandra-loader -f stdin -host host2 -schema "ks2.table2(x,y,z)"
+```
+
+To build, run:
+```
+gradle unloader
+```
+
+To run cassandra-unloader, simply run the cassandra-unloader executable 
+(e.g., located at build/cassandra-unloader):
+```
+cassandra-unloader
+```
+
+Usage statement:
+```
+Usage: -f <outputStem> -host <ipaddress> -schema <schema> [OPTIONS]
+OPTIONS:
+  -delim <delimiter>             Delimiter to use [,]
+  -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]
+  -nullString <nullString>       String that signifies NULL [none]
+  -port <portNumber>             CQL Port Number [9042]
+  -user <username>               Cassandra username [none]
+  -pw <password>                 Password for user [none]
+  -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','
+  -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]
+  -numThreads <numThreads>       Number of concurrent threads (files) to load [5]
+  -beginToken <tokenString>      Begin token [none]
+  -endToken <tokenString>        End token [none]
+```

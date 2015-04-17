@@ -18,6 +18,9 @@ package com.datastax.loader.parser;
 import java.lang.String;
 import java.util.UUID;
 import java.lang.IllegalArgumentException;
+import java.lang.IndexOutOfBoundsException;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // UUID parser
 public class UUIDParser implements Parser {
@@ -25,5 +28,8 @@ public class UUIDParser implements Parser {
 	if (null == toparse)
 	    return null;
 	return UUID.fromString(toparse);
+    }
+    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
+	return row.isNull(index) ? null : row.getUUID(index).toString();
     }
 }

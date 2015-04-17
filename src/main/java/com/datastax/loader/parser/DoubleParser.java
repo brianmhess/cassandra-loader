@@ -20,6 +20,9 @@ import java.lang.Double;
 import java.lang.Number;
 import java.util.Locale;
 import java.text.ParseException;
+import java.lang.IndexOutOfBoundsException;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // Double parser - use the Number parser
 public class DoubleParser extends NumberParser {
@@ -34,5 +37,9 @@ public class DoubleParser extends NumberParser {
     public Double parse(String toparse) throws ParseException {
 	Number val = super.parse(toparse);
 	return (null == val) ? null : val.doubleValue();
+    }
+
+    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
+	return row.isNull(index) ? null : Double.toString(row.getDouble(index));
     }
 }

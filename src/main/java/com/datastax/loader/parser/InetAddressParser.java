@@ -19,6 +19,9 @@ import java.lang.String;
 import java.net.InetAddress;
 import java.text.ParseException;
 import java.net.UnknownHostException;
+import java.lang.IndexOutOfBoundsException;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // InetAddress parser
 public class InetAddressParser implements Parser {
@@ -33,5 +36,9 @@ public class InetAddressParser implements Parser {
 	    throw new ParseException("Error parsing Inet: " + uhe.getMessage(), 0);
 	}
 	return ret;
+    }
+
+    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
+	return row.isNull(index) ? null : row.getInet(index).getHostAddress();
     }
 }
