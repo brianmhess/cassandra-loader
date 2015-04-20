@@ -20,6 +20,8 @@ public class FutureList {
     private long queryTimeout;
     private long maxInsertErrors;
     private long insertErrors;
+    private long beginTime = 0;
+    private long numInserted;
 
     public FutureList() {
 	this(500, 2, 10);
@@ -39,6 +41,8 @@ public class FutureList {
 	logWriter = inLogWriter;
 	badInsertWriter = new PrintWriter(inBadInsertWriter);
 	insertErrors = 0;
+	beginTime = System.currentTimeMillis();
+	numInserted = 0;
     }
 
     public boolean add(ResultSetFuture future, String line) {
@@ -48,15 +52,19 @@ public class FutureList {
 	}
 	futures.add(future);
 	strings.add(line);
+	numInserted++;
 	return true;
     }
 
     public boolean purgeFutures() {
+	if (0 == futures.size())
+	    return true;
 	for (int i = 0; i < futures.size(); i++) {
 	    ResultSetFuture future = futures.get(i);
 	    String line = strings.get(i);
 	    try {
-		future.getUninterruptibly(queryTimeout, unit);
+		if (null != future)
+		    future.getUninterruptibly(queryTimeout, unit);
 	    }
 	    catch (Exception e) {
 		if (logWriter != null) {
@@ -77,5 +85,13 @@ public class FutureList {
 	}
 	futures.clear();
 	return true;
+    }
+
+    public boolean cleanup() {
+	return purgeFutures();
+    }
+
+    public long getNumInserted() {
+	return numInserted;
     }
 }

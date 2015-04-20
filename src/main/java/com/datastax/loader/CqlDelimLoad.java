@@ -469,8 +469,8 @@ public class CqlDelimLoad {
 	}
 
 	private long execute() throws IOException {
-	    FutureList fl = new FutureList(numFutures, queryTimeout, maxInsertErrors, 
-					   logWriter, badInsertWriter);
+	    //FutureList fl = new FutureList(numFutures, queryTimeout, maxInsertErrors, logWriter, badInsertWriter);
+	    FutureSet fl = new FutureSet(numFutures, queryTimeout, maxInsertErrors, logWriter, badInsertWriter);
 	    String line;
 	    int lineNumber = 0;
 	    long numInserted = 0;
@@ -519,7 +519,7 @@ public class CqlDelimLoad {
 		    }
 		}
 	    }
-	    if (!fl.purgeFutures()) {
+	    if (!fl.cleanup()) {
 		cleanup();
 		return -1;
 	    }
@@ -530,7 +530,8 @@ public class CqlDelimLoad {
 	    System.err.println("*** DONE: " + filename + "  number of lines processed: " + lineNumber + " (" + numInserted + " inserted)");
 
 	    cleanup();
-	    return numInserted;
+	    //return numInserted;
+	    return fl.getNumInserted();
 	}
     }
 }
