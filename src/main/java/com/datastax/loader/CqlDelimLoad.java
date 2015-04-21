@@ -50,6 +50,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ResultSetFuture;
@@ -252,7 +253,8 @@ public class CqlDelimLoad {
 	Cluster.Builder clusterBuilder = Cluster.builder()
 	    .addContactPoint(host)
 	    .withPort(port)
-	    .withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy(), false)); // Should be true, but not currently working, so we'll stick with false.
+	    .withProtocolVersion(ProtocolVersion.V2) // Should be V3, but issues for now....
+	    .withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy(), true));
 	if (null != username)
 	    clusterBuilder = clusterBuilder.withCredentials(username, password);
 	cluster = clusterBuilder.build();
@@ -466,7 +468,8 @@ public class CqlDelimLoad {
 	}
 
 	private long execute() throws IOException {
-	    FutureManager fm = new PrintingFutureSet(numFutures, queryTimeout, maxInsertErrors, logPrinter, badInsertPrinter);
+	    FutureManager fm = new PrintingFutureSet(numFutures, queryTimeout, maxInsertErrors, 
+						     logPrinter, badInsertPrinter);
 	    String line;
 	    int lineNumber = 0;
 	    long numInserted = 0;
