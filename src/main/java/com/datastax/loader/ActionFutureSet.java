@@ -35,9 +35,9 @@ public class ActionFutureSet extends AbstractFutureManager {
 	try {
 	    available.acquire();
 	    long duration = System.currentTimeMillis() - beginTime;
-	    if (1000 < duration) {
-		System.err.println("Getting semaphore took " + duration + "ms");
-	    }
+	    //if (1000 < duration) {
+	    //System.err.println("Getting semaphore took " + duration + "ms");
+	    //}
 	}
 	catch (InterruptedException e) {
 	    return false;
@@ -47,10 +47,10 @@ public class ActionFutureSet extends AbstractFutureManager {
 		public void onSuccess(ResultSet rs) {
 		    available.release();
 		    numInserted.incrementAndGet();
-		    long qduration = System.currentTimeMillis() - beginTime;
-		    if (2000 < qduration) {
-			System.err.println("Query took " + qduration + "ms");
-		    }
+		    //long qduration = System.currentTimeMillis() - beginTime;
+		    //if (2000 < qduration) {
+		    //System.err.println("Query took " + qduration + "ms");
+		    //}
 		    futureAction.onSuccess(rs, line);
 		}
 		@Override

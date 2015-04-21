@@ -42,12 +42,12 @@ public class ActionFutureList extends AbstractFutureManager {
 	    ResultSetFuture future = futures.get(i);
 	    String line = strings.get(i);
 	    try {
-		long beginTime = System.currentTimeMillis();
+		//long beginTime = System.currentTimeMillis();
 		ResultSet rs = future.getUninterruptibly(queryTimeout, unit);
-		long duration = System.currentTimeMillis() - beginTime;
-		if (2000 < duration) {
-		    System.err.println("Query took " + duration + " ms");
-		}
+		//long duration = System.currentTimeMillis() - beginTime;
+		//if (2000 < duration) {
+		//System.err.println("Query took " + duration + " ms");
+		//}
 		futureAction.onSuccess(rs, line);
 	    }
 	    catch (Exception e) {
