@@ -33,13 +33,13 @@ import java.util.Comparator;
 import java.util.Arrays;
 import java.util.Locale;
 import java.io.File;
-import java.io.PrintWriter;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.io.IOException;
+import java.io.FileOutputStream;
+import java.io.BufferedOutputStream;
+import java.io.PrintStream;
 import java.text.ParseException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -76,7 +76,6 @@ public class CqlDelimLoad {
     private long skipRows = 0;
     private long maxRows = -1;
     private String badDir = ".";
-    private BufferedWriter badWriter = null;
     private String filename = null;
 
     private Locale locale = null;
@@ -253,7 +252,7 @@ public class CqlDelimLoad {
 	Cluster.Builder clusterBuilder = Cluster.builder()
 	    .addContactPoint(host)
 	    .withPort(port)
-	    .withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy()));
+	    .withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy(), false)); // Should be true, but not currently working, so we'll stick with false.
 	if (null != username)
 	    clusterBuilder = clusterBuilder.withCredentials(username, password);
 	cluster = clusterBuilder.build();
@@ -377,9 +376,9 @@ public class CqlDelimLoad {
 	private long skipRows;
 	private long maxRows;
 	private String badDir;
-	private BufferedWriter badParseWriter = null;
-	private BufferedWriter badInsertWriter = null;
-	private PrintWriter logWriter = null;
+	private PrintStream badParsePrinter = null;
+	private PrintStream badInsertPrinter = null;
+	private PrintStream logPrinter = null;
 	private BufferedReader reader;
 	private String readerName;
 	private int numFutures;
@@ -438,17 +437,15 @@ public class CqlDelimLoad {
 	private void setup() throws IOException, ParseException {
 	    // Prepare Badfile
 	    if (null != badDir) {
-		badParseWriter = new BufferedWriter(new FileWriter(badDir + "/" 
-								   + readerName
-								   + BADPARSE));
-		badInsertWriter = new BufferedWriter(new FileWriter(badDir + "/" 
-								   + readerName
-								   + BADINSERT));
-		logWriter = new PrintWriter 
-		    (new BufferedWriter
-		     (new FileWriter(badDir + "/" 
-				     + readerName
-				     + LOG)));
+		badParsePrinter = new PrintStream(new BufferedOutputStream(new FileOutputStream(badDir + "/" 
+												+ readerName
+												+ BADPARSE)));
+		badInsertPrinter = new PrintStream(new BufferedOutputStream(new FileOutputStream(badDir + "/" 
+												 + readerName
+												 + BADINSERT)));
+		logPrinter = new PrintStream(new BufferedOutputStream(new FileOutputStream(badDir + "/" 
+											   + readerName
+											   + LOG)));
 	    }
 	    
 	    cdp = new CqlDelimParser(cqlSchema, delimiter, nullString, 
@@ -460,17 +457,16 @@ public class CqlDelimLoad {
 	}
 	
 	private void cleanup() throws IOException {
-	    if (null != badParseWriter)
-		badParseWriter.close();
-	    if (null != badInsertWriter)
-		badInsertWriter.close();
-	    if (null != logWriter)
-		logWriter.close();
+	    if (null != badParsePrinter)
+		badParsePrinter.close();
+	    if (null != badInsertPrinter)
+		badInsertPrinter.close();
+	    if (null != logPrinter)
+		logPrinter.close();
 	}
 
 	private long execute() throws IOException {
-	    //FutureList fl = new FutureList(numFutures, queryTimeout, maxInsertErrors, logWriter, badInsertWriter);
-	    FutureSet fl = new FutureSet(numFutures, queryTimeout, maxInsertErrors, logWriter, badInsertWriter);
+	    FutureManager fm = new PrintingFutureSet(numFutures, queryTimeout, maxInsertErrors, logPrinter, badInsertPrinter);
 	    String line;
 	    int lineNumber = 0;
 	    long numInserted = 0;
@@ -493,25 +489,24 @@ public class CqlDelimLoad {
 		if (null != (elements = cdp.parse(line))) {
 		    BoundStatement bind = statement.bind(elements.toArray());
 		    ResultSetFuture resultSetFuture = session.executeAsync(bind);
-		    if (!fl.add(resultSetFuture, line)) {
+		    if (!fm.add(resultSetFuture, line)) {
 			cleanup();
 			return -2;
 		    }
 		    numInserted++;
 		}
 		else {
-		    if (null != logWriter) {
-			logWriter.println(String.format("Error parsing line %d in %s: %s", lineNumber, readerName, line));
+		    if (null != logPrinter) {
+			logPrinter.println(String.format("Error parsing line %d in %s: %s", lineNumber, readerName, line));
 		    }
 		    System.err.println(String.format("Error parsing line %d in %s: %s", lineNumber, readerName, line));
-		    if (null != badParseWriter) {
-			badParseWriter.write(line);
-			badParseWriter.newLine();
+		    if (null != badParsePrinter) {
+			badParsePrinter.println(line);
 		    }
 		    numErrors++;
 		    if (maxErrors <= numErrors) {
-			if (null != logWriter) {
-			    logWriter.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
+			if (null != logPrinter) {
+			    logPrinter.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
 			}
 			System.err.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
 			cleanup();
@@ -519,19 +514,18 @@ public class CqlDelimLoad {
 		    }
 		}
 	    }
-	    if (!fl.cleanup()) {
+	    if (!fm.cleanup()) {
 		cleanup();
 		return -1;
 	    }
 
-	    if (null != logWriter) {
-		logWriter.println("*** DONE: " + filename + "  number of lines processed: " + lineNumber + " (" + numInserted + " inserted)");
+	    if (null != logPrinter) {
+		logPrinter.println("*** DONE: " + filename + "  number of lines processed: " + lineNumber + " (" + numInserted + " inserted)");
 	    }
 	    System.err.println("*** DONE: " + filename + "  number of lines processed: " + lineNumber + " (" + numInserted + " inserted)");
 
 	    cleanup();
-	    //return numInserted;
-	    return fl.getNumInserted();
+	    return fm.getNumInserted();
 	}
     }
 }
