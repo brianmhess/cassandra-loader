@@ -59,7 +59,7 @@ import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
 
 public class CqlDelimLoad {
-    private String version = "0.0.5";
+    private String version = "0.0.6";
     private String host = null;
     private int port = 9042;
     private String username = null;

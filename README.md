@@ -15,11 +15,11 @@ loading of various types of delimited files, including
 
 ### Downloading
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.5/cassandra-loader
+https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.6/cassandra-loader
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.5/cassandra-loader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.6/cassandra-loader
 ```
 
 ### Building
