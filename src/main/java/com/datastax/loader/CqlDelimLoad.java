@@ -549,9 +549,9 @@ public class CqlDelimLoad {
 	    }
 
 	    if (null != logPrinter) {
-		logPrinter.println("*** DONE: " + filename + "  number of lines processed: " + lineNumber + " (" + numInserted + " inserted)");
+		logPrinter.println("*** DONE: " + readerName + "  number of lines processed: " + lineNumber + " (" + numInserted + " inserted)");
 	    }
-	    System.err.println("*** DONE: " + filename + "  number of lines processed: " + lineNumber + " (" + numInserted + " inserted)");
+	    System.err.println("*** DONE: " + readerName + "  number of lines processed: " + lineNumber + " (" + numInserted + " inserted)");
 
 	    cleanup();
 	    return fm.getNumInserted();
