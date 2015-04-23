@@ -21,6 +21,7 @@ import com.datastax.loader.parser.CqlDelimParser;
 import java.lang.System;
 import java.lang.String;
 import java.lang.Integer;
+import java.lang.Runtime;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
@@ -57,9 +58,10 @@ import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
+import com.google.common.util.concurrent.RateLimiter;
 
 public class CqlDelimLoad {
-    private String version = "0.0.6";
+    private String version = "0.0.7";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -70,6 +72,8 @@ public class CqlDelimLoad {
     private int queryTimeout = 2;
     private long maxInsertErrors = 10;
     private int numRetries = 1;
+    private double rate = 50000.0;
+    private RateLimiter rateLimiter = null;
 
     private String cqlSchema = null;
 
@@ -86,7 +90,7 @@ public class CqlDelimLoad {
     private String delimiter = null;
     private boolean delimiterInQuotes = false;
 
-    private int numThreads = 5;
+    private int numThreads = Runtime.getRuntime().availableProcessors();
 
     private String usage() {
 	String usage = "version: " + version + "\n";
@@ -106,10 +110,11 @@ public class CqlDelimLoad {
 	usage = usage + "  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]\n";
 	usage = usage + "  -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','\n";
 	usage = usage + "  -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]\n";
-	usage = usage + "  -numThreads <numThreads>       Number of concurrent threads (files) to load [5]\n";
+	usage = usage + "  -numThreads <numThreads>       Number of concurrent threads (files) to load [num cores]\n";
 	usage = usage + "  -queryTimeout <# seconds>      Query timeout (in seconds) [2]\n";
 	usage = usage + "  -numRetries <numRetries>       Number of times to retry the INSERT [1]\n";
 	usage = usage + "  -maxInsertErrors <# errors>    Maximum INSERT errors to endure [10]\n";
+	usage = usage + "  -rate <rows-per-second>        Maximum insert rate [50000]\n";
 	usage = usage + "\n\nExamples:\n";
 	usage = usage + "cassandra-loader -f /path/to/file.csv -host localhost -schema \"test.test3(a, b, c)\"\n";
 	usage = usage + "cassandra-loader -f /path/to/directory -host 1.2.3.4 -schema \"test.test3(a, b, c)\" -delim \"\\t\" -numThreads 10\n";
@@ -173,6 +178,11 @@ public class CqlDelimLoad {
 	    return false;
 	}
 
+	if (0 > rate) {
+	    System.err.println("Rate must be positive");
+	    return false;
+	}
+
 	return true;
     }
     
@@ -181,8 +191,11 @@ public class CqlDelimLoad {
 	    System.err.println("No arguments specified");
 	    return false;
 	}
-	if (0 != args.length % 2)
+	if (0 != args.length % 2) {
+	    System.err.println("Not an even number of parameters");
 	    return false;
+	}
+
 	Map<String, String> amap = new HashMap<String,String>();
 	for (int i = 0; i < args.length; i+=2)
 	    amap.put(args[i], args[i+1]);
@@ -222,6 +235,7 @@ public class CqlDelimLoad {
 	if (null != (tkey = amap.remove("-delim")))         delimiter = tkey;
 	if (null != (tkey = amap.remove("-delimInQuotes"))) delimiterInQuotes = Boolean.parseBoolean(tkey);
 	if (null != (tkey = amap.remove("-numThreads")))    numThreads = Integer.parseInt(tkey);
+	if (null != (tkey = amap.remove("-rate")))          rate = Double.parseDouble(tkey);
 	if (null != (tkey = amap.remove("-decimalDelim"))) {
 	    if (tkey.equals(","))
 		locale = Locale.FRANCE;
@@ -259,6 +273,8 @@ public class CqlDelimLoad {
 	    clusterBuilder = clusterBuilder.withCredentials(username, password);
 	cluster = clusterBuilder.build();
 	session = cluster.newSession();
+	if (0 < rate)
+	    rateLimiter = RateLimiter.create(rate);
     }
 
     private void cleanup() {
@@ -323,7 +339,7 @@ public class CqlDelimLoad {
 						      readerName,
 						      session, numFutures,
 						      numRetries, queryTimeout,
-						      maxInsertErrors);
+						      maxInsertErrors, rateLimiter);
 	    Future<Long> res = executor.submit(worker);
 	    total = res.get();
 	    executor.shutdown();
@@ -346,7 +362,7 @@ public class CqlDelimLoad {
 							  numFutures,
 							  numRetries, 
 							  queryTimeout,
-							  maxInsertErrors);
+							  maxInsertErrors, rateLimiter);
 		results.add(executor.submit(worker));
 	    }
 	    executor.shutdown();
@@ -385,6 +401,7 @@ public class CqlDelimLoad {
 	private String readerName;
 	private int numFutures;
 	private long numInserted;
+	private final RateLimiter rateLimiter;
 
 	private String cqlSchema;
 	private Locale locale = null;
@@ -407,7 +424,8 @@ public class CqlDelimLoad {
 			     String inBadDir, BufferedReader inReader,
 			     String inReaderName, Session inSession,
 			     int inNumFutures, int inNumRetries, 
-			     int inQueryTimeout, long inMaxInsertErrors) {
+			     int inQueryTimeout, long inMaxInsertErrors,
+			     RateLimiter inRateLimiter) {
 	    super();
 	    cqlSchema = inCqlSchema;
 	    delimiter = inDelimiter;
@@ -427,6 +445,7 @@ public class CqlDelimLoad {
 	    numRetries = inNumRetries;
 	    queryTimeout = inQueryTimeout;
 	    maxInsertErrors = inMaxInsertErrors;
+	    rateLimiter = inRateLimiter;
 	}
 
 	public Long call() throws IOException, ParseException {
@@ -491,6 +510,8 @@ public class CqlDelimLoad {
 		
 		if (null != (elements = cdp.parse(line))) {
 		    BoundStatement bind = statement.bind(elements.toArray());
+		    if (null != rateLimiter)
+			rateLimiter.acquire(1);
 		    ResultSetFuture resultSetFuture = session.executeAsync(bind);
 		    if (!fm.add(resultSetFuture, line)) {
 			cleanup();

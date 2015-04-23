@@ -15,11 +15,11 @@ loading of various types of delimited files, including
 
 ### Downloading
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.6/cassandra-loader
+https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.7/cassandra-loader
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.6/cassandra-loader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.7/cassandra-loader
 ```
 
 ### Building
@@ -84,7 +84,9 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
  `-skipRows`      | Rows to skip       | 0                          | Number of rows to skip at the beginning of the file
  `-maxRows`       | Max rows to read   | -1                         | Maximum rows to read (after optional skipping of rows).  -1 signifies all rows.
  `-maxErrors`     | Max parse errors   | 10                         | Maximum number of rows that do not parse to allow before exiting.
+ `-maxInsertErrors`| Max insert errors | 10                         | Maximum number of rows that do not insert to allow before exiting.
  `-badFile`       | Bad File           | <none>                     | File to write out badly parsed rows.
+ `-rate`          | Ingest rate        | unlimited                  | Maximum rate to insert data - in rows/sec.
 
 ## Comments
 You can send data in on stdin by specifying the filename (via the -f switch) as "stdin" (case insensitive).
@@ -133,10 +135,11 @@ OPTIONS:
   -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]
   -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','
   -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]
-  -numThreads <numThreads>       Number of concurrent threads (files) to load [5]
+  -numThreads <numThreads>       Number of concurrent threads (files) to load [num cores]
   -queryTimeout <# seconds>      Query timeout (in seconds) [2]
   -numRetries <numRetries>       Number of times to retry the INSERT [1]
   -maxInsertErrors <# errors>    Maximum INSERT errors to endure [10]
+  -rate <rows-per-second>        Maximum insert rate [50000]
 
 
 Examples:
