@@ -69,6 +69,7 @@ public class CqlDelimLoad {
     private Cluster cluster = null;
     private Session session = null;
     private int numFutures = 1000;
+    private int inNumFutures = -1;
     private int queryTimeout = 2;
     private long maxInsertErrors = 10;
     private int numRetries = 1;
@@ -222,7 +223,7 @@ public class CqlDelimLoad {
 	if (null != (tkey = amap.remove("-port")))          port = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-user")))          username = tkey;
 	if (null != (tkey = amap.remove("-pw")))            password = tkey;
-	if (null != (tkey = amap.remove("-numFutures")))    numFutures = Integer.parseInt(tkey);
+	if (null != (tkey = amap.remove("-numFutures")))    inNumFutures = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-queryTimeout")))  queryTimeout = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-maxInsertErrors"))) maxInsertErrors = Long.parseLong(tkey);
 	if (null != (tkey = amap.remove("-numRetries")))    numRetries = Integer.parseInt(tkey);
@@ -259,6 +260,10 @@ public class CqlDelimLoad {
 		System.err.println("Unrecognized option: " + k);
 	    return false;
 	}
+
+	if (0 > inNumFutures)
+	    numFutures = inNumFutures / numThreads;
+
 	return validateArgs();
     }
 
