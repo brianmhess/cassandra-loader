@@ -125,7 +125,7 @@ public class CqlDelimLoad {
     
     private boolean validateArgs() {
 	if (0 >= numFutures) {
-	    System.err.println("Number of futures must be positive");
+	    System.err.println("Number of futures must be positive (" + numFutures + ")");
 	    return false;
 	}
 	if (0 >= queryTimeout) {
@@ -261,7 +261,7 @@ public class CqlDelimLoad {
 	    return false;
 	}
 
-	if (0 > inNumFutures)
+	if (0 < inNumFutures)
 	    numFutures = inNumFutures / numThreads;
 
 	return validateArgs();
