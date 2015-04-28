@@ -16,7 +16,6 @@
 package com.datastax.loader;
 
 import com.datastax.loader.parser.BooleanParser;
-import com.datastax.loader.parser.CqlDelimParser;
 
 import java.lang.System;
 import java.lang.String;
@@ -58,7 +57,7 @@ import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
 
 public class CqlDelimUnload {
-    private String version = "0.0.7";
+    private String version = "0.0.8";
     private String host = null;
     private int port = 9042;
     private String username = null;

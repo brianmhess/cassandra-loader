@@ -1,4 +1,4 @@
-package com.datastax.loader;
+package com.datastax.loader.futures;
 
 import java.util.concurrent.TimeUnit;
 import com.datastax.driver.core.ResultSetFuture;

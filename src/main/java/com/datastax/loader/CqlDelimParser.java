@@ -13,7 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.loader.parser;
+package com.datastax.loader;
+
+import com.datastax.loader.parser.Parser;
+import com.datastax.loader.parser.DelimParser;
+import com.datastax.loader.parser.IntegerParser;
+import com.datastax.loader.parser.LongParser;
+import com.datastax.loader.parser.FloatParser;
+import com.datastax.loader.parser.DoubleParser;
+import com.datastax.loader.parser.StringParser;
+import com.datastax.loader.parser.BooleanParser;
+import com.datastax.loader.parser.UUIDParser;
+import com.datastax.loader.parser.BigDecimalParser;
+import com.datastax.loader.parser.BigIntegerParser;
+import com.datastax.loader.parser.ByteBufferParser;
+import com.datastax.loader.parser.InetAddressParser;
+import com.datastax.loader.parser.DateParser;
 
 import java.util.Map;
 import java.util.List;

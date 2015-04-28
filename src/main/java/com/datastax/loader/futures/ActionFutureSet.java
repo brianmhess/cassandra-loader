@@ -1,4 +1,4 @@
-package com.datastax.loader;
+package com.datastax.loader.futures;
 
 import java.lang.String;
 import java.lang.System;

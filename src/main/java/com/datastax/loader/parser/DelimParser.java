@@ -60,6 +60,8 @@ public class DelimParser {
 	    delimiter = DEFAULT_DELIMITER;
 	else 
 	    delimiter = inDelimiter;
+	if (delimiter.equals("|"))
+	    delimiter = "\\|";
 	if (null == inNullString)
 	    nullString = DEFAULT_NULLSTRING;
 	else
@@ -85,6 +87,8 @@ public class DelimParser {
     // This is where we apply rules like quoting, NULL, etc
     private String prepareToParse(String toparse) {
 	String trimmedToParse = toparse.trim();
+	if (trimmedToParse.startsWith("\"") && trimmedToParse.endsWith("\""))
+	    trimmedToParse = trimmedToParse.substring(1, trimmedToParse.length() - 1);
 	if (trimmedToParse.equals(nullString))
 	    return null;
 	return trimmedToParse;

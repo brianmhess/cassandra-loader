@@ -16,7 +16,8 @@
 package com.datastax.loader;
 
 import com.datastax.loader.parser.BooleanParser;
-import com.datastax.loader.parser.CqlDelimParser;
+import com.datastax.loader.futures.FutureManager;
+import com.datastax.loader.futures.PrintingFutureSet;
 
 import java.lang.System;
 import java.lang.String;
@@ -61,7 +62,7 @@ import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 import com.google.common.util.concurrent.RateLimiter;
 
 public class CqlDelimLoad {
-    private String version = "0.0.7";
+    private String version = "0.0.8";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -98,7 +99,7 @@ public class CqlDelimLoad {
 	usage = usage + "Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]\n";
 	usage = usage + "OPTIONS:\n";
 	usage = usage + "  -delim <delimiter>             Delimiter to use [,]\n";
-	usage = usage + "  -delmInQuotes true             Set to 'true' if delimiter can be inside quoted fields [false]\n";
+	usage = usage + "  -delimInQuotes true            Set to 'true' if delimiter can be inside quoted fields [false]\n";
 	usage = usage + "  -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]\n";
 	usage = usage + "  -nullString <nullString>       String that signifies NULL [none]\n";
 	usage = usage + "  -skipRows <skipRows>           Number of rows to skip [0]\n";
