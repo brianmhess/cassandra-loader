@@ -15,11 +15,11 @@ loading of various types of delimited files, including
 
 ### Downloading
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.7/cassandra-loader
+https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.8/cassandra-loader
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.7/cassandra-loader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.8/cassandra-loader
 ```
 
 ### Building
@@ -103,6 +103,9 @@ If you do not have delimiters inside quoted text fields, then leave the
 numFutures is a way to control the level of parallelism, but at some point 
 too many will actually slow down the load.  The default of 500 is a decent 
 place to start.
+
+Double quotes will be stripped from all fields if they both begin and end
+with ".
 
 boolStyle is a case-insensitive test of the True and False strings.  For the
 different styles, the True and False strings are as follows:
