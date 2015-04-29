@@ -15,11 +15,11 @@ loading of various types of delimited files, including
 
 ### Downloading
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.8/cassandra-loader
+https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.9/cassandra-loader
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.8/cassandra-loader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.9/cassandra-loader
 ```
 
 ### Building
@@ -73,8 +73,7 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
  `-pw`            | Password           | none                       | Cassandra password
  `-numFutures`    | Number of Futures  | 1000                       | Number of Java driver futures in flight.
  `-numRetries`    | Number of retries  | 1                          | Number of times to retry the INSERT before declaring defeat.
- `-numInserErrors` | Number of errors  | 10                         | Number of INSERT errors to tolerate before stopping.
- `-queryTimeout   | Timeout in seconds | 2                          | Amount of time to wait for a query to finish before timing out.
+ `-queryTimeout`  | Timeout in seconds | 2                          | Amount of time to wait for a query to finish before timing out.
  `-delim`         | Delimiter          | ,                          | Delimiter to use
  `-delimInQuotes` | True/False         | false                      | Are delimiters allowed inside quoted strings? This is more expensive to parse, so we default to false.
  `-nullString`    | Null String        | <empty string>             | String to represent NULL data
@@ -85,8 +84,10 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
  `-maxRows`       | Max rows to read   | -1                         | Maximum rows to read (after optional skipping of rows).  -1 signifies all rows.
  `-maxErrors`     | Max parse errors   | 10                         | Maximum number of rows that do not parse to allow before exiting.
  `-maxInsertErrors`| Max insert errors | 10                         | Maximum number of rows that do not insert to allow before exiting.
- `-badFile`       | Bad File           | <none>                     | File to write out badly parsed rows.
+ `-badDir`        | Bad directory      | current directory          | Directory to write badly parsed and badly inserted rows - as well as the log file.
  `-rate`          | Ingest rate        | unlimited                  | Maximum rate to insert data - in rows/sec.
+ `-successDir`    | Success directory  | <not set>                  | Location to move successfully loaded files
+ `-failureDir`    | Failure directory  | <not set>                  | Location to move files that failed to load
 
 ## Comments
 You can send data in on stdin by specifying the filename (via the -f switch) as "stdin" (case insensitive).
@@ -107,6 +108,8 @@ place to start.
 Double quotes will be stripped from all fields if they both begin and end
 with ".
 
+If you do not set the successDir then files that successfully loaded will remain in their input directory.  The same is true for failed files if you do not set the failureDir.  You cannot set either if the input file is "stdin".
+
 boolStyle is a case-insensitive test of the True and False strings.  For the
 different styles, the True and False strings are as follows:
 
@@ -125,7 +128,7 @@ different styles, the True and False strings are as follows:
 Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]
 OPTIONS:
   -delim <delimiter>             Delimiter to use [,]
-  -delmInQuotes true             Set to 'true' if delimiter can be inside quoted fields [false]
+  -delimInQuotes true            Set to 'true' if delimiter can be inside quoted fields [false]
   -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]
   -nullString <nullString>       String that signifies NULL [none]
   -skipRows <skipRows>           Number of rows to skip [0]
@@ -143,6 +146,8 @@ OPTIONS:
   -numRetries <numRetries>       Number of times to retry the INSERT [1]
   -maxInsertErrors <# errors>    Maximum INSERT errors to endure [10]
   -rate <rows-per-second>        Maximum insert rate [50000]
+  -successDir <dir>              Directory where to move successfully loaded files
+  -failureDir <dir>              Directory where to move files that did not successfully load
 
 
 Examples:

@@ -57,7 +57,7 @@ import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
 
 public class CqlDelimUnload {
-    private String version = "0.0.8";
+    private String version = "0.0.9";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -308,7 +308,12 @@ public class CqlDelimUnload {
 
     public static void main(String[] args) throws IOException, ParseException, InterruptedException, ExecutionException {
 	CqlDelimUnload cdu = new CqlDelimUnload();
-	cdu.run(args);
+	boolean success = cdu.run(args);
+	if (success) {
+            System.exit(0);
+        } else {
+            System.exit(-1);
+        }
     }
 
     class ThreadExecute implements Callable<Long> {

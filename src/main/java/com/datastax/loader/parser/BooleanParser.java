@@ -24,11 +24,35 @@ import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // Boolean parser - handles any way that Booleans can be expressed in Java
 public class BooleanParser implements Parser {
-    public static enum BoolStyle { BoolStyle_TrueFalse, 
-	    BoolStyle_10, 
-	    BoolStyle_TF, 
-	    BoolStyle_YN, 
-	    BoolStyle_YesNo }
+    public static enum BoolStyle { 
+	BoolStyle_TrueFalse("TRUE_FALSE", "TRUE", "FALSE"), 
+	BoolStyle_10("1_0", "1", "0"), 
+	BoolStyle_TF("T_F", "T", "F"), 
+	BoolStyle_YN("Y_N", "Y", "N"), 
+	BoolStyle_YesNo("YES_NO", "YES", "NO");
+
+	private String styleStr;
+	private String trueStr;
+	private String falseStr;
+
+	BoolStyle(String inStyleStr, String inTrueStr, String inFalseStr) {
+	    styleStr = inStyleStr;
+	    trueStr = inTrueStr;
+	    falseStr = inFalseStr;
+	}
+
+	public String getStyle() {
+	    return styleStr;
+	}
+
+	public String getTrueStr() {
+	    return trueStr;
+	}
+
+	public String getFalseStr() {
+	    return falseStr;
+	}
+    }
     
     private String boolTrue;
     private String boolFalse;
@@ -43,32 +67,10 @@ public class BooleanParser implements Parser {
     }
     
     public BooleanParser(BoolStyle inBoolStyle) {
-	boolTrue = "TRUE";
-	boolFalse = "FALSE";
 	if (null == inBoolStyle)
 	    inBoolStyle = BoolStyle.BoolStyle_TrueFalse;
-	switch (inBoolStyle) {
-	case BoolStyle_10:
-	    boolTrue = "1";
-	    boolFalse = "0";
-	    break;
-	case BoolStyle_TF:
-	    boolTrue = "T";
-	    boolFalse = "F";
-	    break;
-	case BoolStyle_YN:
-	    boolTrue = "Y";
-	    boolFalse = "N";
-	    break;
-	case BoolStyle_YesNo:
-	    boolTrue = "YES";
-	    boolFalse = "NO";
-	    break;
-	default:
-	    boolTrue = "TRUE";
-	    boolFalse = "FALSE";
-	    break;
-	}
+	boolTrue = inBoolStyle.getTrueStr();
+	boolFalse = inBoolStyle.getFalseStr();
     }
 
     public BooleanParser(String inBoolTrue, String inBoolFalse) {
@@ -77,16 +79,11 @@ public class BooleanParser implements Parser {
     }
 
     public static BoolStyle getBoolStyle(String instr) {
-	if (BOOLSTYLE_1_0.equalsIgnoreCase(instr))
-	    return BoolStyle.BoolStyle_10;
-	if (BOOLSTYLE_T_F.equalsIgnoreCase(instr))
-	    return BoolStyle.BoolStyle_TF;
-	if (BOOLSTYLE_Y_N.equalsIgnoreCase(instr))
-	    return BoolStyle.BoolStyle_YN;
-	if (BOOLSTYLE_YES_NO.equalsIgnoreCase(instr))
-	    return BoolStyle.BoolStyle_YesNo;
-	if (BOOLSTYLE_TRUE_FALSE.equalsIgnoreCase(instr))
-	    return BoolStyle.BoolStyle_TrueFalse;
+	for (BoolStyle bs : BoolStyle.values()) {
+	    if (bs.getStyle().equalsIgnoreCase(instr)) {
+		return bs;
+	    }
+	}
 	return null;
     }
 
