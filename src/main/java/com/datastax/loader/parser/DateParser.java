@@ -26,7 +26,7 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // Date parser - takes a format string
-public class DateParser implements Parser {
+public class DateParser extends AbstractParser {
     private DateFormat format;
     public DateParser(String inFormatString) {
 	if (null == inFormatString)

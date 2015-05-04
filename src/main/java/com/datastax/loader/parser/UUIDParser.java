@@ -23,7 +23,7 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // UUID parser
-public class UUIDParser implements Parser {
+public class UUIDParser extends AbstractParser {
     public UUID parse(String toparse) throws IllegalArgumentException {
 	if (null == toparse)
 	    return null;

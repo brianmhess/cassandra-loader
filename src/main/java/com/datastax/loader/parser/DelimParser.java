@@ -19,11 +19,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
+import java.util.StringTokenizer;
 import java.lang.String;
 import java.lang.System;
 import java.lang.NumberFormatException;
-import java.text.ParseException;
 import java.lang.IndexOutOfBoundsException;
+import java.io.StringReader;
+import java.io.IOException;
+import java.text.ParseException;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
@@ -60,8 +63,8 @@ public class DelimParser {
 	    delimiter = DEFAULT_DELIMITER;
 	else 
 	    delimiter = inDelimiter;
-	if (delimiter.equals("|"))
-	    delimiter = "\\|";
+	//if (delimiter.equals("|"))
+	//  delimiter = "\\|";
 	if (null == inNullString)
 	    nullString = DEFAULT_NULLSTRING;
 	else
@@ -94,11 +97,16 @@ public class DelimParser {
 	return trimmedToParse;
     }
 
+    public List<Object> parse(String line) {
+	//return parseSimple(line);
+	return parseComplex(line);
+    }
+
     // Parses this line by applying the parsers
     // Result is a boolean of success or failure
     // Pick up the results with a call to getElements
     // returns an array of Objects - to be used in PreparedStatement.bind()
-    public List<Object> parse(String line) {
+    public List<Object> parseSimple(String line) {
 	String[] columns = pattern.split(line, -1);
 	if (parsersSize != columns.length) {
 	    System.err.println(String.format("Invalid input: Expected %d elements, found %d", parsersSize, columns.length));
@@ -116,6 +124,32 @@ public class DelimParser {
 	    }
 	    catch (ParseException pe) {
 		System.err.println(String.format("Invalid format in input %d ('%s'): %s", i, columns[i], pe.getMessage()));
+		return null;
+	    }
+	}
+	return elements;
+    }
+
+    public List<Object> parseComplex(String line) {
+	elements.clear();
+	IndexedLine sr = new IndexedLine(line);
+	char delim = ("\\t".equals(delimiter)) ?  '\t' : delimiter.charAt(0);
+	char quote = '\"';
+	char escape = '\\';
+	for (int i = 0; i < parsersSize; i++) {
+	    try {
+		elements.add(parsers.get(i).parse(sr, nullString, delim, escape, quote, (parsersSize-1 == i)));
+	    }
+	    catch (NumberFormatException e) {
+		System.err.println(String.format("Invalid number in input number %d: %s", i, e.getMessage()));
+		return null;
+	    }
+	    catch (ParseException pe) {
+		System.err.println(String.format("Invalid format in input %d: %s", i, pe.getMessage()));
+		return null;
+	    }
+	    catch (IOException e) {
+		System.err.println(String.format("Invalid number of fields - ran out of string: %s", i, e.getMessage()));
 		return null;
 	    }
 	}

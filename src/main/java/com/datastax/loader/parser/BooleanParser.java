@@ -23,7 +23,7 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // Boolean parser - handles any way that Booleans can be expressed in Java
-public class BooleanParser implements Parser {
+public class BooleanParser extends AbstractParser {
     public static enum BoolStyle { 
 	BoolStyle_TrueFalse("TRUE_FALSE", "TRUE", "FALSE"), 
 	BoolStyle_10("1_0", "1", "0"), 

@@ -16,15 +16,19 @@
 package com.datastax.loader.parser;
 
 import java.lang.String;
+import java.lang.StringBuilder;
 import java.lang.IndexOutOfBoundsException;
+import java.io.StringReader;
+import java.io.IOException;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // String parser - simple
-public class StringParser implements Parser {
+public class StringParser extends AbstractParser {
     public String parse(String toparse) {
 	return toparse;
     }
+
     public String format(Row row, int index) {
 	return row.isNull(index) ? null : row.getString(index);
     }
