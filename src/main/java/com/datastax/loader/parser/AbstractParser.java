@@ -41,19 +41,22 @@ public abstract class AbstractParser implements Parser {
 				      Character delim, Character escape, 
 				      Character quote) 
 	throws IOException, ParseException {
+	String retstring;
 	if (null == delim) {
 	    return null;
 	}
 	char c = il.getNext();
 	if (c == delim) {
-	    return new String();
+	    retstring = "";
 	}
-	StringBuilder sb = new StringBuilder().append(c);
-	String s = extractUntil(il, delim, escape, quote, (c == quote));
-	if (null == s) {
-	    return null;
+	else {
+	    StringBuilder sb = new StringBuilder().append(c);
+	    String s = extractUntil(il, delim, escape, quote, (c == quote));
+	    if (null == s) {
+		return null;
+	    }
+	    retstring = sb.append(s).toString();
 	}
-	String retstring = sb.append(s).toString();
 	if (retstring.startsWith(quote.toString()) 
 	    && retstring.endsWith(quote.toString()))
 	    retstring = retstring.substring(1, retstring.length() - 1);
