@@ -29,6 +29,9 @@ import com.datastax.loader.parser.BigIntegerParser;
 import com.datastax.loader.parser.ByteBufferParser;
 import com.datastax.loader.parser.InetAddressParser;
 import com.datastax.loader.parser.DateParser;
+import com.datastax.loader.parser.ListParser;
+import com.datastax.loader.parser.SetParser;
+import com.datastax.loader.parser.MapParser;
 
 import java.util.Map;
 import java.util.List;
@@ -44,9 +47,10 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.ColumnDefinitions;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
+import com.datastax.driver.core.DataType;
 
 public class CqlDelimParser {
-    private Map<String, Parser> pmap;
+    private Map<DataType.Name, Parser> pmap;
     private List<SchemaBits> sbl;
     private String keyspace;
     private String tablename;
@@ -75,14 +79,14 @@ public class CqlDelimParser {
     // used internally to store schema information
     private class SchemaBits {
 	public String name;
-	public String datatype;
+	public DataType.Name datatype;
 	public Parser parser;
     }
 
     // intialize the Parsers and the parser map
     private void initPmap(String dateFormatString, BooleanParser.BoolStyle inBoolStyle, 
 			  Locale inLocale) {
-	pmap = new HashMap<String, Parser>();
+	pmap = new HashMap<DataType.Name, Parser>();
 	Parser integerParser = new IntegerParser(inLocale);
 	Parser longParser = new LongParser(inLocale);
 	Parser floatParser = new FloatParser(inLocale);
@@ -96,22 +100,22 @@ public class CqlDelimParser {
 	Parser inetAddressParser = new InetAddressParser();
 	Parser dateParser = new DateParser(dateFormatString);
 
-	pmap.put("ASCII", stringParser);
-	pmap.put("BIGINT", longParser);
-	pmap.put("BLOB", byteBufferParser);
-	pmap.put("BOOLEAN", booleanParser);
-	pmap.put("COUNTER", longParser);
-	pmap.put("DECIMAL", bigDecimalParser);
-	pmap.put("DOUBLE", doubleParser);
-	pmap.put("FLOAT", floatParser);
-	pmap.put("INET", inetAddressParser);
-	pmap.put("INT", integerParser);
-	pmap.put("TEXT", stringParser);
-	pmap.put("TIMESTAMP", dateParser);
-	pmap.put("TIMEUUID", uuidParser);
-	pmap.put("UUID", uuidParser);
-	pmap.put("VARCHAR", stringParser);
-	pmap.put("VARINT", bigIntegerParser);
+	pmap.put(DataType.Name.ASCII, stringParser);
+	pmap.put(DataType.Name.BIGINT, longParser);
+	pmap.put(DataType.Name.BLOB, byteBufferParser);
+	pmap.put(DataType.Name.BOOLEAN, booleanParser);
+	pmap.put(DataType.Name.COUNTER, longParser);
+	pmap.put(DataType.Name.DECIMAL, bigDecimalParser);
+	pmap.put(DataType.Name.DOUBLE, doubleParser);
+	pmap.put(DataType.Name.FLOAT, floatParser);
+	pmap.put(DataType.Name.INET, inetAddressParser);
+	pmap.put(DataType.Name.INT, integerParser);
+	pmap.put(DataType.Name.TEXT, stringParser);
+	pmap.put(DataType.Name.TIMESTAMP, dateParser);
+	pmap.put(DataType.Name.TIMEUUID, uuidParser);
+	pmap.put(DataType.Name.UUID, uuidParser);
+	pmap.put(DataType.Name.VARCHAR, stringParser);
+	pmap.put(DataType.Name.VARINT, bigIntegerParser);
     }
 
     // Validate the CQL schema, extract the keyspace and tablename, and process the rest of the schema
@@ -136,11 +140,53 @@ public class CqlDelimParser {
 	for (int i = 0; i < inList.length; i++) {
 	    String col = inList[i].trim();
 	    SchemaBits sb = new SchemaBits();
+	    DataType dt = cd.getType(col);
 	    sb.name = col;
-	    sb.datatype = cd.getType(col).getName().toString().toUpperCase();
-	    sb.parser = pmap.get(sb.datatype);
-	    if (null == sb.parser) {
-		throw new ParseException("Column data type not recognized (" + sb.datatype + ")", i);
+	    sb.datatype = dt.getName();
+	    if (dt.isCollection()) {
+		if (sb.datatype == DataType.Name.LIST) {
+		    DataType.Name listType = dt.getTypeArguments().get(0).getName();
+		    Parser listParser = pmap.get(listType);
+		    if (null == listParser) {
+			throw new ParseException("List data type not recognized (" 
+						 + listType + ")", i);
+		    }
+		    sb.parser = new ListParser(listParser, ',', '[', ']');
+		}
+		else if (sb.datatype == DataType.Name.SET) {
+		    DataType.Name setType = dt.getTypeArguments().get(0).getName();
+		    Parser setParser = pmap.get(setType);
+		    if (null == setParser) {
+			throw new ParseException("Set data type not recognized (" 
+						 + setType + ")", i);
+		    }
+		    sb.parser = new SetParser(setParser, ',', '{', '}');
+		}
+		else if (sb.datatype == DataType.Name.MAP) {
+		    DataType.Name keyType = dt.getTypeArguments().get(0).getName();
+		    Parser keyParser = pmap.get(keyType);
+		    if (null == keyParser) {
+			throw new ParseException("Map key data type not recognized (" 
+						 + keyType + ")", i);
+		    }
+		    DataType.Name valueType = dt.getTypeArguments().get(1).getName();
+		    Parser valueParser = pmap.get(valueType);
+		    if (null == valueParser) {
+			throw new ParseException("Map value data type not recognized (" 
+						 + valueType + ")", i);
+		    }
+		    sb.parser = new MapParser(keyParser, valueParser, ',', '{', '}', ':');
+		}
+		else {
+		    throw new ParseException("Collection data type not recognized (" 
+					     + sb.datatype + ")", i);
+		}
+	    }
+	    else {
+		sb.parser = pmap.get(sb.datatype);
+		if (null == sb.parser) {
+		    throw new ParseException("Column data type not recognized (" + sb.datatype + ")", i);
+		}
 	    }
 	    sbl.add(sb);
 	}

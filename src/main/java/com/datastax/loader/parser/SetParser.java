@@ -19,15 +19,15 @@ import java.lang.String;
 import java.lang.Character;
 import java.lang.StringBuilder;
 import java.lang.IndexOutOfBoundsException;
-import java.util.List;
-import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
 import java.io.StringReader;
 import java.io.IOException;
 import java.text.ParseException;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
-public class ListParser extends AbstractParser {
+public class SetParser extends AbstractParser {
     private Parser parser;
     private char collectionDelim;
     private char collectionBegin;
@@ -35,16 +35,15 @@ public class ListParser extends AbstractParser {
     private char collectionQuote = '\"';
     private char collectionEscape = '\\';
     private String collectionNullString = "null";
-    private List<Object> elements;
-    public ListParser(Parser inParser, char inCollectionDelim, 
-		      char inCollectionBegin, char inCollectionEnd) {
+    private Set<Object> elements;
+    public SetParser(Parser inParser, char inCollectionDelim, 
+		     char inCollectionBegin, char inCollectionEnd) {
 	parser = inParser;
 	collectionDelim = inCollectionDelim;
 	collectionBegin = inCollectionBegin;
 	collectionEnd = inCollectionEnd;
-	elements = new ArrayList<Object>();
+	elements = new HashSet<Object>();
     }
-
     public Object parse(String toparse) throws ParseException {
 	if (!toparse.startsWith(Character.toString(collectionBegin)))
 	    throw new ParseException("Must begin with " + collectionBegin 
@@ -75,21 +74,7 @@ public class ListParser extends AbstractParser {
 	/*
 	  //// NOT YET IMPLEMENTED
 
-	if (row.isNull(index))
-	    return null;
-	StringBuilder sb = new StringBuilder().append(collectionBegin);
-	Class<?> cl = row.getColumnDefinitions().getType(index).getTypeArguments().get(0).asJavaClass();
-	List list = row.getList(index, cl);
-	if (list.size() > 0) {
-	    for (int i = 0; i < list.size() - 1; i++) {
-		sb.append(parser.format(list.get(i)));
-		sb.append(collectionDelim);
-	    }
-	    sb.append(parser.format(list.get(list.size() - 1)));
-	}
-	sb.append(collectionEnd);
-	return sb.toString();
-	*/
+	  */
 	return null;
     }
 }

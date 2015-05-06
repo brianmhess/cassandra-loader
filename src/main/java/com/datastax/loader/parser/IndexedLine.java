@@ -32,21 +32,25 @@ public class IndexedLine {
 
     public char getNext() throws ParseException {
 	if (buffer.length == index)
-	    throw new ParseException("ran out of buffer", 0);
+	    throw new ParseException("ran out of buffer (" + index + " / " + buffer.length + ")", 0);
 	char c = buffer[index];
 	index++;
 	return c;
     }
 
+    public boolean hasNext() {
+	return buffer.length > index;
+    }
+
     public boolean setIndex(int idx) throws ParseException {
-	if (buffer.length - 1 > idx)
+	if (buffer.length - 1 < idx)
 	    throw new ParseException("index out of range", 0);
 	index = idx;
 	return true;
     }
 
     public char get(int idx) throws ParseException {
-	if (buffer.length - 1 > idx)
+	if (buffer.length - 1 < idx)
 	    throw new ParseException("index out of range", 0);
 	return buffer[idx];
     }

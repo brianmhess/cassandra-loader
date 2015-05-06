@@ -33,8 +33,18 @@ public abstract class AbstractParser implements Parser {
 			Character escape, Character quote, boolean last)
 	throws IOException, ParseException {
 	if (last)
-	    return parse(il.remaining());
+	    return parse(prepareToParse(il.remaining(), nullString, quote));
 	return parse(getQuotedOrUnquoted(il, nullString, delim, escape, quote));
+    }
+
+    public String prepareToParse(String retstring, String nullString, Character quote) {
+	if (retstring.startsWith(quote.toString()) 
+	    && retstring.endsWith(quote.toString()))
+	    retstring = retstring.substring(1, retstring.length() - 1);
+	retstring = retstring.trim();
+	if (nullString.equalsIgnoreCase(retstring))
+	    return null;	
+	return retstring;
     }
 
     public String getQuotedOrUnquoted(IndexedLine il, String nullString,
@@ -45,6 +55,8 @@ public abstract class AbstractParser implements Parser {
 	if (null == delim) {
 	    return null;
 	}
+	if (!il.hasNext())
+	    return null;
 	char c = il.getNext();
 	if (c == delim) {
 	    retstring = "";
@@ -57,13 +69,7 @@ public abstract class AbstractParser implements Parser {
 	    }
 	    retstring = sb.append(s).toString();
 	}
-	if (retstring.startsWith(quote.toString()) 
-	    && retstring.endsWith(quote.toString()))
-	    retstring = retstring.substring(1, retstring.length() - 1);
-	retstring = retstring.trim();
-	if (nullString.equalsIgnoreCase(retstring))
-	    return null;
-	return retstring;
+	return prepareToParse(retstring, nullString, quote);
     }
 
     public String extractUntil(IndexedLine il, Character delim, 
@@ -75,7 +81,7 @@ public abstract class AbstractParser implements Parser {
 	}
 	StringBuilder sb = new StringBuilder();
 	char c;
-	while (true) {
+	while (il.hasNext()) {
 	    c = il.getNext();
 	    if ((c == delim) && (!inquote)) {
 		break;
