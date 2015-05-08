@@ -52,6 +52,8 @@ public class ActionFutureSet extends AbstractFutureManager {
 		    //System.err.println("Query took " + qduration + "ms");
 		    //}
 		    futureAction.onSuccess(rs, line);
+		   /* String pty_id= line.substring(0,line.indexOf("\\|"));
+		    System.out.println("Party ID: "+ pty_id+ "queried on: "+ rs.getExecutionInfo().getQueriedHost()+ "nad Tried on:" +rs.getExecutionInfo().getTriedHosts());*/
 		}
 		@Override
 		public void onFailure(Throwable t) {

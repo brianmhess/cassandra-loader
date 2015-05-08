@@ -15,15 +15,12 @@
  */
 package com.datastax.loader.parser;
 
+import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.regex.Pattern;
-import java.lang.String;
-import java.lang.System;
-import java.lang.NumberFormatException;
-import java.text.ParseException;
-import java.lang.IndexOutOfBoundsException;
+
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
@@ -100,22 +97,45 @@ public class DelimParser {
     // returns an array of Objects - to be used in PreparedStatement.bind()
     public List<Object> parse(String line) {
 	String[] columns = pattern.split(line, -1);
-	if (parsersSize != columns.length) {
-	    System.err.println(String.format("Invalid input: Expected %d elements, found %d", parsersSize, columns.length));
+	String[] newcolumns = new String[114];
+	
+	
+	for (int i = 0; i < columns.length-1; i++) {
+		if(i==113){
+			newcolumns[113]="O";
+		}else{
+			newcolumns[i]=columns[i];	
+		}		
+	}
+	if (parsersSize != newcolumns.length) {
+	    System.err.println(String.format("Invalid input: Expected %d elements, found %d", parsersSize, newcolumns.length));
 	    return null;
 	}
 	elements.clear();
 	for (int i = 0; i < parsersSize; i++) {
 	    try {
-		String toparse = prepareToParse(columns[i]);
+		String toparse = prepareToParse(newcolumns[i]);
+		//MDP Change -START
+		if(null==toparse){			
+			if(parsers.get(i).getClass().isInstance( new com.datastax.loader.parser.DateParser(""))){
+				toparse="1900-01-01 00:00:00";				
+			}else if(parsers.get(i).getClass().isInstance( new com.datastax.loader.parser.StringParser())){
+				toparse=" ";
+			}else if(parsers.get(i).getClass().isInstance( new com.datastax.loader.parser.BigDecimalParser())){
+				toparse="0";
+			}else if(parsers.get(i).getClass().isInstance( new com.datastax.loader.parser.IntegerParser())){
+				toparse="0";
+			}			
+		}
+		//MDP Change -END
 		elements.add(parsers.get(i).parse(toparse));
 	    }
 	    catch (NumberFormatException e) {
-		System.err.println(String.format("Invalid number in input number %d ('%s'): %s", i, columns[i], e.getMessage()));
+		System.err.println(String.format("Invalid number in input number %d ('%s'): %s", i, newcolumns[i], e.getMessage()));
 		return null;
 	    }
 	    catch (ParseException pe) {
-		System.err.println(String.format("Invalid format in input %d ('%s'): %s", i, columns[i], pe.getMessage()));
+		System.err.println(String.format("Invalid format in input %d ('%s'): %s", i, newcolumns[i], pe.getMessage()));
 		return null;
 	    }
 	}
