@@ -56,24 +56,28 @@ public class CqlDelimParser {
     private String tablename;
     private DelimParser delimParser;
 
-    public CqlDelimParser(String inCqlSchema, Session session) throws ParseException {
+    public CqlDelimParser(String inCqlSchema, Session session) 
+	throws ParseException {
 	// Must supply a CQL schema
-	this(inCqlSchema, null, null, false, session);
+	this(inCqlSchema, null, null, session);
     }
 
-    public CqlDelimParser(String inCqlSchema, String inDelimiter, String inNullString,
-			  boolean delimiterInQuotes, Session session) throws ParseException {
+    public CqlDelimParser(String inCqlSchema, String inDelimiter, 
+			  String inNullString, Session session) 
+	throws ParseException {
 	// Optionally provide things for the DelimParser - delmiter, null string
-	this(inCqlSchema, inDelimiter, inNullString, delimiterInQuotes, null, null, null, session);
+	this(inCqlSchema, inDelimiter, inNullString, null, null, null, session);
     }	
 
-    public CqlDelimParser(String inCqlSchema, String inDelimiter, String inNullString,
-			  boolean delimiterInQuotes, String inDateFormatString, 
-			  BooleanParser.BoolStyle inBoolStyle, Locale inLocale, Session session) throws ParseException {
+    public CqlDelimParser(String inCqlSchema, String inDelimiter, 
+			  String inNullString, String inDateFormatString, 
+			  BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
+			  Session session) 
+	throws ParseException {
 	// Optionally provide things for the line parser - date format, boolean format, locale
 	initPmap(inDateFormatString, inBoolStyle, inLocale);
 	processCqlSchema(inCqlSchema, session);
-	createDelimParser(inDelimiter, inNullString, delimiterInQuotes);
+	createDelimParser(inDelimiter, inNullString);
     }	
 
     // used internally to store schema information
@@ -194,8 +198,8 @@ public class CqlDelimParser {
     }
 
     // Creates the DelimParser that will parse the line
-    private void createDelimParser(String delimiter, String nullString, boolean delimiterInQuotes) {
-	delimParser = new DelimParser(delimiter, nullString, delimiterInQuotes);
+    private void createDelimParser(String delimiter, String nullString) {
+	delimParser = new DelimParser(delimiter, nullString);
 	for (int i = 0; i < sbl.size(); i++)
 	    delimParser.add(sbl.get(i).parser);
     }

@@ -20,7 +20,9 @@ public class ActionFutureSet extends AbstractFutureManager {
     protected AtomicLong insertErrors;
     protected AtomicLong numInserted;
 
-    public ActionFutureSet(int inSize, long inQueryTimeout, long inMaxInsertErrors, FutureAction inFutureAction) {
+    public ActionFutureSet(int inSize, long inQueryTimeout, 
+			   long inMaxInsertErrors, 
+			   FutureAction inFutureAction) {
 	super(inSize, inQueryTimeout, inMaxInsertErrors);
 	futureAction = inFutureAction;
 	available = new Semaphore(size, true);
@@ -31,13 +33,8 @@ public class ActionFutureSet extends AbstractFutureManager {
     public boolean add(ResultSetFuture future, final String line) {
 	if (maxInsertErrors <= insertErrors.get())
 	    return false;
-	final long beginTime = System.currentTimeMillis();
 	try {
 	    available.acquire();
-	    long duration = System.currentTimeMillis() - beginTime;
-	    //if (1000 < duration) {
-	    //System.err.println("Getting semaphore took " + duration + "ms");
-	    //}
 	}
 	catch (InterruptedException e) {
 	    return false;
@@ -47,10 +44,6 @@ public class ActionFutureSet extends AbstractFutureManager {
 		public void onSuccess(ResultSet rs) {
 		    available.release();
 		    numInserted.incrementAndGet();
-		    //long qduration = System.currentTimeMillis() - beginTime;
-		    //if (2000 < qduration) {
-		    //System.err.println("Query took " + qduration + "ms");
-		    //}
 		    futureAction.onSuccess(rs, line);
 		}
 		@Override

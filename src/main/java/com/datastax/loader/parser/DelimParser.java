@@ -36,9 +36,9 @@ public class DelimParser {
     private List<Object> elements;
     private String delimiter;
     private String nullString;
-    private Pattern pattern;
-    private static String regexString = "(?=([^\"]*\"[^\"]*\")*[^\"]*$)";
-
+    private char delim;
+    private char quote;
+    private char escape;
 
     public static String DEFAULT_DELIMITER = ",";
     public static String DEFAULT_NULLSTRING = "";
@@ -52,10 +52,6 @@ public class DelimParser {
     }
 
     public DelimParser(String inDelimiter, String inNullString) {
-	this(inDelimiter, inNullString, false);
-    }
-
-    public DelimParser(String inDelimiter, String inNullString, boolean delimiterInQuotes) {
 	parsers = new ArrayList<Parser>();
 	elements = new ArrayList<Object>();
 	parsersSize = parsers.size();
@@ -63,16 +59,13 @@ public class DelimParser {
 	    delimiter = DEFAULT_DELIMITER;
 	else 
 	    delimiter = inDelimiter;
-	//if (delimiter.equals("|"))
-	//  delimiter = "\\|";
 	if (null == inNullString)
 	    nullString = DEFAULT_NULLSTRING;
 	else
 	    nullString = inNullString;
-	if (delimiterInQuotes)
-	    pattern = Pattern.compile(delimiter + regexString);
-	else
-	    pattern = Pattern.compile(delimiter);
+	delim = ("\\t".equals(delimiter)) ?  '\t' : delimiter.charAt(0);
+	quote = '\"';
+	escape = '\\';
     }
     
     // Adds a parser to the list
@@ -98,47 +91,16 @@ public class DelimParser {
     }
 
     public List<Object> parse(String line) {
-	//return parseSimple(line);
 	return parseComplex(line);
-    }
-
-    // Parses this line by applying the parsers
-    // Result is a boolean of success or failure
-    // Pick up the results with a call to getElements
-    // returns an array of Objects - to be used in PreparedStatement.bind()
-    public List<Object> parseSimple(String line) {
-	String[] columns = pattern.split(line, -1);
-	if (parsersSize != columns.length) {
-	    System.err.println(String.format("Invalid input: Expected %d elements, found %d", parsersSize, columns.length));
-	    return null;
-	}
-	elements.clear();
-	for (int i = 0; i < parsersSize; i++) {
-	    try {
-		String toparse = prepareToParse(columns[i]);
-		elements.add(parsers.get(i).parse(toparse));
-	    }
-	    catch (NumberFormatException e) {
-		System.err.println(String.format("Invalid number in input number %d ('%s'): %s", i, columns[i], e.getMessage()));
-		return null;
-	    }
-	    catch (ParseException pe) {
-		System.err.println(String.format("Invalid format in input %d ('%s'): %s", i, columns[i], pe.getMessage()));
-		return null;
-	    }
-	}
-	return elements;
     }
 
     public List<Object> parseComplex(String line) {
 	elements.clear();
 	IndexedLine sr = new IndexedLine(line);
-	char delim = ("\\t".equals(delimiter)) ?  '\t' : delimiter.charAt(0);
-	char quote = '\"';
-	char escape = '\\';
 	for (int i = 0; i < parsersSize; i++) {
 	    try {
-		elements.add(parsers.get(i).parse(sr, nullString, delim, escape, quote, (parsersSize-1 == i)));
+		elements.add(parsers.get(i).parse(sr, nullString, delim, escape,
+						  quote, (parsersSize-1 == i)));
 	    }
 	    catch (NumberFormatException e) {
 		System.err.println(String.format("Invalid number in input number %d: %s", i, e.getMessage()));

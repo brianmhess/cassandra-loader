@@ -12,7 +12,8 @@ public class PrintingFutureAction implements FutureAction {
     protected AtomicLong numInserted;
     protected final long period = 100000;
 
-    public PrintingFutureAction(PrintStream inLogPrinter, PrintStream inBadInsertPrinter) {
+    public PrintingFutureAction(PrintStream inLogPrinter, 
+				PrintStream inBadInsertPrinter) {
 	logPrinter = inLogPrinter;
 	badInsertPrinter = inBadInsertPrinter;
 	numInserted = new AtomicLong(0);

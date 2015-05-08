@@ -59,12 +59,11 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
-
-import com.google.common.util.concurrent.RateLimiter;
 
 public class CqlDelimLoad {
     private String version = "0.0.9";
@@ -74,12 +73,14 @@ public class CqlDelimLoad {
     private String password = null;
     private Cluster cluster = null;
     private Session session = null;
+    private ConsistencyLevel consistencyLevel = ConsistencyLevel.LOCAL_ONE;
     private int numFutures = 1000;
     private int inNumFutures = -1;
     private int queryTimeout = 2;
     private long maxInsertErrors = 10;
     private int numRetries = 1;
     private double rate = 50000.0;
+    private long progressRate = 100000;
     private RateLimiter rateLimiter = null;
 
     private String cqlSchema = null;
@@ -98,7 +99,6 @@ public class CqlDelimLoad {
     private String dateFormatString = null;
     private String nullString = null;
     private String delimiter = null;
-    private boolean delimiterInQuotes = false;
 
     private int numThreads = Runtime.getRuntime().availableProcessors();
 
@@ -107,7 +107,6 @@ public class CqlDelimLoad {
 	usage.append("Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]\n");
 	usage.append("OPTIONS:\n");
 	usage.append("  -delim <delimiter>             Delimiter to use [,]\n");
-	usage.append("  -delimInQuotes true            Set to 'true' if delimiter can be inside quoted fields [false]\n");
 	usage.append("  -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]\n");
 	usage.append("  -nullString <nullString>       String that signifies NULL [none]\n");
 	usage.append("  -skipRows <skipRows>           Number of rows to skip [0]\n");
@@ -117,6 +116,7 @@ public class CqlDelimLoad {
 	usage.append("  -port <portNumber>             CQL Port Number [9042]\n");
 	usage.append("  -user <username>               Cassandra username [none]\n");
 	usage.append("  -pw <password>                 Password for user [none]\n");
+	usage.append("  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]");
 	usage.append("  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]\n");
 	usage.append("  -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','\n");
 	usage.append("  -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]\n");
@@ -125,6 +125,7 @@ public class CqlDelimLoad {
 	usage.append("  -numRetries <numRetries>       Number of times to retry the INSERT [1]\n");
 	usage.append("  -maxInsertErrors <# errors>    Maximum INSERT errors to endure [10]\n");
 	usage.append("  -rate <rows-per-second>        Maximum insert rate [50000]\n");
+	usage.append("  -progressRate <num txns>       How often to report the insert rate\n");
 	usage.append("  -successDir <dir>              Directory where to move successfully loaded files\n");
 	usage.append("  -failureDir <dir>              Directory where to move files that did not successfully load\n");
 
@@ -162,6 +163,10 @@ public class CqlDelimLoad {
 	}
 	if (0 > maxErrors) {
 	    System.err.println("Maximum number of parse errors must be non-negative");
+	    return false;
+	}
+	if (0 > progressRate) {
+	    System.err.println("Progress rate must be non-negative");
 	    return false;
 	}
 	if (numThreads < 1) {
@@ -257,6 +262,7 @@ public class CqlDelimLoad {
 	if (null != (tkey = amap.remove("-port")))          port = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-user")))          username = tkey;
 	if (null != (tkey = amap.remove("-pw")))            password = tkey;
+	if (null != (tkey = amap.remove("-consistencyLevel"))) consistencyLevel = ConsistencyLevel.valueOf(tkey);
 	if (null != (tkey = amap.remove("-numFutures")))    inNumFutures = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-queryTimeout")))  queryTimeout = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-maxInsertErrors"))) maxInsertErrors = Long.parseLong(tkey);
@@ -268,9 +274,9 @@ public class CqlDelimLoad {
 	if (null != (tkey = amap.remove("-dateFormat")))    dateFormatString = tkey;
 	if (null != (tkey = amap.remove("-nullString")))    nullString = tkey;
 	if (null != (tkey = amap.remove("-delim")))         delimiter = tkey;
-	if (null != (tkey = amap.remove("-delimInQuotes"))) delimiterInQuotes = Boolean.parseBoolean(tkey);
 	if (null != (tkey = amap.remove("-numThreads")))    numThreads = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-rate")))          rate = Double.parseDouble(tkey);
+	if (null != (tkey = amap.remove("-progressRate")))  progressRate = Long.parseLong(tkey);
 	if (null != (tkey = amap.remove("-successDir")))    successDir = tkey;
 	if (null != (tkey = amap.remove("-failureDir")))    failureDir = tkey;
 	if (null != (tkey = amap.remove("-decimalDelim"))) {
@@ -313,9 +319,9 @@ public class CqlDelimLoad {
 	if (null != username)
 	    clusterBuilder = clusterBuilder.withCredentials(username, password);
 	cluster = clusterBuilder.build();
-	session = cluster.newSession();
-	if (0 < rate)
-	    rateLimiter = RateLimiter.create(rate);
+	rateLimiter = new RateLimiter(rate, progressRate);
+	//rateLimiter = new Latency999RateLimiter(rate, progressRate, 3000, 200, 10, 0.5, 0.1, cluster, false);
+	session = new RateLimitedSession(cluster.newSession(), rateLimiter);
     }
 
     private void cleanup() {
@@ -371,18 +377,17 @@ public class CqlDelimLoad {
 	if (onefile) {
 	    // One file/stdin to process
 	    executor = Executors.newSingleThreadExecutor();
-	    Callable<Long> worker = new ThreadExecute(cqlSchema, delimiter, 
-						      nullString,
-						      delimiterInQuotes, 
-						      dateFormatString, 
-						      boolStyle, locale, 
-						      maxErrors, skipRows,
-						      maxRows, badDir, infile, 
-						      session, numFutures,
-						      numRetries, queryTimeout,
-						      maxInsertErrors, 
-						      rateLimiter, 
-						      successDir, failureDir);
+	    Callable<Long> worker = new CqlDelimLoadTask(cqlSchema, delimiter, 
+							 nullString,
+							 dateFormatString, 
+							 boolStyle, locale, 
+							 maxErrors, skipRows,
+							 maxRows, badDir, infile, 
+							 session, consistencyLevel,
+							 numFutures,
+							 numRetries, queryTimeout,
+							 maxInsertErrors, 
+							 successDir, failureDir);
 	    Future<Long> res = executor.submit(worker);
 	    total = res.get();
 	    executor.shutdown();
@@ -392,20 +397,19 @@ public class CqlDelimLoad {
 	    Set<Future<Long>> results = new HashSet<Future<Long>>();
 	    while (!fileList.isEmpty()) {
 		File tFile = fileList.pop();
-		Callable<Long> worker = new ThreadExecute(cqlSchema, delimiter,
-							  nullString,
-							  delimiterInQuotes, 
-							  dateFormatString, 
-							  boolStyle, locale, 
-							  maxErrors, skipRows,
-							  maxRows, badDir, tFile, 
-							  session,
-							  numFutures,
-							  numRetries, 
-							  queryTimeout,
-							  maxInsertErrors, 
-							  rateLimiter,
-							  successDir, failureDir);
+		Callable<Long> worker = new CqlDelimLoadTask(cqlSchema, delimiter,
+							     nullString,
+							     dateFormatString, 
+							     boolStyle, locale, 
+							     maxErrors, skipRows,
+							     maxRows, badDir, tFile, 
+							     session,
+							     consistencyLevel,
+							     numFutures,
+							     numRetries, 
+							     queryTimeout,
+							     maxInsertErrors, 
+							     successDir, failureDir);
 		results.add(executor.submit(worker));
 	    }
 	    executor.shutdown();
@@ -428,201 +432,6 @@ public class CqlDelimLoad {
         } else {
             System.exit(-1);
         }
-    }
-
-    class ThreadExecute implements Callable<Long> {
-	private String BADPARSE = ".BADPARSE";
-	private String BADINSERT = ".BADINSERT";
-	private String LOG = ".LOG";
-	private Session session;
-	private String insert;
-	private PreparedStatement statement;
-	private CqlDelimParser cdp;
-	private long maxErrors;
-	private long skipRows;
-	private long maxRows;
-	private String badDir;
-	private String successDir;
-	private String failureDir;
-	private String readerName;
-	private PrintStream badParsePrinter = null;
-	private PrintStream badInsertPrinter = null;
-	private PrintStream logPrinter = null;
-	private BufferedReader reader;
-	private File infile;
-	private int numFutures;
-	private long numInserted;
-	private final RateLimiter rateLimiter;
-
-	private String cqlSchema;
-	private Locale locale = null;
-	private BooleanParser.BoolStyle boolStyle = null;
-	private String nullString = null;
-	private String delimiter = null;
-	private boolean delimiterInQuotes;
-	private TimeUnit unit = TimeUnit.SECONDS;
-	private long queryTimeout = 2;
-	private int numRetries = 1;
-	private long maxInsertErrors = 10;
-	private long insertErrors = 0;
-
-	public ThreadExecute(String inCqlSchema, String inDelimiter, 
-			     String inNullString, boolean inDelimiterInQuotes, 
-			     String inDateFormatString,
-			     BooleanParser.BoolStyle inBoolStyle, 
-			     Locale inLocale, 
-			     long inMaxErrors, long inSkipRows, long inMaxRows,
-			     String inBadDir, File inFile,
-			     Session inSession,
-			     int inNumFutures, int inNumRetries, 
-			     int inQueryTimeout, long inMaxInsertErrors,
-			     RateLimiter inRateLimiter,
-			     String inSuccessDir, String inFailureDir) {
-	    super();
-	    cqlSchema = inCqlSchema;
-	    delimiter = inDelimiter;
-	    nullString = inNullString;
-	    delimiterInQuotes = inDelimiterInQuotes;
-	    dateFormatString = inDateFormatString;
-	    boolStyle = inBoolStyle;
-	    locale = inLocale;
-	    maxErrors = inMaxErrors;
-	    skipRows = inSkipRows;
-	    maxRows = inMaxRows;
-	    badDir = inBadDir;
-	    infile = inFile;
-	    session = inSession;
-	    numFutures = inNumFutures;
-	    numRetries = inNumRetries;
-	    queryTimeout = inQueryTimeout;
-	    maxInsertErrors = inMaxInsertErrors;
-	    rateLimiter = inRateLimiter;
-	    successDir = inSuccessDir;
-	    failureDir = inFailureDir;
-	}
-
-	public Long call() throws IOException, ParseException {
-	    setup();
-	    numInserted = execute();
-	    return numInserted;
-	}
-
-	private void setup() throws IOException, ParseException {
-	    if (null == infile) {
-		reader = new BufferedReader(new InputStreamReader(System.in));
-		//readerName = CqlDelimLoad.STDIN;
-		readerName = "stdin";
-	    }
-	    else {
-		reader = new BufferedReader(new FileReader(infile));
-		readerName = infile.getName();
-	    }
-	    
-	    // Prepare Badfile
-	    if (null != badDir) {
-		badParsePrinter = new PrintStream(new BufferedOutputStream(new FileOutputStream(badDir + "/" + readerName + BADPARSE)));
-		badInsertPrinter = new PrintStream(new BufferedOutputStream(new FileOutputStream(badDir + "/" + readerName + BADINSERT)));
-		logPrinter = new PrintStream(new BufferedOutputStream(new FileOutputStream(badDir + "/" + readerName + LOG)));
-	    }
-	    
-	    cdp = new CqlDelimParser(cqlSchema, delimiter, nullString, 
-				     delimiterInQuotes, dateFormatString, 
-				     boolStyle, locale, session);
-	    insert = cdp.generateInsert();
-	    statement = session.prepare(insert);
-	    statement.setRetryPolicy(new LoaderRetryPolicy(numRetries));
-	}
-	
-	private void cleanup(boolean success) throws IOException {
-	    if (null != badParsePrinter)
-		badParsePrinter.close();
-	    if (null != badInsertPrinter)
-		badInsertPrinter.close();
-	    if (null != logPrinter)
-		logPrinter.close();
-	    if (success) {
-		if (null != successDir) {
-		    Path src = infile.toPath();
-		    Path dst = Paths.get(successDir);
-		    Files.move(src, dst.resolve(src.getFileName()), 
-			       StandardCopyOption.REPLACE_EXISTING);
-		}
-	    }
-	    else {
-		if (null != failureDir) {
-		    Path src = infile.toPath();
-		    Path dst = Paths.get(failureDir);
-		    Files.move(src, dst.resolve(src.getFileName()), 
-			       StandardCopyOption.REPLACE_EXISTING);
-		}
-	    }
-	}
-
-	private long execute() throws IOException {
-	    FutureManager fm = new PrintingFutureSet(numFutures, queryTimeout, maxInsertErrors, 
-						     logPrinter, badInsertPrinter);
-	    String line;
-	    int lineNumber = 0;
-	    long numInserted = 0;
-	    int numErrors = 0;
-	    List<Object> elements;
-
-	    System.err.println("*** Processing " + readerName);
-	    while ((line = reader.readLine()) != null) {
-		lineNumber++;
-		if (skipRows > 0) {
-		    skipRows--;
-		    continue;
-		}
-		if (maxRows-- < 0)
-		    break;
-		
-		if (0 == line.trim().length())
-		    continue;
-		
-		if (null != (elements = cdp.parse(line))) {
-		    BoundStatement bind = statement.bind(elements.toArray());
-		    if (null != rateLimiter)
-			rateLimiter.acquire(1);
-		    ResultSetFuture resultSetFuture = session.executeAsync(bind);
-		    if (!fm.add(resultSetFuture, line)) {
-			cleanup(false);
-			return -2;
-		    }
-		    numInserted++;
-		}
-		else {
-		    if (null != logPrinter) {
-			logPrinter.println(String.format("Error parsing line %d in %s: %s", lineNumber, readerName, line));
-		    }
-		    System.err.println(String.format("Error parsing line %d in %s: %s", lineNumber, readerName, line));
-		    if (null != badParsePrinter) {
-			badParsePrinter.println(line);
-		    }
-		    numErrors++;
-		    if (maxErrors <= numErrors) {
-			if (null != logPrinter) {
-			    logPrinter.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
-			}
-			System.err.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
-			cleanup(false);
-			return -1;
-		    }
-		}
-	    }
-	    if (!fm.cleanup()) {
-		cleanup(false);
-		return -1;
-	    }
-
-	    if (null != logPrinter) {
-		logPrinter.println("*** DONE: " + readerName + "  number of lines processed: " + lineNumber + " (" + numInserted + " inserted)");
-	    }
-	    System.err.println("*** DONE: " + readerName + "  number of lines processed: " + lineNumber + " (" + numInserted + " inserted)");
-
-	    cleanup(true);
-	    return fm.getNumInserted();
-	}
     }
 }
 

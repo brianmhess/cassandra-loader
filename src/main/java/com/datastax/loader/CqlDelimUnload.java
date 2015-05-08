@@ -75,7 +75,6 @@ public class CqlDelimUnload {
     private String dateFormatString = null;
     private String nullString = null;
     private String delimiter = null;
-    private boolean delimiterInQuotes = false;
 
     private int numThreads = 5;
 
@@ -237,7 +236,6 @@ public class CqlDelimUnload {
 	    executor = Executors.newSingleThreadExecutor();
 	    Callable<Long> worker = new ThreadExecute(cqlSchema, delimiter, 
 						      nullString,
-						      delimiterInQuotes, 
 						      dateFormatString, 
 						      boolStyle, locale, 
 						      pstream, 
@@ -286,7 +284,6 @@ public class CqlDelimUnload {
 		pstream = new PrintStream(new BufferedOutputStream(new FileOutputStream(filename + "." + mype)));
 		Callable<Long> worker = new ThreadExecute(cqlSchema, delimiter, 
 							  nullString,
-							  delimiterInQuotes, 
 							  dateFormatString, 
 							  boolStyle, locale, 
 							  pstream, 
@@ -326,7 +323,6 @@ public class CqlDelimUnload {
 	private BooleanParser.BoolStyle boolStyle = null;
 	private String nullString = null;
 	private String delimiter = null;
-	private boolean delimiterInQuotes;
 
 	private PrintStream writer = null;
 	private String beginToken = null;
@@ -335,7 +331,7 @@ public class CqlDelimUnload {
 	private long numRead = 0;
 
 	public ThreadExecute(String inCqlSchema, String inDelimiter, 
-			     String inNullString, boolean inDelimiterInQuotes, 
+			     String inNullString, 
 			     String inDateFormatString,
 			     BooleanParser.BoolStyle inBoolStyle, 
 			     Locale inLocale, 
@@ -346,7 +342,6 @@ public class CqlDelimUnload {
 	    cqlSchema = inCqlSchema;
 	    delimiter = inDelimiter;
 	    nullString = inNullString;
-	    delimiterInQuotes = inDelimiterInQuotes;
 	    dateFormatString = inDateFormatString;
 	    boolStyle = inBoolStyle;
 	    locale = inLocale;
@@ -399,7 +394,7 @@ public class CqlDelimUnload {
 
 	private void setup() throws IOException, ParseException {
 	    cdp = new CqlDelimParser(cqlSchema, delimiter, nullString, 
-				     delimiterInQuotes, dateFormatString, 
+				     dateFormatString, 
 				     boolStyle, locale, session);
 	    String select = cdp.generateSelect();
 	    String partitionKey = getPartitionKey(cdp, session);
