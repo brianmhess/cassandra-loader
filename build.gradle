@@ -1,7 +1,7 @@
 apply plugin: 'java'
 apply plugin: 'application'
 
-def versionNum = '0.0.9'
+def versionNum = '0.0.10'
 
 task loader(type: Exec) {
     dependsOn << 'uberloader'

@@ -15,11 +15,11 @@ loading of various types of delimited files, including
 
 ### Downloading
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.9/cassandra-loader
+https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.10/cassandra-loader
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.9/cassandra-loader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.10/cassandra-loader
 ```
 
 ### Building
@@ -71,11 +71,12 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
  `-port`          | Port Number        | 9042                       | Cassandra native protocol port number
  `-user`          | Username           | none                       | Cassandra username
  `-pw`            | Password           | none                       | Cassandra password
+ '-consistencyLevel | Consistency Level | ONE                       | CQL Consistency Level
+ `-numThreads`    | Number of threads  | Number of CPUs             | Number of threads to use (one per file)
  `-numFutures`    | Number of Futures  | 1000                       | Number of Java driver futures in flight.
  `-numRetries`    | Number of retries  | 1                          | Number of times to retry the INSERT before declaring defeat.
  `-queryTimeout`  | Timeout in seconds | 2                          | Amount of time to wait for a query to finish before timing out.
  `-delim`         | Delimiter          | ,                          | Delimiter to use
- `-delimInQuotes` | True/False         | false                      | Are delimiters allowed inside quoted strings? This is more expensive to parse, so we default to false.
  `-nullString`    | Null String        | <empty string>             | String to represent NULL data
  `-boolStyle`     | Boolean Style      | TRUE_FALSE                 | String for boolean values.  Options are "1_0", "Y_N", "T_F", "YES_NO", "TRUE_FALSE".
  `-decimalDelim`  | Decimal delimiter  | .                          | Delimiter for decimal values.  Options are "." or ","
@@ -86,6 +87,7 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
  `-maxInsertErrors`| Max insert errors | 10                         | Maximum number of rows that do not insert to allow before exiting.
  `-badDir`        | Bad directory      | current directory          | Directory to write badly parsed and badly inserted rows - as well as the log file.
  `-rate`          | Ingest rate        | unlimited                  | Maximum rate to insert data - in rows/sec.
+ `-progressRate`  | Progress rate      | 100000                     | How often to report the ingest rate (number of rows)
  `-successDir`    | Success directory  | <not set>                  | Location to move successfully loaded files
  `-failureDir`    | Failure directory  | <not set>                  | Location to move files that failed to load
 
@@ -96,10 +98,16 @@ That way, you could pipe data in from other commands:
 grep IMPORTANT data.csv | cassandra-loader -f stdin -h 1.2.3.4 -cql "test.itest(a, b)"
 ```
 
-If you specify either the username or the password, then you must specify both.
+Collections are supported.  
+Sets are started with '{' and ended with '}' and enclose a comma-separated list
+{1,2,3} or {"a","b","c"}
+Lists are started with '[' and ended with ']' and enclose a comma-separated list
+[1,2,3] or ["a","b","c"]
+Maps are started with '{' and ended with '}' and enclose a comma-separated list
+of pairs that are separated by ':'
+{1:1,2:2,3:3} or {"a":1, "b":2, "c":3}
 
-If you do not have delimiters inside quoted text fields, then leave the 
--delimInQuotes option false. Enabling it will result in slower parsing times.
+If you specify either the username or the password, then you must specify both.
 
 numFutures is a way to control the level of parallelism, but at some point 
 too many will actually slow down the load.  The default of 500 is a decent 
@@ -128,7 +136,6 @@ different styles, the True and False strings are as follows:
 Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]
 OPTIONS:
   -delim <delimiter>             Delimiter to use [,]
-  -delimInQuotes true            Set to 'true' if delimiter can be inside quoted fields [false]
   -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]
   -nullString <nullString>       String that signifies NULL [none]
   -skipRows <skipRows>           Number of rows to skip [0]
@@ -138,7 +145,7 @@ OPTIONS:
   -port <portNumber>             CQL Port Number [9042]
   -user <username>               Cassandra username [none]
   -pw <password>                 Password for user [none]
-  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]
+  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]
   -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','
   -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]
   -numThreads <numThreads>       Number of concurrent threads (files) to load [num cores]
@@ -146,6 +153,7 @@ OPTIONS:
   -numRetries <numRetries>       Number of times to retry the INSERT [1]
   -maxInsertErrors <# errors>    Maximum INSERT errors to endure [10]
   -rate <rows-per-second>        Maximum insert rate [50000]
+  -progressRate <num txns>       How often to report the insert rate
   -successDir <dir>              Directory where to move successfully loaded files
   -failureDir <dir>              Directory where to move files that did not successfully load
 
