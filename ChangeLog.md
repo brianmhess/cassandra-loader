@@ -1,3 +1,6 @@
+## 0.0.11
+- Added support for quoted Keyspaces, Tables, and Columns
+
 ## 0.0.10
 - You want collections?  You got 'em
 - Added progress reporting - you can specify the rate at which

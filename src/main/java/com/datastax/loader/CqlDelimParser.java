@@ -124,11 +124,11 @@ public class CqlDelimParser {
 
     // Validate the CQL schema, extract the keyspace and tablename, and process the rest of the schema
     private void processCqlSchema(String cqlSchema, Session session) throws ParseException {
-	String kstnRegex = "^\\s*(\\w+)\\.(\\w+)\\s*[\\(]\\s*(\\w+\\s*(,\\s*\\w+\\s*)*)[\\)]\\s*$";
+	String kstnRegex = "^\\s*(\\\"?[A-Za-z0-9_]+\\\"?)\\.(\\\"?[A-Za-z0-9_]+\\\"?)\\s*[\\(]\\s*(\\\"?[A-Za-z0-9_]+\\\"?\\s*(,\\s*\\\"?[A-Za-z0-9_]+\\\"?\\s*)*)[\\)]\\s*$";
 	Pattern p = Pattern.compile(kstnRegex);
 	Matcher m = p.matcher(cqlSchema);
 	if (!m.find()) {
-	    throw new ParseException("Badly formatted schema", 0);
+	    throw new ParseException("Badly formatted schema  " + cqlSchema, 0);
 	}
 	keyspace = m.group(1);
 	tablename = m.group(2);
