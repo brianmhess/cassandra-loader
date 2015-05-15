@@ -57,7 +57,7 @@ import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
 
 public class CqlDelimUnload {
-    private String version = "0.0.11";
+    private String version = "0.0.12";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -395,7 +395,7 @@ public class CqlDelimUnload {
 	private void setup() throws IOException, ParseException {
 	    cdp = new CqlDelimParser(cqlSchema, delimiter, nullString, 
 				     dateFormatString, 
-				     boolStyle, locale, session);
+				     boolStyle, locale, null, session);
 	    String select = cdp.generateSelect();
 	    String partitionKey = getPartitionKey(cdp, session);
 	    if (null != beginToken) {

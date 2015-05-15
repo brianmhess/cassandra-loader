@@ -76,6 +76,7 @@ class CqlDelimLoadTask implements Callable<Long> {
     private CqlDelimParser cdp;
     private long maxErrors;
     private long skipRows;
+    private String skipCols = null;
     private long maxRows;
     private String badDir;
     private String successDir;
@@ -105,7 +106,8 @@ class CqlDelimLoadTask implements Callable<Long> {
 			    String inNullString, String inDateFormatString,
 			    BooleanParser.BoolStyle inBoolStyle, 
 			    Locale inLocale, 
-			    long inMaxErrors, long inSkipRows, long inMaxRows,
+			    long inMaxErrors, long inSkipRows, 
+			    String inSkipCols, long inMaxRows,
 			    String inBadDir, File inFile,
 			    Session inSession, ConsistencyLevel inCl,
 			    int inNumFutures, int inNumRetries, 
@@ -120,6 +122,7 @@ class CqlDelimLoadTask implements Callable<Long> {
 	locale = inLocale;
 	maxErrors = inMaxErrors;
 	skipRows = inSkipRows;
+	skipCols = inSkipCols;
 	maxRows = inMaxRows;
 	badDir = inBadDir;
 	infile = inFile;
@@ -159,7 +162,7 @@ class CqlDelimLoadTask implements Callable<Long> {
 	    
 	cdp = new CqlDelimParser(cqlSchema, delimiter, nullString, 
 				 dateFormatString, boolStyle, locale, 
-				 session);
+				 skipCols, session);
 	insert = cdp.generateInsert();
 	statement = session.prepare(insert);
 	statement.setRetryPolicy(new LoaderRetryPolicy(numRetries));

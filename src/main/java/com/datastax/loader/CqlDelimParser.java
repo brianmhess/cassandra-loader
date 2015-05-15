@@ -33,16 +33,18 @@ import com.datastax.loader.parser.ListParser;
 import com.datastax.loader.parser.SetParser;
 import com.datastax.loader.parser.MapParser;
 
+import java.lang.String;
+import java.lang.IndexOutOfBoundsException;
+import java.lang.NumberFormatException;
+import java.text.ParseException;
 import java.util.Map;
 import java.util.List;
 import java.util.HashMap;
 import java.util.ArrayList;
-import java.lang.String;
-import java.text.ParseException;
 import java.util.Locale;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
-import java.lang.IndexOutOfBoundsException;
+
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.ColumnDefinitions;
@@ -56,28 +58,15 @@ public class CqlDelimParser {
     private String tablename;
     private DelimParser delimParser;
 
-    public CqlDelimParser(String inCqlSchema, Session session) 
-	throws ParseException {
-	// Must supply a CQL schema
-	this(inCqlSchema, null, null, session);
-    }
-
-    public CqlDelimParser(String inCqlSchema, String inDelimiter, 
-			  String inNullString, Session session) 
-	throws ParseException {
-	// Optionally provide things for the DelimParser - delmiter, null string
-	this(inCqlSchema, inDelimiter, inNullString, null, null, null, session);
-    }	
-
     public CqlDelimParser(String inCqlSchema, String inDelimiter, 
 			  String inNullString, String inDateFormatString, 
 			  BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
-			  Session session) 
+			  String skipList, Session session) 
 	throws ParseException {
 	// Optionally provide things for the line parser - date format, boolean format, locale
 	initPmap(inDateFormatString, inBoolStyle, inLocale);
 	processCqlSchema(inCqlSchema, session);
-	createDelimParser(inDelimiter, inNullString);
+	createDelimParser(inDelimiter, inNullString, skipList);
     }	
 
     // used internally to store schema information
@@ -198,10 +187,16 @@ public class CqlDelimParser {
     }
 
     // Creates the DelimParser that will parse the line
-    private void createDelimParser(String delimiter, String nullString) {
+    private void createDelimParser(String delimiter, String nullString, 
+				   String skipList) throws NumberFormatException {
 	delimParser = new DelimParser(delimiter, nullString);
 	for (int i = 0; i < sbl.size(); i++)
 	    delimParser.add(sbl.get(i).parser);
+	if (null != skipList) {
+	    for (String s : skipList.split(",")) {
+		delimParser.addSkip(Integer.parseInt(s.trim()));
+	    }
+	}
     }
 
     // Convenience method to return the INSERT statement for a PreparedStatement.

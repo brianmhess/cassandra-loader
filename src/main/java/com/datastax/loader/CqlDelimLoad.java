@@ -66,7 +66,7 @@ import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
 public class CqlDelimLoad {
-    private String version = "0.0.11";
+    private String version = "0.0.12";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -82,15 +82,20 @@ public class CqlDelimLoad {
     private double rate = 50000.0;
     private long progressRate = 100000;
     private RateLimiter rateLimiter = null;
+    private String rateFile = null;
+    private PrintStream rateStream = null;
 
     private String cqlSchema = null;
 
     private long maxErrors = 10;
     private long skipRows = 0;
+    private String skipCols = null;
+    
     private long maxRows = -1;
     private String badDir = ".";
     private String filename = null;
     public static String STDIN = "stdin";
+    public static String STDERR = "stderr";
     private String successDir = null;
     private String failureDir = null;
 
@@ -110,6 +115,7 @@ public class CqlDelimLoad {
 	usage.append("  -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]\n");
 	usage.append("  -nullString <nullString>       String that signifies NULL [none]\n");
 	usage.append("  -skipRows <skipRows>           Number of rows to skip [0]\n");
+	usage.append("  -skipCOls <columnsToSkip>      Comma-separated list of columsn to skip in the input file\n");
 	usage.append("  -maxRows <maxRows>             Maximum number of rows to read (-1 means all) [-1]\n");
 	usage.append("  -maxErrors <maxErrors>         Maximum parse errors to endure [10]\n");
 	usage.append("  -badDir <badDirectory>         Directory for where to place badly parsed rows. [none]\n");
@@ -125,7 +131,8 @@ public class CqlDelimLoad {
 	usage.append("  -numRetries <numRetries>       Number of times to retry the INSERT [1]\n");
 	usage.append("  -maxInsertErrors <# errors>    Maximum INSERT errors to endure [10]\n");
 	usage.append("  -rate <rows-per-second>        Maximum insert rate [50000]\n");
-	usage.append("  -progressRate <num txns>       How often to report the insert rate\n");
+	usage.append("  -progressRate <num txns>       How often to report the insert rate [100000]\n");
+	usage.append("  -rateFile <filename>           Where to print the rate statistics\n");
 	usage.append("  -successDir <dir>              Directory where to move successfully loaded files\n");
 	usage.append("  -failureDir <dir>              Directory where to move files that did not successfully load\n");
 
@@ -269,6 +276,7 @@ public class CqlDelimLoad {
 	if (null != (tkey = amap.remove("-numRetries")))    numRetries = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-maxErrors")))     maxErrors = Long.parseLong(tkey);
 	if (null != (tkey = amap.remove("-skipRows")))      skipRows = Integer.parseInt(tkey);
+	if (null != (tkey = amap.remove("-skipCols")))      skipCols = tkey;
 	if (null != (tkey = amap.remove("-maxRows")))       maxRows = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-badDir")))        badDir = tkey;
 	if (null != (tkey = amap.remove("-dateFormat")))    dateFormatString = tkey;
@@ -277,6 +285,7 @@ public class CqlDelimLoad {
 	if (null != (tkey = amap.remove("-numThreads")))    numThreads = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-rate")))          rate = Double.parseDouble(tkey);
 	if (null != (tkey = amap.remove("-progressRate")))  progressRate = Long.parseLong(tkey);
+	if (null != (tkey = amap.remove("-rateFile")))      rateFile = tkey;
 	if (null != (tkey = amap.remove("-successDir")))    successDir = tkey;
 	if (null != (tkey = amap.remove("-failureDir")))    failureDir = tkey;
 	if (null != (tkey = amap.remove("-decimalDelim"))) {
@@ -309,7 +318,7 @@ public class CqlDelimLoad {
 	return validateArgs();
     }
 
-    private void setup() {
+    private void setup() throws IOException {
 	// Connect to Cassandra
 	Cluster.Builder clusterBuilder = Cluster.builder()
 	    .addContactPoint(host)
@@ -319,12 +328,23 @@ public class CqlDelimLoad {
 	if (null != username)
 	    clusterBuilder = clusterBuilder.withCredentials(username, password);
 	cluster = clusterBuilder.build();
-	rateLimiter = new RateLimiter(rate, progressRate);
+
+	if (null != rateFile) {
+	    if (STDERR.equalsIgnoreCase(rateFile)) {
+		rateStream = System.err;
+	    }
+	    else {
+		rateStream = new PrintStream(new BufferedOutputStream(new FileOutputStream(rateFile)), true);
+	    }
+	}
+	rateLimiter = new RateLimiter(rate, progressRate, cluster.getMetrics().getRequestsTimer(), rateStream);
 	//rateLimiter = new Latency999RateLimiter(rate, progressRate, 3000, 200, 10, 0.5, 0.1, cluster, false);
 	session = new RateLimitedSession(cluster.newSession(), rateLimiter);
     }
 
     private void cleanup() {
+	rateLimiter.report(null, null);
+	rateStream.close();
 	if (null != session)
 	    session.close();
 	if (null != cluster)
@@ -382,6 +402,7 @@ public class CqlDelimLoad {
 							 dateFormatString, 
 							 boolStyle, locale, 
 							 maxErrors, skipRows,
+							 skipCols,
 							 maxRows, badDir, infile, 
 							 session, consistencyLevel,
 							 numFutures,
@@ -402,6 +423,7 @@ public class CqlDelimLoad {
 							     dateFormatString, 
 							     boolStyle, locale, 
 							     maxErrors, skipRows,
+							     skipCols,
 							     maxRows, badDir, tFile, 
 							     session,
 							     consistencyLevel,
@@ -416,10 +438,10 @@ public class CqlDelimLoad {
 	    for (Future<Long> res : results)
 		total += res.get();
 	}
-	System.err.println("Total rows inserted: " + total);
 
 	// Cleanup
 	cleanup();
+	//System.err.println("Total rows inserted: " + total);
 
 	return true;
     }

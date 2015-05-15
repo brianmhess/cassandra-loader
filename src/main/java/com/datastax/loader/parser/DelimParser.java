@@ -39,6 +39,7 @@ public class DelimParser {
     private char delim;
     private char quote;
     private char escape;
+    private List<Boolean> skip;
 
     public static String DEFAULT_DELIMITER = ",";
     public static String DEFAULT_NULLSTRING = "";
@@ -54,6 +55,7 @@ public class DelimParser {
     public DelimParser(String inDelimiter, String inNullString) {
 	parsers = new ArrayList<Parser>();
 	elements = new ArrayList<Object>();
+	skip = new ArrayList<Boolean>();
 	parsersSize = parsers.size();
 	if (null == inDelimiter)
 	    delimiter = DEFAULT_DELIMITER;
@@ -71,12 +73,13 @@ public class DelimParser {
     // Adds a parser to the list
     public void add(Parser p) {
 	parsers.add(p);
+	skip.add(false);
 	parsersSize = parsers.size();
     }
 
-    // Adds a collection of parsers to the list
-    public void add(Collection<Parser> pl) {
-	parsers.addAll(pl);
+    public void addSkip(int idx) {
+	parsers.add(idx, new StringParser());
+	skip.add(idx, true);
 	parsersSize = parsers.size();
     }
 
@@ -99,8 +102,11 @@ public class DelimParser {
 	IndexedLine sr = new IndexedLine(line);
 	for (int i = 0; i < parsersSize; i++) {
 	    try {
-		elements.add(parsers.get(i).parse(sr, nullString, delim, escape,
-						  quote, (parsersSize-1 == i)));
+		Object toAdd = parsers.get(i).parse(sr, nullString, delim, 
+						    escape, quote, 
+						    (parsersSize-1 == i));
+		if (!skip.get(i))
+		    elements.add(toAdd);
 	    }
 	    catch (NumberFormatException e) {
 		System.err.println(String.format("Invalid number in input number %d: %s", i, e.getMessage()));

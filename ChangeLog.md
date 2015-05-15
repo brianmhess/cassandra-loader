@@ -1,3 +1,7 @@
+## 0.0.12
+- Added a rateFile to output CSV rate statistics
+- added -skipCols to skip input columns
+
 ## 0.0.11
 - Added support for quoted Keyspaces, Tables, and Columns
 

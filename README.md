@@ -15,11 +15,11 @@ loading of various types of delimited files, including
 
 ### Downloading
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.11/cassandra-loader
+https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.12/cassandra-loader
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.11/cassandra-loader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.12/cassandra-loader
 ```
 
 ### Building
@@ -82,12 +82,14 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
  `-decimalDelim`  | Decimal delimiter  | .                          | Delimiter for decimal values.  Options are "." or ","
  `-dateFormat`    | Date Format String | default for Locale.ENGLISH | Date format string as specified in the SimpleDateFormat Java class: http://docs.oracle.com/javase/7/docs/api/java/text/SimpleDateFormat.html
  `-skipRows`      | Rows to skip       | 0                          | Number of rows to skip at the beginning of the file
+ `-skipCols`      | Columns to skip    | <not set>                  | Comma-separated list of columns to skip loading (0-counted)
  `-maxRows`       | Max rows to read   | -1                         | Maximum rows to read (after optional skipping of rows).  -1 signifies all rows.
  `-maxErrors`     | Max parse errors   | 10                         | Maximum number of rows that do not parse to allow before exiting.
  `-maxInsertErrors`| Max insert errors | 10                         | Maximum number of rows that do not insert to allow before exiting.
  `-badDir`        | Bad directory      | current directory          | Directory to write badly parsed and badly inserted rows - as well as the log file.
  `-rate`          | Ingest rate        | unlimited                  | Maximum rate to insert data - in rows/sec.
  `-progressRate`  | Progress rate      | 100000                     | How often to report the ingest rate (number of rows)
+ `-rateFile`      | Rate Stats File    | <not set>                  | File to contain CSV rate statistics
  `-successDir`    | Success directory  | <not set>                  | Location to move successfully loaded files
  `-failureDir`    | Failure directory  | <not set>                  | Location to move files that failed to load
 

@@ -15,13 +15,18 @@
  */
 package com.datastax.loader;
 
+import java.io.PrintStream;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import com.codahale.metrics.Timer;
+import com.codahale.metrics.Snapshot;
 
 public class RateLimiter {
     private com.google.common.util.concurrent.RateLimiter rateLimiter;
     private AtomicLong numAcquires;
     private static long updateRate = 100000;
+    private Timer timer;
+    private PrintStream stream;
     private long lastVal;
     private long firstTime;
     private long lastTime;
@@ -31,18 +36,63 @@ public class RateLimiter {
     }
 
     public RateLimiter(double inRate, long inUpdateRate) {
+	this(inRate, inUpdateRate, null, null);
+    }
+
+    public RateLimiter(double inRate, long inUpdateRate,
+		       Timer inTimer, PrintStream inStream) {
 	rateLimiter = com.google.common.util.concurrent.RateLimiter.create(inRate);
 	updateRate = inUpdateRate;
+	timer = inTimer;
+	stream = inStream;
+	if ((null != stream) && (null != timer)) {
+	    printHeader();
+	}
 	numAcquires = new AtomicLong(0);
 	lastTime = System.currentTimeMillis();
 	firstTime = lastTime;
 	lastVal = 0;
     }
 
-    protected synchronized void incrementAndReport(int permits) {
-	long currentVal = numAcquires.addAndGet(permits);
-	long currentTime = System.currentTimeMillis();
-	if (0 == currentVal % updateRate) {
+    protected void printHeader() {
+	stream.println("Count,Min,Max,Mean,StdDev,50th,75th,95th,98th,99th,999th,MeanRate,1MinuteRate,5MinuteRate,15MinuteRate");
+    }
+
+    protected void printStats() {
+	Snapshot snapshot = timer.getSnapshot();
+	stream.println(String.format("%d,%d,%d,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f",
+				     timer.getCount(),
+				     snapshot.getMin(),
+				     snapshot.getMax(),
+				     snapshot.getMean(),
+				     snapshot.getStdDev(),
+				     snapshot.getMedian(),
+				     snapshot.get75thPercentile(),
+				     snapshot.get95thPercentile(),
+				     snapshot.get98thPercentile(),
+				     snapshot.get99thPercentile(),
+				     snapshot.get999thPercentile(),
+				     timer.getMeanRate(),
+				     timer.getOneMinuteRate(),
+				     timer.getFiveMinuteRate(),
+				     timer.getFifteenMinuteRate())
+		       );
+    }
+
+    public void report(Long currentVal, Long currentTime) {
+	if ((null != stream) && (null != timer)) {
+	    printStats();
+	}
+	if (null == currentVal) {
+	    currentVal = numAcquires.get() - 1;
+	    currentTime = System.currentTimeMillis();
+	    System.err.println("Lines Processed: \t" + currentVal 
+			       + "  Rate: \t" + 
+			       (currentVal)
+			       /((currentTime - firstTime) / 1000)
+			       );
+	}
+	else {
 	    System.err.println("Lines Processed: \t" + currentVal 
 			       + "  Rate: \t" + 
 			       (currentVal)
@@ -52,6 +102,14 @@ public class RateLimiter {
 			       / ((currentTime - lastTime) / 1000)
 			       + ")"
 			       );
+	}
+    }
+
+    protected synchronized void incrementAndReport(int permits) {
+	long currentVal = numAcquires.addAndGet(permits);
+	long currentTime = System.currentTimeMillis();
+	if (0 == currentVal % updateRate) {
+	    report(currentVal, currentTime);
 	    lastTime = currentTime;
 	    lastVal = currentVal;
 	}
