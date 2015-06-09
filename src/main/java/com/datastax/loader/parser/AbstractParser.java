@@ -40,6 +40,8 @@ public abstract class AbstractParser implements Parser {
     public String prepareToParse(String retstring, String nullString, Character quote) {
 	if (retstring.startsWith(quote.toString()) 
 	    && retstring.endsWith(quote.toString()))
+	    //if ((quote == retstring.charAt(0)) 
+	    //&& (quote == retstring.charAt(retstring.length() - 1)))
 	    retstring = retstring.substring(1, retstring.length() - 1);
 	retstring = retstring.trim();
 	if (nullString.equalsIgnoreCase(retstring))
@@ -62,7 +64,7 @@ public abstract class AbstractParser implements Parser {
 	    retstring = "";
 	}
 	else {
-	    StringBuilder sb = new StringBuilder().append(c);
+	    StringBuilder sb = new StringBuilder(10240).append(c);
 	    String s = extractUntil(il, delim, escape, quote, (c == quote));
 	    if (null == s) {
 		return null;
@@ -79,7 +81,7 @@ public abstract class AbstractParser implements Parser {
 	if (null == delim) {
 	    return null;
 	}
-	StringBuilder sb = new StringBuilder();
+	StringBuilder sb = new StringBuilder(10240);
 	char c;
 	while (il.hasNext()) {
 	    c = il.getNext();

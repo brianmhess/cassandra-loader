@@ -61,6 +61,7 @@ import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
@@ -88,6 +89,7 @@ class CqlDelimLoadTask implements Callable<Long> {
     private BufferedReader reader;
     private File infile;
     private int numFutures;
+    private int batchSize;
     private long numInserted;
 
     private String cqlSchema;
@@ -110,7 +112,7 @@ class CqlDelimLoadTask implements Callable<Long> {
 			    String inSkipCols, long inMaxRows,
 			    String inBadDir, File inFile,
 			    Session inSession, ConsistencyLevel inCl,
-			    int inNumFutures, int inNumRetries, 
+			    int inNumFutures, int inBatchSize, int inNumRetries, 
 			    int inQueryTimeout, long inMaxInsertErrors,
 			    String inSuccessDir, String inFailureDir) {
 	super();
@@ -129,6 +131,7 @@ class CqlDelimLoadTask implements Callable<Long> {
 	session = inSession;
 	consistencyLevel = inCl;
 	numFutures = inNumFutures;
+	batchSize = inBatchSize;
 	numRetries = inNumRetries;
 	queryTimeout = inQueryTimeout;
 	maxInsertErrors = inMaxInsertErrors;
@@ -203,6 +206,10 @@ class CqlDelimLoadTask implements Callable<Long> {
 	int lineNumber = 0;
 	long numInserted = 0;
 	int numErrors = 0;
+	int curBatch = 0;
+	BatchStatement batch = new BatchStatement(BatchStatement.Type.UNLOGGED);
+	ResultSetFuture resultSetFuture = null;
+	BoundStatement bind = null;
 	List<Object> elements;
 
 	System.err.println("*** Processing " + readerName);
@@ -219,13 +226,29 @@ class CqlDelimLoadTask implements Callable<Long> {
 		continue;
 		
 	    if (null != (elements = cdp.parse(line))) {
-		BoundStatement bind = statement.bind(elements.toArray());
-		ResultSetFuture resultSetFuture = session.executeAsync(bind);
-		if (!fm.add(resultSetFuture, line)) {
-		    cleanup(false);
-		    return -2;
+		bind = statement.bind(elements.toArray());
+		if (1 == batchSize) {
+		    resultSetFuture = session.executeAsync(bind);
+		    if (!fm.add(resultSetFuture, line)) {
+			System.err.println("Oh no - cleaning up");
+			cleanup(false);
+			return -2;
+		    }
+		    numInserted += 1;
 		}
-		numInserted++;
+		else {
+		    batch.add(bind);
+		    if (batchSize == batch.size()) {
+			resultSetFuture = session.executeAsync(batch);
+			if (!fm.add(resultSetFuture, line)) {
+			    System.err.println("Uh oh - cleaning up");
+			    cleanup(false);
+			    return -2;
+			}
+			numInserted += batch.size();
+			batch.clear();
+		    }
+		}
 	    }
 	    else {
 		if (null != logPrinter) {
@@ -246,6 +269,15 @@ class CqlDelimLoadTask implements Callable<Long> {
 		}
 	    }
 	}
+	if ((batchSize > 0) && (batch.size() > 0)) {
+	    resultSetFuture = session.executeAsync(batch);
+	    if (!fm.add(resultSetFuture, line)) {
+		cleanup(false);
+		return -2;
+	    }
+	    numInserted += batch.size();
+	}
+
 	if (!fm.cleanup()) {
 	    cleanup(false);
 	    return -1;

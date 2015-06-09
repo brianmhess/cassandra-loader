@@ -24,6 +24,8 @@ repositories {
 
 dependencies {
     compile 'com.datastax.cassandra:cassandra-driver-core:2.1.5'
+    compile 'org.xerial.snappy:snappy-java:1.0.5'
+    compile 'net.jpountz.lz4:lz4:1.2.0'
 }
 
 task uberloader(type: Jar) {

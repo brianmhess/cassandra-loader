@@ -19,12 +19,16 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.BatchStatement;
 
 public class RateLimitedSession extends EnhancedSession {
     RateLimiter rateLimiter;
+    private Class<?> batchClass;
     public RateLimitedSession(Session inSession, RateLimiter inRateLimiter) {
 	super(inSession);
 	rateLimiter = inRateLimiter;
+	BatchStatement batch = new BatchStatement();
+	batchClass = batch.getClass();
     }
 
     public long numAcquires() {
@@ -51,7 +55,10 @@ public class RateLimitedSession extends EnhancedSession {
     }
 
     public ResultSetFuture executeAsync(Statement statement) {
-	rateLimiter.acquire();
+	if (statement.getClass() == batchClass)
+	    rateLimiter.acquire(((BatchStatement)statement).size());
+	else
+	    rateLimiter.acquire();
 	return super.executeAsync(statement);
     }
 

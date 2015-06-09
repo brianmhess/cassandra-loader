@@ -58,6 +58,9 @@ import java.nio.file.StandardCopyOption;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.ProtocolVersion;
+import com.datastax.driver.core.PoolingOptions;
+import com.datastax.driver.core.ProtocolOptions;
+import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.BoundStatement;
@@ -106,6 +109,7 @@ public class CqlDelimLoad {
     private String delimiter = null;
 
     private int numThreads = Runtime.getRuntime().availableProcessors();
+    private int batchSize = 1;
 
     private String usage() {
 	StringBuilder usage = new StringBuilder("version: ").append(version).append("\n");
@@ -124,6 +128,7 @@ public class CqlDelimLoad {
 	usage.append("  -pw <password>                 Password for user [none]\n");
 	usage.append("  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]");
 	usage.append("  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]\n");
+	usage.append("  -batchSize <batchSize>         Number of INSERTs to batch together [1]\n");
 	usage.append("  -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','\n");
 	usage.append("  -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]\n");
 	usage.append("  -numThreads <numThreads>       Number of concurrent threads (files) to load [num cores]\n");
@@ -146,6 +151,10 @@ public class CqlDelimLoad {
     private boolean validateArgs() {
 	if (0 >= numFutures) {
 	    System.err.println("Number of futures must be positive (" + numFutures + ")");
+	    return false;
+	}
+	if (0 >= batchSize) {
+	    System.err.println("Batch size must be positive (" + batchSize + ")");
 	    return false;
 	}
 	if (0 >= queryTimeout) {
@@ -271,6 +280,7 @@ public class CqlDelimLoad {
 	if (null != (tkey = amap.remove("-pw")))            password = tkey;
 	if (null != (tkey = amap.remove("-consistencyLevel"))) consistencyLevel = ConsistencyLevel.valueOf(tkey);
 	if (null != (tkey = amap.remove("-numFutures")))    inNumFutures = Integer.parseInt(tkey);
+	if (null != (tkey = amap.remove("-batchSize")))    batchSize = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-queryTimeout")))  queryTimeout = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-maxInsertErrors"))) maxInsertErrors = Long.parseLong(tkey);
 	if (null != (tkey = amap.remove("-numRetries")))    numRetries = Integer.parseInt(tkey);
@@ -320,11 +330,17 @@ public class CqlDelimLoad {
 
     private void setup() throws IOException {
 	// Connect to Cassandra
+	PoolingOptions pOpts = new PoolingOptions();
+	pOpts.setCoreConnectionsPerHost(HostDistance.LOCAL, 8);
+	pOpts.setMaxConnectionsPerHost(HostDistance.LOCAL, 8);
 	Cluster.Builder clusterBuilder = Cluster.builder()
 	    .addContactPoint(host)
 	    .withPort(port)
 	    .withProtocolVersion(ProtocolVersion.V2) // Should be V3, but issues for now....
-	    .withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy(), true));
+	    .withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy(), true))
+	    .withCompression(ProtocolOptions.Compression.SNAPPY)
+	    .withPoolingOptions(pOpts);
+
 	if (null != username)
 	    clusterBuilder = clusterBuilder.withCredentials(username, password);
 	cluster = clusterBuilder.build();
@@ -344,7 +360,8 @@ public class CqlDelimLoad {
 
     private void cleanup() {
 	rateLimiter.report(null, null);
-	rateStream.close();
+	if (rateStream != null)
+	    rateStream.close();
 	if (null != session)
 	    session.close();
 	if (null != cluster)
@@ -405,7 +422,7 @@ public class CqlDelimLoad {
 							 skipCols,
 							 maxRows, badDir, infile, 
 							 session, consistencyLevel,
-							 numFutures,
+							 numFutures, batchSize,
 							 numRetries, queryTimeout,
 							 maxInsertErrors, 
 							 successDir, failureDir);
@@ -427,7 +444,7 @@ public class CqlDelimLoad {
 							     maxRows, badDir, tFile, 
 							     session,
 							     consistencyLevel,
-							     numFutures,
+							     numFutures, batchSize,
 							     numRetries, 
 							     queryTimeout,
 							     maxInsertErrors, 
