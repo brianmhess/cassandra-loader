@@ -56,6 +56,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Metrics;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.PoolingOptions;
@@ -67,6 +68,8 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
+
+import com.codahale.metrics.Timer;
 
 public class CqlDelimLoad {
     private String version = "0.0.12";
@@ -331,19 +334,23 @@ public class CqlDelimLoad {
     private void setup() throws IOException {
 	// Connect to Cassandra
 	PoolingOptions pOpts = new PoolingOptions();
-	pOpts.setCoreConnectionsPerHost(HostDistance.LOCAL, 8);
-	pOpts.setMaxConnectionsPerHost(HostDistance.LOCAL, 8);
+	pOpts.setCoreConnectionsPerHost(HostDistance.LOCAL, 4);
+	pOpts.setMaxConnectionsPerHost(HostDistance.LOCAL, 4);
 	Cluster.Builder clusterBuilder = Cluster.builder()
 	    .addContactPoint(host)
 	    .withPort(port)
+	    //.withProtocolVersion(ProtocolVersion.V3) 
 	    .withProtocolVersion(ProtocolVersion.V2) // Should be V3, but issues for now....
-	    .withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy(), true))
-	    .withCompression(ProtocolOptions.Compression.SNAPPY)
-	    .withPoolingOptions(pOpts);
+	    //.withCompression(ProtocolOptions.Compression.LZ4)
+	    .withPoolingOptions(pOpts)
+	    .withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy(), true));
 
 	if (null != username)
 	    clusterBuilder = clusterBuilder.withCredentials(username, password);
 	cluster = clusterBuilder.build();
+	if (null == cluster) {
+	    throw new IOException("Could not create cluster");
+	}
 
 	if (null != rateFile) {
 	    if (STDERR.equalsIgnoreCase(rateFile)) {
@@ -353,9 +360,12 @@ public class CqlDelimLoad {
 		rateStream = new PrintStream(new BufferedOutputStream(new FileOutputStream(rateFile)), true);
 	    }
 	}
-	rateLimiter = new RateLimiter(rate, progressRate, cluster.getMetrics().getRequestsTimer(), rateStream);
+	Session tsession = cluster.connect();
+	Metrics metrics = cluster.getMetrics();
+	com.codahale.metrics.Timer timer = metrics.getRequestsTimer();
+	rateLimiter = new RateLimiter(rate, progressRate, timer, rateStream);
 	//rateLimiter = new Latency999RateLimiter(rate, progressRate, 3000, 200, 10, 0.5, 0.1, cluster, false);
-	session = new RateLimitedSession(cluster.newSession(), rateLimiter);
+	session = new RateLimitedSession(tsession, rateLimiter);
     }
 
     private void cleanup() {

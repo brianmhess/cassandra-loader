@@ -269,7 +269,7 @@ class CqlDelimLoadTask implements Callable<Long> {
 		}
 	    }
 	}
-	if ((batchSize > 0) && (batch.size() > 0)) {
+	if ((batchSize > 1) && (batch.size() > 0)) {
 	    resultSetFuture = session.executeAsync(batch);
 	    if (!fm.add(resultSetFuture, line)) {
 		cleanup(false);
