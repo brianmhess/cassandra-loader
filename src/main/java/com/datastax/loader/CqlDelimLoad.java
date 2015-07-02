@@ -370,7 +370,7 @@ public class CqlDelimLoad {
 
     private void cleanup() {
 	rateLimiter.report(null, null);
-	if (rateStream != null)
+	if (null != rateStream)
 	    rateStream.close();
 	if (null != session)
 	    session.close();

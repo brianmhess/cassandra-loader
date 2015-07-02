@@ -82,24 +82,22 @@ public class RateLimiter {
     public void report(Long currentVal, Long currentTime) {
 	if ((null != stream) && (null != timer)) {
 	    printStats();
+	    return;
 	}
+	long etime = (currentTime - firstTime)/1000;
+	double rateFromBeginning = (etime > 0) ? (currentVal + 0.0) / etime : 0;
 	if (null == currentVal) {
 	    currentVal = numAcquires.get() - 1;
 	    currentTime = System.currentTimeMillis();
 	    System.err.println("Lines Processed: \t" + currentVal 
-			       + "  Rate: \t" + 
-			       (currentVal)
-			       /((currentTime - firstTime) / 1000)
-			       );
+			       + "  Rate: \t" + rateFromBeginning);
 	}
 	else {
+	    long ltime = (currentTime - lastTime)/1000;
+	    double rateFromLast = (ltime > 0) ? (currentVal - lastVal + 0.0) / ltime : 0;
 	    System.err.println("Lines Processed: \t" + currentVal 
-			       + "  Rate: \t" + 
-			       (currentVal)
-			       /((currentTime - firstTime) / 1000)
-			       + " (" + 
-			       (currentVal - lastVal) 
-			       / ((currentTime - lastTime) / 1000)
+			       + "  Rate: \t" + rateFromBeginning
+			       + " (" + rateFromLast
 			       + ")"
 			       );
 	}
@@ -108,7 +106,7 @@ public class RateLimiter {
     protected synchronized void incrementAndReport(int permits) {
 	long currentVal = numAcquires.addAndGet(permits);
 	long currentTime = System.currentTimeMillis();
-	if (0 == currentVal % updateRate) {
+	if (permits > currentVal % updateRate) {
 	    report(currentVal, currentTime);
 	    lastTime = currentTime;
 	    lastVal = currentVal;

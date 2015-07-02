@@ -32,8 +32,9 @@ public abstract class AbstractParser implements Parser {
     public Object parse(IndexedLine il, String nullString, Character delim, 
 			Character escape, Character quote, boolean last)
 	throws IOException, ParseException {
-	if (last)
-	    return parse(prepareToParse(il.remaining(), nullString, quote));
+	//if (last)
+	//    return parse(prepareToParse(il.remaining(), nullString, quote));
+	//return parse(getQuotedOrUnquoted(il, nullString, delim, escape, quote));
 	return parse(getQuotedOrUnquoted(il, nullString, delim, escape, quote));
     }
 
@@ -91,7 +92,7 @@ public abstract class AbstractParser implements Parser {
 	    sb.append(c);
 	    if (null != quote) {
 		if (c == quote) {
-		    inquote = false;
+		    inquote = !inquote;
 		}
 	    }
 	    if (null != escape) {
