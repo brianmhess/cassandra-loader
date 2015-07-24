@@ -138,6 +138,15 @@ different styles, the True and False strings are as follows:
  TRUE_FALSE | TRUE | FALSE 
 ```
 
+configFile is a file with configuration options that are formatted just like on
+the command line.  This allows you to not specify arguments on the command line.
+For example, you can specify passwords in the configFile and avoid having them on
+the command line.  The format is one switch and option per line:
+```
+-pwd mypassword
+-host 1.2.3.4
+```
+
 ## Usage Statement:
 ```
 Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]

@@ -1,3 +1,7 @@
+## 0.0.13
+- Added configFile
+- added ssl options (with truststore and keystore)
+
 ## 0.0.12
 - Added a rateFile to output CSV rate statistics
 - added -skipCols to skip input columns
