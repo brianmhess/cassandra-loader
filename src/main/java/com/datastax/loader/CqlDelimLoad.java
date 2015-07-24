@@ -41,8 +41,11 @@ import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.FileInputStream;
 import java.io.BufferedOutputStream;
 import java.io.PrintStream;
+import java.io.FileNotFoundException;
 import java.text.ParseException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -54,6 +57,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.security.KeyStore;
+import java.security.SecureRandom;
+import java.security.KeyStoreException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Metrics;
@@ -66,17 +79,22 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
 import com.codahale.metrics.Timer;
 
 public class CqlDelimLoad {
-    private String version = "0.0.12";
+    private String version = "0.0.13";
     private String host = null;
     private int port = 9042;
     private String username = null;
     private String password = null;
+    private String truststorePath = null;
+    private String truststorePwd = null;
+    private String keystorePath = null;
+    private String keystorePwd = null;
     private Cluster cluster = null;
     private Session session = null;
     private ConsistencyLevel consistencyLevel = ConsistencyLevel.LOCAL_ONE;
@@ -118,6 +136,7 @@ public class CqlDelimLoad {
 	StringBuilder usage = new StringBuilder("version: ").append(version).append("\n");
 	usage.append("Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]\n");
 	usage.append("OPTIONS:\n");
+	usage.append("  -configFile <filename>         File with configuration options\n");
 	usage.append("  -delim <delimiter>             Delimiter to use [,]\n");
 	usage.append("  -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]\n");
 	usage.append("  -nullString <nullString>       String that signifies NULL [none]\n");
@@ -129,6 +148,10 @@ public class CqlDelimLoad {
 	usage.append("  -port <portNumber>             CQL Port Number [9042]\n");
 	usage.append("  -user <username>               Cassandra username [none]\n");
 	usage.append("  -pw <password>                 Password for user [none]\n");
+	usage.append("  -ssl-truststore-path <path>    Path to SSL truststore [none]\n");
+	usage.append("  -ssl-truststore-pw <pwd>       Password for SSL truststore [none]\n");
+	usage.append("  -ssl-keystore-path <path>      Path to SSL keystore [none]\n");
+	usage.append("  -ssl-keystore-pw <pwd>         Password for SSL keystore [none]\n");
 	usage.append("  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]");
 	usage.append("  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]\n");
 	usage.append("  -batchSize <batchSize>         Number of INSERTs to batch together [1]\n");
@@ -236,6 +259,37 @@ public class CqlDelimLoad {
 	    System.err.println("If you supply the username, you must supply the password");
 	    return false;
 	}
+	if ((null == truststorePath) && (null != truststorePwd)) {
+	    System.err.println("If you supply the ssl-truststore-pwd, you must supply the ssl-truststore-path");
+	    return false;
+	}
+	if ((null != truststorePath) && (null == truststorePwd)) {
+	    System.err.println("If you supply the ssl-truststore-path, you must supply the ssl-truststore-pwd");
+	    return false;
+	}
+	if ((null == keystorePath) && (null != keystorePwd)) {
+	    System.err.println("If you supply the ssl-keystore-pwd, you must supply the ssl-keystore-path");
+	    return false;
+	}
+	if ((null != keystorePath) && (null == keystorePwd)) {
+	    System.err.println("If you supply the ssl-keystore-path, you must supply the ssl-keystore-pwd");
+	    return false;
+	}
+	File tfile = null;
+	if (null != truststorePath) {
+	    tfile = new File(truststorePath);
+	    if (!tfile.isFile()) {
+		System.err.println("truststore file must be a file");
+		return false;
+	    }
+	}
+	if (null != keystorePath) {
+	    tfile = new File(keystorePath);
+	    if (!tfile.isFile()) {
+		System.err.println("keystore file must be a file");
+		return false;
+	    }
+	}
 
 	if (0 > rate) {
 	    System.err.println("Rate must be positive");
@@ -244,8 +298,32 @@ public class CqlDelimLoad {
 
 	return true;
     }
+
+    private boolean processConfigFile(String fname, Map<String, String> amap)
+	throws IOException, FileNotFoundException {
+	File cFile = new File(fname);
+	if (!cFile.isFile()) {
+	    System.err.println("Configuration File must be a file");
+	    return false;
+	}
+
+	BufferedReader cReader = new BufferedReader(new FileReader(cFile));
+	String line;
+	while ((line = cReader.readLine()) != null) {
+	    String[] fields = line.trim().split("\\s+");
+	    if (2 != fields.length) {
+		System.err.println("Bad line in config file: " + line);
+		return false;
+	    }
+	    if (null == amap.get(fields[0])) {
+		amap.put(fields[0], fields[1]);
+	    }
+	}
+	return true;
+    }
     
-    private boolean parseArgs(String[] args) {
+    private boolean parseArgs(String[] args) throws IOException, FileNotFoundException {
+	String tkey;
 	if (args.length == 0) {
 	    System.err.println("No arguments specified");
 	    return false;
@@ -258,6 +336,10 @@ public class CqlDelimLoad {
 	Map<String, String> amap = new HashMap<String,String>();
 	for (int i = 0; i < args.length; i+=2)
 	    amap.put(args[i], args[i+1]);
+
+	if (null != (tkey = amap.remove("-configFile")))
+	    if (!processConfigFile(tkey, amap))
+		return false;
 
 	host = amap.remove("-host");
 	if (null == host) { // host is required
@@ -277,13 +359,16 @@ public class CqlDelimLoad {
 	    return false;
 	}
 
-	String tkey;
 	if (null != (tkey = amap.remove("-port")))          port = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-user")))          username = tkey;
 	if (null != (tkey = amap.remove("-pw")))            password = tkey;
+	if (null != (tkey = amap.remove("-ssl-truststore-path"))) truststorePath = tkey;
+	if (null != (tkey = amap.remove("-ssl-truststore-pwd")))  truststorePwd = tkey;
+	if (null != (tkey = amap.remove("-ssl-keystore-path")))   keystorePath = tkey;
+	if (null != (tkey = amap.remove("-ssl-keystore-pwd")))    keystorePwd = tkey;
 	if (null != (tkey = amap.remove("-consistencyLevel"))) consistencyLevel = ConsistencyLevel.valueOf(tkey);
 	if (null != (tkey = amap.remove("-numFutures")))    inNumFutures = Integer.parseInt(tkey);
-	if (null != (tkey = amap.remove("-batchSize")))    batchSize = Integer.parseInt(tkey);
+	if (null != (tkey = amap.remove("-batchSize")))     batchSize = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-queryTimeout")))  queryTimeout = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-maxInsertErrors"))) maxInsertErrors = Long.parseLong(tkey);
 	if (null != (tkey = amap.remove("-numRetries")))    numRetries = Integer.parseInt(tkey);
@@ -331,7 +416,36 @@ public class CqlDelimLoad {
 	return validateArgs();
     }
 
-    private void setup() throws IOException {
+    private SSLOptions createSSLContext() 
+	throws KeyStoreException, FileNotFoundException, IOException, NoSuchAlgorithmException, 
+	       KeyManagementException, CertificateException, UnrecoverableKeyException {
+	TrustManagerFactory tmf = null;
+	KeyStore tks = KeyStore.getInstance("JKS");
+	tks.load((InputStream) new FileInputStream(new File(truststorePath)), 
+		truststorePwd.toCharArray());
+	tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+	tmf.init(tks);
+    
+	KeyManagerFactory kmf = null;
+	if (null != keystorePath) {
+	    KeyStore kks = KeyStore.getInstance("JKS");
+	    kks.load((InputStream) new FileInputStream(new File(keystorePath)), 
+		    keystorePwd.toCharArray());
+	    kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+	    kmf.init(kks, keystorePwd.toCharArray());
+	}
+
+	SSLContext sslContext = SSLContext.getInstance("TLS");
+	sslContext.init(kmf != null? kmf.getKeyManagers() : null, 
+			tmf != null ? tmf.getTrustManagers() : null, 
+			new SecureRandom());
+
+	return new SSLOptions(sslContext, SSLOptions.DEFAULT_SSL_CIPHER_SUITES);
+    }
+
+    private void setup() 
+	throws IOException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException,
+	       CertificateException, UnrecoverableKeyException {
 	// Connect to Cassandra
 	PoolingOptions pOpts = new PoolingOptions();
 	pOpts.setCoreConnectionsPerHost(HostDistance.LOCAL, 4);
@@ -347,6 +461,9 @@ public class CqlDelimLoad {
 
 	if (null != username)
 	    clusterBuilder = clusterBuilder.withCredentials(username, password);
+	if (null != truststorePath)
+	    clusterBuilder = clusterBuilder.withSSL(createSSLContext());
+
 	cluster = clusterBuilder.build();
 	if (null == cluster) {
 	    throw new IOException("Could not create cluster");
@@ -378,7 +495,10 @@ public class CqlDelimLoad {
 	    cluster.close();
     }
     
-    public boolean run(String[] args) throws IOException, ParseException, InterruptedException, ExecutionException {
+    public boolean run(String[] args) 
+	throws IOException, ParseException, InterruptedException, ExecutionException, KeyStoreException,
+	       NoSuchAlgorithmException, KeyManagementException, CertificateException, 
+	       UnrecoverableKeyException {
 	if (false == parseArgs(args)) {
 	    System.err.println("Bad arguments");
 	    System.err.println(usage());
@@ -389,8 +509,6 @@ public class CqlDelimLoad {
 	setup();
 	
 	// open file
-	BufferedReader reader = null;
-	String readerName = "";
 	Deque<File> fileList = new ArrayDeque<File>();
 	File infile = null;
 	File[] inFileList = null;
@@ -473,7 +591,10 @@ public class CqlDelimLoad {
 	return true;
     }
 
-    public static void main(String[] args) throws IOException, ParseException, InterruptedException, ExecutionException {
+    public static void main(String[] args) 
+	throws IOException, ParseException, InterruptedException, ExecutionException, 
+	       KeyStoreException, NoSuchAlgorithmException, UnrecoverableKeyException, 
+	       CertificateException, KeyManagementException {
 	CqlDelimLoad cdl = new CqlDelimLoad();
 	boolean success = cdl.run(args);
 	if (success) {

@@ -15,11 +15,11 @@ loading of various types of delimited files, including
 
 ### Downloading
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.12/cassandra-loader
+https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.13/cassandra-loader
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.12/cassandra-loader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.13/cassandra-loader
 ```
 
 ### Building
@@ -65,12 +65,17 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
 
  Switch           | Option             | Default                    | Description
 -----------------:|-------------------:|---------------------------:|:----------
+ `-configFile`    | Filename           | none                       | Filename of configuration options 
  `-f`             | Filename           | <REQUIRED>                 | Filename to load - required.
  `-host`          | IP Address         | <REQUIRED>                 | Cassandra connection point - required.
  `-schema`        | CQL schema         | <REQUIRED>                 | Schema of input data - required In the format "keySpace.table(col1,col2,...)" and in the order that the data will be in the file.
  `-port`          | Port Number        | 9042                       | Cassandra native protocol port number
  `-user`          | Username           | none                       | Cassandra username
  `-pw`            | Password           | none                       | Cassandra password
+ `-ssl-truststore-path` | Truststore Path     | none                | Path to SSL truststore
+ `-ssl-truststore-pwd`  | Truststore Password | none                | Password to SSL truststore
+ `-ssl-keystore-path`   | Keystore Path       | none                | Path to SSL keystore
+ `-ssl-keystore-path`   | Keystore Password   | none                | Password to SSL keystore
  '-consistencyLevel | Consistency Level | ONE                       | CQL Consistency Level
  `-numThreads`    | Number of threads  | Number of CPUs             | Number of threads to use (one per file)
  `-numFutures`    | Number of Futures  | 1000                       | Number of Java driver futures in flight.
@@ -137,17 +142,24 @@ different styles, the True and False strings are as follows:
 ```
 Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]
 OPTIONS:
+  -configFile <filename>         File with configuration options
   -delim <delimiter>             Delimiter to use [,]
   -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]
   -nullString <nullString>       String that signifies NULL [none]
   -skipRows <skipRows>           Number of rows to skip [0]
+  -skipCOls <columnsToSkip>      Comma-separated list of columsn to skip in the input file
   -maxRows <maxRows>             Maximum number of rows to read (-1 means all) [-1]
   -maxErrors <maxErrors>         Maximum parse errors to endure [10]
   -badDir <badDirectory>         Directory for where to place badly parsed rows. [none]
   -port <portNumber>             CQL Port Number [9042]
   -user <username>               Cassandra username [none]
   -pw <password>                 Password for user [none]
+  -ssl-truststore-path <path>    Path to SSL truststore [none]
+  -ssl-truststore-pw <pwd>       Password for SSL truststore [none]
+  -ssl-keystore-path <path>      Path to SSL keystore [none]
+  -ssl-keystore-pw <pwd>         Password for SSL keystore [none]
   -consistencyLevel <CL>         Consistency level [LOCAL_ONE]  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]
+  -batchSize <batchSize>         Number of INSERTs to batch together [1]
   -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','
   -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]
   -numThreads <numThreads>       Number of concurrent threads (files) to load [num cores]
@@ -155,7 +167,8 @@ OPTIONS:
   -numRetries <numRetries>       Number of times to retry the INSERT [1]
   -maxInsertErrors <# errors>    Maximum INSERT errors to endure [10]
   -rate <rows-per-second>        Maximum insert rate [50000]
-  -progressRate <num txns>       How often to report the insert rate
+  -progressRate <num txns>       How often to report the insert rate [100000]
+  -rateFile <filename>           Where to print the rate statistics
   -successDir <dir>              Directory where to move successfully loaded files
   -failureDir <dir>              Directory where to move files that did not successfully load
 

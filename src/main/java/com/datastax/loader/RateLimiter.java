@@ -84,11 +84,12 @@ public class RateLimiter {
 	    printStats();
 	    return;
 	}
+	if (null == currentTime)
+	    currentTime = System.currentTimeMillis();
 	long etime = (currentTime - firstTime)/1000;
 	double rateFromBeginning = (etime > 0) ? (currentVal + 0.0) / etime : 0;
 	if (null == currentVal) {
 	    currentVal = numAcquires.get() - 1;
-	    currentTime = System.currentTimeMillis();
 	    System.err.println("Lines Processed: \t" + currentVal 
 			       + "  Rate: \t" + rateFromBeginning);
 	}
