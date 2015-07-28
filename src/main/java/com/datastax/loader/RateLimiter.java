@@ -87,15 +87,17 @@ public class RateLimiter {
 	if (null == currentTime)
 	    currentTime = System.currentTimeMillis();
 	long etime = (currentTime - firstTime)/1000;
-	double rateFromBeginning = (etime > 0) ? (currentVal + 0.0) / etime : 0;
+	double rateFromBeginning;
 	if (null == currentVal) {
 	    currentVal = numAcquires.get() - 1;
+	    rateFromBeginning  = (etime > 0) ? (currentVal + 0.0) / etime : 0;
 	    System.err.println("Lines Processed: \t" + currentVal 
 			       + "  Rate: \t" + rateFromBeginning);
 	}
 	else {
 	    long ltime = (currentTime - lastTime)/1000;
 	    double rateFromLast = (ltime > 0) ? (currentVal - lastVal + 0.0) / ltime : 0;
+	    rateFromBeginning  = (etime > 0) ? (currentVal + 0.0) / etime : 0;
 	    System.err.println("Lines Processed: \t" + currentVal 
 			       + "  Rate: \t" + rateFromBeginning
 			       + " (" + rateFromLast
