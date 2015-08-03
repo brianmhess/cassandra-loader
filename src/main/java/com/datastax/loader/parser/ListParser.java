@@ -71,15 +71,14 @@ public class ListParser extends AbstractParser {
 	return elements;
     }
 
-    public String format(Row row, int index) {
-	/*
-	  //// NOT YET IMPLEMENTED
-
-	if (row.isNull(index))
-	    return null;
+    //public String format(Row row, int index) {
+    //	if (row.isNull(index))
+    //	    return null;
+    //	List<Object> list = row.getList(index, Object.class);
+    @SuppressWarnings("unchecked")
+    public String format(Object o) {
+	List<Object> list = (List<Object>)o;
 	StringBuilder sb = new StringBuilder().append(collectionBegin);
-	Class<?> cl = row.getColumnDefinitions().getType(index).getTypeArguments().get(0).asJavaClass();
-	List list = row.getList(index, cl);
 	if (list.size() > 0) {
 	    for (int i = 0; i < list.size() - 1; i++) {
 		sb.append(parser.format(list.get(i)));
@@ -89,7 +88,5 @@ public class ListParser extends AbstractParser {
 	}
 	sb.append(collectionEnd);
 	return sb.toString();
-	*/
-	return null;
     }
 }

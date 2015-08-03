@@ -38,8 +38,4 @@ public class LongParser extends NumberParser {
 	Number val = super.parse(toparse);
 	return (null == val) ? null : val.longValue();
     }
-
-    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
-	return row.isNull(index) ? null : Long.toString(row.getLong(index));
-    }
 }

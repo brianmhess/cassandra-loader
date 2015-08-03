@@ -27,7 +27,12 @@ import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 public abstract class AbstractParser implements Parser {
     public abstract Object parse(String toparse) throws ParseException;
-    public abstract String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException;
+    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
+	if (row.isNull(index))
+	    return null;
+	return format(row.getObject(index));
+    }
+    public abstract String format(Object o);
 
     public Object parse(IndexedLine il, String nullString, Character delim, 
 			Character escape, Character quote, boolean last)

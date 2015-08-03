@@ -38,8 +38,4 @@ public class FloatParser extends NumberParser {
 	Number val = super.parse(toparse);
 	return (null == val) ? null : val.floatValue();
     }
-
-    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
-	return row.isNull(index) ? null : Float.toString(row.getFloat(index));
-    }
 }

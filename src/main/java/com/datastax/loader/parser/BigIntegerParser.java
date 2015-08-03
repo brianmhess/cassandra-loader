@@ -30,7 +30,8 @@ public class BigIntegerParser extends AbstractParser {
 	return new BigInteger(toparse);
     }
 
-    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
-	return row.isNull(index) ? null : row.getVarint(index).toString();
+    public String format(Object o) {
+	BigInteger v = (BigInteger)o;
+	return v.toString();
     }
 }

@@ -38,8 +38,4 @@ public class DoubleParser extends NumberParser {
 	Number val = super.parse(toparse);
 	return (null == val) ? null : val.doubleValue();
     }
-
-    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
-	return row.isNull(index) ? null : Double.toString(row.getDouble(index));
-    }
 }

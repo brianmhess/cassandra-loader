@@ -30,8 +30,8 @@ public class ByteBufferParser extends AbstractParser {
 	return bb.put(toparse.getBytes());
     }
 
-    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
-	// TODO: NOT SURE ABOUT THIS ONE
-	return row.isNull(index) ? null : row.getBytes(index).toString();
-    }    
+    public String format(Object o) {
+	ByteBuffer v = (ByteBuffer)o;
+	return v.toString();
+    }
 }

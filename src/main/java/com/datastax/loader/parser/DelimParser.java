@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.regex.Pattern;
 import java.util.StringTokenizer;
 import java.lang.String;
+import java.lang.StringBuilder;
 import java.lang.System;
 import java.lang.NumberFormatException;
 import java.lang.IndexOutOfBoundsException;
@@ -130,11 +131,14 @@ public class DelimParser {
     }
 
     public String format(Row row) throws IndexOutOfBoundsException, InvalidTypeException {
-	String retVal = parsers.get(0).format(row, 0);
+	StringBuilder retVal = new StringBuilder(parsers.get(0).format(row, 0));
+	String s;
 	for (int i = 1; i < parsersSize; i++) {
-	    retVal = retVal + delimiter + parsers.get(i).format(row, i);
+	    s = parsers.get(i).format(row, i);
+	    if (null == s)
+		s = nullString;
+	    retVal.append(delimiter).append(s);
 	}
-	return retVal;
+	return retVal.toString();
     }
-
 }

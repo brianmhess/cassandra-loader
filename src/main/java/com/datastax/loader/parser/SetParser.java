@@ -21,6 +21,7 @@ import java.lang.StringBuilder;
 import java.lang.IndexOutOfBoundsException;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.io.StringReader;
 import java.io.IOException;
 import java.text.ParseException;
@@ -70,11 +71,22 @@ public class SetParser extends AbstractParser {
 	return elements;
     }
 
-    public String format(Row row, int index) {
-	/*
-	  //// NOT YET IMPLEMENTED
-
-	  */
-	return null;
+    //public String format(Row row, int index) {
+    //  if (row.isNull(index))
+    //      return null;
+    //  Set<Object> set = row.getSet(index, Object.class);
+    @SuppressWarnings("unchecked")
+    public String format(Object o) {
+	Set<Object> set = (Set<Object>)o;
+	Iterator<Object> iter = set.iterator();
+        StringBuilder sb = new StringBuilder().append(collectionBegin);
+	if (iter.hasNext())
+	    sb.append(parser.format(iter.next()));
+	while (iter.hasNext()) {
+	    sb.append(collectionDelim);
+	    sb.append(parser.format(iter.next()));
+        }
+        sb.append(collectionEnd);
+        return sb.toString();
     }
 }

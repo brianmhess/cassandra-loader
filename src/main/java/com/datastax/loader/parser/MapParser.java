@@ -20,7 +20,9 @@ import java.lang.Character;
 import java.lang.StringBuilder;
 import java.lang.IndexOutOfBoundsException;
 import java.util.Map;
+import java.util.Set;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.io.StringReader;
 import java.io.IOException;
 import java.text.ParseException;
@@ -83,11 +85,30 @@ public class MapParser extends AbstractParser {
 	return elements;
     }
 
-    public String format(Row row, int index) {
-	/*
-	  //// NOT YET IMPLEMENTED
-
-	  */
-	return null;
+    //public String format(Row row, int index) {
+    //  if (row.isNull(index))
+    //      return null;
+    //  Map<Object,Object> map = row.getMap(index, Object.class, Object.class);
+    @SuppressWarnings("unchecked")
+    public String format(Object o) {
+	Map<Object,Object> map = (Map<Object,Object>)o;
+	Iterator<Map.Entry<Object,Object> > iter = map.entrySet().iterator();
+	Map.Entry<Object,Object> me;
+        StringBuilder sb = new StringBuilder().append(collectionBegin);
+	if (iter.hasNext()) {
+	    me = iter.next();
+	    sb.append(keyParser.format(me.getKey()));
+	    sb.append(mapDelim);
+	    sb.append(valueParser.format(me.getValue()));
+	}
+	while (iter.hasNext()) {
+	    sb.append(collectionDelim);
+	    me = iter.next();
+	    sb.append(keyParser.format(me.getKey()));
+	    sb.append(mapDelim);
+	    sb.append(valueParser.format(me.getValue()));
+	}
+	sb.append(collectionEnd);
+	return sb.toString();
     }
 }

@@ -29,7 +29,8 @@ public class StringParser extends AbstractParser {
 	return toparse;
     }
 
-    public String format(Row row, int index) {
-	return row.isNull(index) ? null : row.getString(index);
+    public String format(Object o) {
+	String v = (String)o;
+	return v;
     }
 }

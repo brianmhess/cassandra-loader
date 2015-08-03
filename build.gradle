@@ -3,6 +3,12 @@ apply plugin: 'application'
 
 def versionNum = '0.0.13'
 
+allprojects {
+    tasks.withType(JavaCompile) {
+        options.compilerArgs << "-Xlint:unchecked"
+    }
+}
+
 task loader(type: Exec) {
     dependsOn << 'uberloader'
     commandLine './src/make/buildit.sh'

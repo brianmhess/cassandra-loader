@@ -46,7 +46,7 @@ public class NumberParser extends AbstractParser {
 	return nf.parse(toparse);
     }
 
-    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
-	throw new InvalidTypeException("Should not call Number.format()");
-    } 
+    public String format(Object o) {
+	return nf.format(o);
+    }
 }

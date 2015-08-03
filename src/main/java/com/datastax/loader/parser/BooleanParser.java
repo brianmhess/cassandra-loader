@@ -106,11 +106,9 @@ public class BooleanParser extends AbstractParser {
 	throw new ParseException("Boolean was not TRUE (" + boolTrue + ") or FALSE (" + boolFalse + ")", 0);
     }
 
-    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
-	if (row.isNull(index))
-	    return null;
-	boolean val = row.getBool(index);
-	if (val)
+    public String format(Object o) {
+	Boolean v = (Boolean)o;
+	if (v)
 	    return boolTrue;
 	return boolFalse;
     }

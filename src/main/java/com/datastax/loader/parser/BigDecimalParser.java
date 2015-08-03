@@ -30,7 +30,8 @@ public class BigDecimalParser extends AbstractParser {
 	return new BigDecimal(toparse);
     }
 
-    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
-	return row.isNull(index) ? null : row.getDecimal(index).toString();
+    public String format(Object o) {
+	BigDecimal v = (BigDecimal)o;
+	return v.toString();
     }
 }

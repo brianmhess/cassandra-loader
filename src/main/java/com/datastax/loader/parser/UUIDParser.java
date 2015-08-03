@@ -29,7 +29,8 @@ public class UUIDParser extends AbstractParser {
 	    return null;
 	return UUID.fromString(toparse);
     }
-    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
-	return row.isNull(index) ? null : row.getUUID(index).toString();
+    public String format(Object o) {
+	UUID v = (UUID)o;
+	return v.toString();
     }
 }

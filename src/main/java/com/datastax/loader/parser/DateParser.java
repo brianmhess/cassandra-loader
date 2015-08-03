@@ -41,7 +41,8 @@ public class DateParser extends AbstractParser {
 	return format.parse(toparse);
     }
 
-    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
-	return row.isNull(index) ? null : format.format(row.getDate(index));
+    public String format(Object o) {
+	Date v = (Date)o;
+	return format.format(v);
     }
 }

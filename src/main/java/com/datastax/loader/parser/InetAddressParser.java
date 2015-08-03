@@ -38,7 +38,8 @@ public class InetAddressParser extends AbstractParser {
 	return ret;
     }
 
-    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
-	return row.isNull(index) ? null : row.getInet(index).getHostAddress();
+    public String format(Object o) {
+	InetAddress v = (InetAddress)o;
+	return v.getHostAddress();
     }
 }

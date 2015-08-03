@@ -38,8 +38,4 @@ public class IntegerParser extends NumberParser {
 	Number val = super.parse(toparse);
 	return (null == val) ? null : val.intValue();
     }
-
-    public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
-	return row.isNull(index) ? null : Integer.toString(row.getInt(index));
-    }
 }

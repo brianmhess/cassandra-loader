@@ -29,4 +29,5 @@ public interface Parser {
 			Character escape, Character quote, boolean last)
 	throws IOException, ParseException;
     public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException;
+    public String format(Object o);
 }
