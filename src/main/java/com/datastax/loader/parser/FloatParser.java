@@ -34,6 +34,10 @@ public class FloatParser extends NumberParser {
 	super(inLocale);
     }
     
+    public FloatParser(Locale inLocale, Boolean grouping) {
+	super(inLocale, grouping);
+    }
+
     public Float parse(String toparse) throws ParseException {
 	Number val = super.parse(toparse);
 	return (null == val) ? null : val.floatValue();

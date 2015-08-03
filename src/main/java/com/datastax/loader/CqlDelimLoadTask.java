@@ -165,7 +165,7 @@ class CqlDelimLoadTask implements Callable<Long> {
 	    
 	cdp = new CqlDelimParser(cqlSchema, delimiter, nullString, 
 				 dateFormatString, boolStyle, locale, 
-				 skipCols, session);
+				 skipCols, session, true);
 	insert = cdp.generateInsert();
 	statement = session.prepare(insert);
 	statement.setRetryPolicy(new LoaderRetryPolicy(numRetries));

@@ -34,6 +34,10 @@ public class LongParser extends NumberParser {
 	super(inLocale);
     }
     
+    public LongParser(Locale inLocale, Boolean grouping) {
+	super(inLocale, grouping);
+    }
+    
     public Long parse(String toparse) throws ParseException {
 	Number val = super.parse(toparse);
 	return (null == val) ? null : val.longValue();

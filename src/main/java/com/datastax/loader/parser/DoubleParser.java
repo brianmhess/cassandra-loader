@@ -33,6 +33,10 @@ public class DoubleParser extends NumberParser {
     public DoubleParser(Locale inLocale) {
 	super(inLocale);
     }
+
+    public DoubleParser(Locale inLocale, Boolean grouping) {
+	super(inLocale, grouping);
+    }
     
     public Double parse(String toparse) throws ParseException {
 	Number val = super.parse(toparse);

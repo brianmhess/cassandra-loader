@@ -86,7 +86,7 @@ import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 import com.codahale.metrics.Timer;
 
 public class CqlDelimLoad {
-    private String version = "0.0.13";
+    private String version = "0.0.14";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -152,7 +152,7 @@ public class CqlDelimLoad {
 	usage.append("  -ssl-truststore-pw <pwd>       Password for SSL truststore [none]\n");
 	usage.append("  -ssl-keystore-path <path>      Path to SSL keystore [none]\n");
 	usage.append("  -ssl-keystore-pw <pwd>         Password for SSL keystore [none]\n");
-	usage.append("  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]");
+	usage.append("  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]\n");
 	usage.append("  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]\n");
 	usage.append("  -batchSize <batchSize>         Number of INSERTs to batch together [1]\n");
 	usage.append("  -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','\n");

@@ -75,7 +75,7 @@ import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
 
 public class CqlDelimUnload {
-    private String version = "0.0.12";
+    private String version = "0.0.14";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -116,10 +116,10 @@ public class CqlDelimUnload {
         usage.append("  -ssl-truststore-pw <pwd>       Password for SSL truststore [none]\n");
         usage.append("  -ssl-keystore-path <path>      Path to SSL keystore [none]\n");
         usage.append("  -ssl-keystore-pw <pwd>         Password for SSL keystore [none]\n");
-        usage.append("  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]");
+        usage.append("  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]\n");
 	usage.append("  -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','\n");
 	usage.append("  -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]\n");
-	usage.append("  -numThreads <numThreads>       Number of concurrent threads (files) to load [5]\n");
+	usage.append("  -numThreads <numThreads>       Number of concurrent threads to unload [5]\n");
 	usage.append("  -beginToken <tokenString>      Begin token [none]\n");
 	usage.append("  -endToken <tokenString>        End token [none]\n");
 	return usage.toString();
@@ -533,7 +533,7 @@ public class CqlDelimUnload {
 	private void setup() throws IOException, ParseException {
 	    cdp = new CqlDelimParser(cqlSchema, delimiter, nullString, 
 				     dateFormatString, 
-				     boolStyle, locale, null, session);
+				     boolStyle, locale, null, session, false);
 	    String select = cdp.generateSelect();
 	    String partitionKey = getPartitionKey(cdp, session);
 	    if (null != beginToken) {

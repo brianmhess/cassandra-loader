@@ -19,6 +19,7 @@ import java.lang.String;
 import java.lang.Number;
 import java.util.Locale;
 import java.text.NumberFormat;
+import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.lang.IndexOutOfBoundsException;
 import com.datastax.driver.core.Row;
@@ -34,9 +35,16 @@ public class NumberParser extends AbstractParser {
     }
     
     public NumberParser(Locale locale) {
+	this(locale, true);
+    }
+
+    public NumberParser(Locale locale, Boolean grouping) {
 	if (null == locale)
 	    locale = Locale.ENGLISH;
 	nf = NumberFormat.getInstance(locale);
+	if (nf instanceof DecimalFormat) {
+	    ((DecimalFormat) nf).setGroupingUsed(grouping);
+	}
     }
     
     // Need this method for the subclasses

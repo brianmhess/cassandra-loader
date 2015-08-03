@@ -1,3 +1,7 @@
+## 0.0.14
+- Updated cassandra-unloader to add support for collections,
+	consistency level, ssl, etc
+
 ## 0.0.13
 - Added configFile
 - added ssl options (with truststore and keystore)

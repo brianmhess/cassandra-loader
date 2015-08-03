@@ -15,11 +15,11 @@ loading of various types of delimited files, including
 
 ### Downloading
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.13/cassandra-loader
+https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.14/cassandra-loader
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.13/cassandra-loader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.14/cassandra-loader
 ```
 
 ### Building
@@ -255,17 +255,24 @@ cassandra-unloader
 
 Usage statement:
 ```
+version: 0.0.14
 Usage: -f <outputStem> -host <ipaddress> -schema <schema> [OPTIONS]
 OPTIONS:
+  -configFile <filename>         File with configuration options
   -delim <delimiter>             Delimiter to use [,]
   -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]
   -nullString <nullString>       String that signifies NULL [none]
   -port <portNumber>             CQL Port Number [9042]
   -user <username>               Cassandra username [none]
   -pw <password>                 Password for user [none]
+  -ssl-truststore-path <path>    Path to SSL truststore [none]
+  -ssl-truststore-pw <pwd>       Password for SSL truststore [none]
+  -ssl-keystore-path <path>      Path to SSL keystore [none]
+  -ssl-keystore-pw <pwd>         Password for SSL keystore [none]
+  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]
   -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','
   -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]
-  -numThreads <numThreads>       Number of concurrent threads (files) to load [5]
+  -numThreads <numThreads>       Number of concurrent threads to unload [5]
   -beginToken <tokenString>      Begin token [none]
   -endToken <tokenString>        End token [none]
 ```

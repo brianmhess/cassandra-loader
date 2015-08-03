@@ -61,10 +61,10 @@ public class CqlDelimParser {
     public CqlDelimParser(String inCqlSchema, String inDelimiter, 
 			  String inNullString, String inDateFormatString, 
 			  BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
-			  String skipList, Session session) 
+			  String skipList, Session session, boolean bLoader) 
 	throws ParseException {
 	// Optionally provide things for the line parser - date format, boolean format, locale
-	initPmap(inDateFormatString, inBoolStyle, inLocale);
+	initPmap(inDateFormatString, inBoolStyle, inLocale, bLoader);
 	processCqlSchema(inCqlSchema, session);
 	createDelimParser(inDelimiter, inNullString, skipList);
     }	
@@ -78,12 +78,12 @@ public class CqlDelimParser {
 
     // intialize the Parsers and the parser map
     private void initPmap(String dateFormatString, BooleanParser.BoolStyle inBoolStyle, 
-			  Locale inLocale) {
+			  Locale inLocale, boolean bLoader) {
 	pmap = new HashMap<DataType.Name, Parser>();
-	Parser integerParser = new IntegerParser(inLocale);
-	Parser longParser = new LongParser(inLocale);
-	Parser floatParser = new FloatParser(inLocale);
-	Parser doubleParser = new DoubleParser(inLocale);
+	Parser integerParser = new IntegerParser(inLocale, bLoader);
+	Parser longParser = new LongParser(inLocale, bLoader);
+	Parser floatParser = new FloatParser(inLocale, bLoader);
+	Parser doubleParser = new DoubleParser(inLocale, bLoader);
 	Parser stringParser = new StringParser();
 	Parser booleanParser = new BooleanParser(inBoolStyle);
 	Parser uuidParser = new UUIDParser();
