@@ -1,3 +1,6 @@
+## 0.0.15
+- Better error handling for case when C* inserts are failing
+
 ## 0.0.14
 - Updated cassandra-unloader to add support for collections,
 	consistency level, ssl, etc

@@ -86,6 +86,7 @@ class CqlDelimLoadTask implements Callable<Long> {
     private PrintStream badParsePrinter = null;
     private PrintStream badInsertPrinter = null;
     private PrintStream logPrinter = null;
+    private String logFname = "";
     private BufferedReader reader;
     private File infile;
     private int numFutures;
@@ -160,7 +161,8 @@ class CqlDelimLoadTask implements Callable<Long> {
 	if (null != badDir) {
 	    badParsePrinter = new PrintStream(new BufferedOutputStream(new FileOutputStream(badDir + "/" + readerName + BADPARSE)));
 	    badInsertPrinter = new PrintStream(new BufferedOutputStream(new FileOutputStream(badDir + "/" + readerName + BADINSERT)));
-	    logPrinter = new PrintStream(new BufferedOutputStream(new FileOutputStream(badDir + "/" + readerName + LOG)));
+	    logFname = badDir + "/" + readerName + LOG;
+	    logPrinter = new PrintStream(new BufferedOutputStream(new FileOutputStream(logFname)));
 	}
 	    
 	cdp = new CqlDelimParser(cqlSchema, delimiter, nullString, 
@@ -230,7 +232,7 @@ class CqlDelimLoadTask implements Callable<Long> {
 		if (1 == batchSize) {
 		    resultSetFuture = session.executeAsync(bind);
 		    if (!fm.add(resultSetFuture, line)) {
-			System.err.println("Oh no - cleaning up");
+			System.err.println("There was an error.  Please check the log file for more information (" + logFname + ")");
 			cleanup(false);
 			return -2;
 		    }
@@ -241,7 +243,7 @@ class CqlDelimLoadTask implements Callable<Long> {
 		    if (batchSize == batch.size()) {
 			resultSetFuture = session.executeAsync(batch);
 			if (!fm.add(resultSetFuture, line)) {
-			    System.err.println("Uh oh - cleaning up");
+			    System.err.println("There was an error.  Please check the log file for more information (" + logFname + ")");
 			    cleanup(false);
 			    return -2;
 			}
