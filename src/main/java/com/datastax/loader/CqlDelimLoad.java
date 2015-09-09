@@ -448,8 +448,8 @@ public class CqlDelimLoad {
 	       CertificateException, UnrecoverableKeyException {
 	// Connect to Cassandra
 	PoolingOptions pOpts = new PoolingOptions();
-	pOpts.setCoreConnectionsPerHost(HostDistance.LOCAL, 4);
-	pOpts.setMaxConnectionsPerHost(HostDistance.LOCAL, 4);
+	pOpts.setMaxConnectionsPerHost(HostDistance.LOCAL, 8);
+	pOpts.setCoreConnectionsPerHost(HostDistance.LOCAL, 8);
 	Cluster.Builder clusterBuilder = Cluster.builder()
 	    .addContactPoint(host)
 	    .withPort(port)
