@@ -94,7 +94,9 @@ public class MapParser extends AbstractParser {
 	Map<Object,Object> map = (Map<Object,Object>)o;
 	Iterator<Map.Entry<Object,Object> > iter = map.entrySet().iterator();
 	Map.Entry<Object,Object> me;
-        StringBuilder sb = new StringBuilder().append(collectionBegin);
+        StringBuilder sb = new StringBuilder();
+	sb.append("\"");
+	sb.append(collectionBegin);
 	if (iter.hasNext()) {
 	    me = iter.next();
 	    sb.append(keyParser.format(me.getKey()));
@@ -109,6 +111,7 @@ public class MapParser extends AbstractParser {
 	    sb.append(valueParser.format(me.getValue()));
 	}
 	sb.append(collectionEnd);
+	sb.append("\"");
 	return sb.toString();
     }
 }

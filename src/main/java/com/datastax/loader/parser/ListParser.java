@@ -78,7 +78,9 @@ public class ListParser extends AbstractParser {
     @SuppressWarnings("unchecked")
     public String format(Object o) {
 	List<Object> list = (List<Object>)o;
-	StringBuilder sb = new StringBuilder().append(collectionBegin);
+	StringBuilder sb = new StringBuilder();
+	sb.append("\"");
+	sb.append(collectionBegin);
 	if (list.size() > 0) {
 	    for (int i = 0; i < list.size() - 1; i++) {
 		sb.append(parser.format(list.get(i)));
@@ -87,6 +89,7 @@ public class ListParser extends AbstractParser {
 	    sb.append(parser.format(list.get(list.size() - 1)));
 	}
 	sb.append(collectionEnd);
+	sb.append("\"");
 	return sb.toString();
     }
 }
