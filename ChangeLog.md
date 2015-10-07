@@ -2,6 +2,7 @@
 - Unloader will quote collections (which the loader expects)
 - Fixed collection issue (Issue 14)
 - BLOBs are now Base64 encoded on unload, and should be Base64 to load (Issue 15)
+- Support for quoted keyspace, table, and column names
 
 ## 0.0.15
 - Better error handling for case when C* inserts are failing
