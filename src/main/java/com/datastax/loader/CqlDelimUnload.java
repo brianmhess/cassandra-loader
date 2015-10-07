@@ -533,7 +533,7 @@ public class CqlDelimUnload {
                 String column = row.getString(0);
                 if (type.equals("partition_key")) {
                     int componentIndex = row.isNull(1) ? 0 : row.getInt(1);
-                    partitionKeyArray[componentIndex] = column;
+                    partitionKeyArray[componentIndex] = "\"" + column + "\"";
                 }
             }
 	    String partitionKey = partitionKeyArray[0];
