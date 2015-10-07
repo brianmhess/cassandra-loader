@@ -61,6 +61,7 @@ public class MapParser extends AbstractParser {
 	toparse = toparse.substring(1, toparse.length() - 1);
 	IndexedLine sr = new IndexedLine(toparse);
 	String parseit;
+	elements.clear();
 	try {
 	    while (null != (parseit = getQuotedOrUnquoted(sr, 
 							  collectionNullString,
