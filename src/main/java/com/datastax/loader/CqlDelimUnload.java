@@ -497,20 +497,33 @@ public class CqlDelimUnload {
 	}
 
 	private String getPartitionKey(CqlDelimParser cdp, Session tsession) {
+	    String keyspace = cdp.getKeyspace();
+	    String table = cdp.getTable();
+	    if (keyspace.startsWith("\"") && keyspace.endsWith("\""))
+		keyspace = keyspace.replaceAll("\"", "");
+	    else
+		keyspace = keyspace.toLowerCase();
+	    if (table.startsWith("\"") && table.endsWith("\""))
+		table = table.replaceAll("\"", "");
+	    else
+		table = table.toLowerCase();
 	    String query = "SELECT column_name, component_index, type "
 		+ "FROM system.schema_columns WHERE keyspace_name = '"
-		+ cdp.getKeyspace() + "' AND columnfamily_name = '"
-		+ cdp.getTable() + "'";
+		+ keyspace + "' AND columnfamily_name = '"
+		+ table + "'";
             List<Row> rows = tsession.execute(query).all();
 	    if (rows.isEmpty()) {
+		System.err.println("Can't find the keyspace/table");
 		// error
 	    }
 	    
 	    int numberOfPartitionKeys = 0;
-            for (Row row : rows)
+            for (Row row : rows) {
                 if (row.getString(2).equals("partition_key"))
                     numberOfPartitionKeys++;
+	    }
             if (0 == numberOfPartitionKeys) {
+		System.err.println("Can't find any partition keys");
 		// error
 	    }
 
