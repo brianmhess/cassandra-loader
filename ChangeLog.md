@@ -1,3 +1,6 @@
+## 0.0.17
+- Fixed null collection issue / NPE (Issue 8)
+
 ## 0.0.16
 - Unloader will quote collections (which the loader expects)
 - Fixed collection issue (Issue 14)
