@@ -46,6 +46,8 @@ public class SetParser extends AbstractParser {
 	elements = new HashSet<Object>();
     }
     public Object parse(String toparse) throws ParseException {
+	if (null == toparse)
+	    return null;
 	if (!toparse.startsWith(Character.toString(collectionBegin)))
 	    throw new ParseException("Must begin with " + collectionBegin 
 				     + "\n", 0);
