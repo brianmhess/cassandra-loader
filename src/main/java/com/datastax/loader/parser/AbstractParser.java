@@ -49,9 +49,11 @@ public abstract class AbstractParser implements Parser {
 	    //if ((quote == retstring.charAt(0)) 
 	    //&& (quote == retstring.charAt(retstring.length() - 1)))
 	    retstring = retstring.substring(1, retstring.length() - 1);
-	retstring = retstring.trim();
-	if (nullString.equalsIgnoreCase(retstring))
-	    return null;	
+	else 
+	    retstring = retstring.trim();
+	if (null != nullString)
+	    if (nullString.equalsIgnoreCase(retstring))
+		return null;	
 	return retstring;
     }
 
@@ -64,7 +66,7 @@ public abstract class AbstractParser implements Parser {
 	    return null;
 	}
 	if (!il.hasNext())
-	    return null;
+	    return "";
 	char c = il.getNext();
 	if (c == delim) {
 	    retstring = "";

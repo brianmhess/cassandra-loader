@@ -105,6 +105,12 @@ That way, you could pipe data in from other commands:
 grep IMPORTANT data.csv | cassandra-loader -f stdin -h 1.2.3.4 -cql "test.itest(a, b)"
 ```
 
+If you use quoted strings, you need to use double-quotes.  To escape a double-quote inside a quoted string, use the backslash to escape it ("\"").  To create a backslash inside a quoted string, use two backslashes in a row ("\\").  If you quote your string, it will not be trimmed, but if you do not quote your string it will be trimmed.
+
+Loading into counter columns is not supported.
+
+The default nullString is the empty string.  If you want empty strings to be saved as empty strings, set the nullString to something else.
+
 Collections are supported.  
 Sets are started with '{' and ended with '}' and enclose a comma-separated list
 {1,2,3} or {"a","b","c"}
@@ -113,6 +119,7 @@ Lists are started with '[' and ended with ']' and enclose a comma-separated list
 Maps are started with '{' and ended with '}' and enclose a comma-separated list
 of pairs that are separated by ':'
 {1:1,2:2,3:3} or {"a":1, "b":2, "c":3}
+All collections must be enclosed in double-quotes.
 
 If you specify either the username or the password, then you must specify both.
 
@@ -240,6 +247,11 @@ output of cassandra-unloader could be piped into
 cassandra-loader:
 ```
 cassandra-unloader -f stdout -host host1 -schema "ks.table(a,b,c)" | cassandra-loader -f stdin -host host2 -schema "ks2.table2(x,y,z)"
+```
+
+Get it with wget:
+```
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.17/cassandra-unloader
 ```
 
 To build, run:

@@ -38,7 +38,7 @@ public class MapParser extends AbstractParser {
     private char collectionQuote = '\"';
     private char collectionEscape = '\\';
     private char mapDelim;
-    private String collectionNullString = "null";
+    private String collectionNullString = null;
     private Map<Object,Object> elements;
     public MapParser(Parser inKeyParser, Parser inValueParser,
 		     char inCollectionDelim, char inCollectionBegin, 
