@@ -15,6 +15,7 @@
  */
 package com.datastax.loader;
 
+import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.loader.parser.BooleanParser;
 
 import java.lang.System;
@@ -302,7 +303,7 @@ public class CqlDelimUnload {
                         tmf != null ? tmf.getTrustManagers() : null,
                         new SecureRandom());
 
-        return new SSLOptions(sslContext, SSLOptions.DEFAULT_SSL_CIPHER_SUITES);
+        return JdkSSLOptions.builder().withSSLContext(sslContext).build();
     }
 
     private void setup()
@@ -316,7 +317,7 @@ public class CqlDelimUnload {
 	    .addContactPoint(host)
 	    .withPort(port)
             .withPoolingOptions(pOpts)
-	    .withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy()));
+	    .withLoadBalancingPolicy(new TokenAwarePolicy( DCAwareRoundRobinPolicy.builder().build()));
 	if (null != username)
 	    clusterBuilder = clusterBuilder.withCredentials(username, password);
         if (null != truststorePath)

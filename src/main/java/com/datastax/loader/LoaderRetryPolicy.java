@@ -5,6 +5,9 @@ import java.io.File;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.exceptions.DriverException;
+import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Statement;
@@ -34,10 +37,12 @@ class LoaderRetryPolicy implements RetryPolicy {
     public RetryDecision onUnavailable(Statement statement, ConsistencyLevel cl,
 				       int requiredReplica, int aliveReplica, 
 				       int nbRetry) {
-        return RetryDecision.rethrow();
+        return (nbRetry == 0)
+                ? RetryDecision.tryNextHost(cl)
+                : RetryDecision.rethrow();
     }
 
-    public RetryDecision onWriteTimeout(Statement statement, 
+    public RetryDecision onWriteTimeout(Statement statement,
 					ConsistencyLevel cl, 
 					WriteType writeType, int requiredAcks, 
 					int receivedAcks, int nbRetry) {
@@ -45,5 +50,18 @@ class LoaderRetryPolicy implements RetryPolicy {
             return RetryDecision.rethrow();
 
         return RetryDecision.retry(cl);
+    }
+
+    @Override
+    public RetryDecision onRequestError(Statement statement, ConsistencyLevel cl, DriverException e, int nbRetry) {
+        return RetryDecision.tryNextHost(cl);
+    }
+
+    @Override
+    public void init(Cluster cluster) {
+    }
+
+    @Override
+    public void close() {
     }
 }
