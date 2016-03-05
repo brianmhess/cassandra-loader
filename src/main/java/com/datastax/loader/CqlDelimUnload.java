@@ -15,63 +15,62 @@
  */
 package com.datastax.loader;
 
+
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.HostDistance;
+import com.datastax.driver.core.PoolingOptions;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.SSLOptions;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
+import com.datastax.driver.core.policies.TokenAwarePolicy;
+import com.datastax.driver.core.querybuilder.Select;
 import com.datastax.loader.parser.BooleanParser;
 
-import java.lang.System;
-import java.lang.String;
-import java.lang.StringBuilder;
-import java.lang.Integer;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Deque;
-import java.util.ArrayDeque;
-import java.util.Locale;
-import java.math.BigInteger;
-import java.io.FileOutputStream;
-import java.io.BufferedOutputStream;
-import java.io.PrintStream;
-import java.io.File;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.InputStreamReader;
-import java.io.InputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.FileNotFoundException;
-import java.text.ParseException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.security.KeyStore;
-import java.security.SecureRandom;
-import java.security.KeyStoreException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
+import java.math.BigInteger;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.PoolingOptions;
-import com.datastax.driver.core.HostDistance;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.SSLOptions;
-import com.datastax.driver.core.policies.TokenAwarePolicy;
-import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.gt;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.lte;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.select;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.token;
 
 
 public class CqlDelimUnload {
@@ -378,15 +377,12 @@ public class CqlDelimUnload {
 	    executor.shutdown();
 	}
 	else {
-	    BigInteger begin = null;
-	    BigInteger end = null;
-	    BigInteger delta = null;
 	    List<String> beginList = new ArrayList<String>();
 	    List<String> endList = new ArrayList<String>();
 	    if (null != beginToken) {
-		begin = new BigInteger(beginToken);
-		end = new BigInteger(endToken);
-		delta = end.subtract(begin).divide(new BigInteger(String.valueOf(numThreads)));
+		BigInteger begin = new BigInteger(beginToken);
+		BigInteger end = new BigInteger(endToken);
+		BigInteger delta = end.subtract(begin).divide(new BigInteger(String.valueOf(numThreads)));
 		for (int mype = 0; mype < numThreads; mype++) {
 		    if (mype < numThreads - 1) {
 			beginList.add(begin.add(delta.multiply(new BigInteger(String.valueOf(mype)))).toString());
@@ -497,21 +493,12 @@ public class CqlDelimUnload {
 	}
 
 	private String getPartitionKey(CqlDelimParser cdp, Session tsession) {
-	    String keyspace = cdp.getKeyspace();
-	    String table = cdp.getTable();
-	    if (keyspace.startsWith("\"") && keyspace.endsWith("\""))
-		keyspace = keyspace.replaceAll("\"", "");
-	    else
-		keyspace = keyspace.toLowerCase();
-	    if (table.startsWith("\"") && table.endsWith("\""))
-		table = table.replaceAll("\"", "");
-	    else
-		table = table.toLowerCase();
-	    String query = "SELECT column_name, component_index, type "
-		+ "FROM system.schema_columns WHERE keyspace_name = '"
-		+ keyspace + "' AND columnfamily_name = '"
-		+ table + "'";
-            List<Row> rows = tsession.execute(query).all();
+	    String keyspace = cdp.getKeyspace().replace("\"", "");
+	    String table = cdp.getTable().replace("\"", "");
+		List<Row> rows = tsession.execute(select("column_name", "component_index", "type")
+									.from("system", "schema_columns")
+									.where(eq("keyspace_name", keyspace))
+									.and(eq("columnfamily_name", table))).all();
 	    if (rows.isEmpty()) {
 		System.err.println("Can't find the keyspace/table");
 		// error
@@ -547,14 +534,13 @@ public class CqlDelimUnload {
 	    cdp = new CqlDelimParser(cqlSchema, delimiter, nullString, 
 				     dateFormatString, 
 				     boolStyle, locale, null, session, false);
-	    String select = cdp.generateSelect();
-	    String partitionKey = getPartitionKey(cdp, session);
+		Select selectStmt = cdp.generateSelect();
 	    if (null != beginToken) {
-		select = select + " WHERE Token(" + partitionKey + ") > " 
-		    + beginToken + " AND Token(" + partitionKey + ") <= " 
-		    + endToken;
+        String partitionKey = getPartitionKey(cdp, session);
+        selectStmt.where(gt(token(partitionKey), beginToken))
+                .and(lte(token(partitionKey), endToken));
 	    }
-	    statement = session.prepare(select);
+		statement = session.prepare(selectStmt);
 	    statement.setConsistencyLevel(consistencyLevel);
 	}
 	

@@ -147,6 +147,12 @@ the command line.  The format is one switch and option per line:
 -host 1.2.3.4
 ```
 
+### Case sensitivity
+
+Keyspace, table, column identifiers are case insensitive in Apache Cassandra. Anyways the
+`schema` parameter is treated internally as case sensitive and the queries used to load/unload
+data are quoting all identifiers to preserve the case sensitivity.
+
 ## Usage Statement:
 ```
 Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]
