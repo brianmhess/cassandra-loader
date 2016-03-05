@@ -15,41 +15,43 @@
  */
 package com.datastax.loader;
 
-import com.datastax.loader.parser.Parser;
-import com.datastax.loader.parser.DelimParser;
-import com.datastax.loader.parser.IntegerParser;
-import com.datastax.loader.parser.LongParser;
-import com.datastax.loader.parser.FloatParser;
-import com.datastax.loader.parser.DoubleParser;
-import com.datastax.loader.parser.StringParser;
-import com.datastax.loader.parser.BooleanParser;
-import com.datastax.loader.parser.UUIDParser;
-import com.datastax.loader.parser.BigDecimalParser;
-import com.datastax.loader.parser.BigIntegerParser;
-import com.datastax.loader.parser.ByteBufferParser;
-import com.datastax.loader.parser.InetAddressParser;
-import com.datastax.loader.parser.DateParser;
-import com.datastax.loader.parser.ListParser;
-import com.datastax.loader.parser.SetParser;
-import com.datastax.loader.parser.MapParser;
 
-import java.lang.String;
-import java.lang.IndexOutOfBoundsException;
-import java.lang.NumberFormatException;
-import java.text.ParseException;
-import java.util.Map;
-import java.util.List;
-import java.util.HashMap;
-import java.util.ArrayList;
-import java.util.Locale;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-
+import com.datastax.driver.core.ColumnDefinitions;
+import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.ColumnDefinitions;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
-import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.querybuilder.Insert;
+import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.datastax.driver.core.querybuilder.Select;
+import com.datastax.loader.parser.BigDecimalParser;
+import com.datastax.loader.parser.BigIntegerParser;
+import com.datastax.loader.parser.BooleanParser;
+import com.datastax.loader.parser.ByteBufferParser;
+import com.datastax.loader.parser.DateParser;
+import com.datastax.loader.parser.DelimParser;
+import com.datastax.loader.parser.DoubleParser;
+import com.datastax.loader.parser.FloatParser;
+import com.datastax.loader.parser.InetAddressParser;
+import com.datastax.loader.parser.IntegerParser;
+import com.datastax.loader.parser.ListParser;
+import com.datastax.loader.parser.LongParser;
+import com.datastax.loader.parser.MapParser;
+import com.datastax.loader.parser.Parser;
+import com.datastax.loader.parser.SetParser;
+import com.datastax.loader.parser.StringParser;
+import com.datastax.loader.parser.UUIDParser;
+
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static com.datastax.driver.core.querybuilder.QueryBuilder.bindMarker;
 
 public class CqlDelimParser {
     private Map<DataType.Name, Parser> pmap;
@@ -126,10 +128,15 @@ public class CqlDelimParser {
     }
 
     private List<SchemaBits> schemaBits(String in, Session session) throws ParseException {
-	String query = "SELECT " + in + " FROM " + keyspace + "." + tablename + " LIMIT 1";
-	ColumnDefinitions cd = session.execute(query).getColumnDefinitions();
 	String[] inList = in.split(",");
-	List<SchemaBits> sbl = new ArrayList<SchemaBits>();
+	Select.Selection columnsSelector = QueryBuilder.select();
+	for(String col: inList) {
+		columnsSelector.column(quote(col.trim()));
+	}
+	Select columnsMetaStmt = columnsSelector.from(quote(keyspace), quote(tablename)).limit(1);
+	ColumnDefinitions cd = session.execute(columnsMetaStmt).getColumnDefinitions();
+
+	List<SchemaBits> sbl = new ArrayList<SchemaBits>(inList.length);
 	for (int i = 0; i < inList.length; i++) {
 	    String col = inList[i].trim();
 	    SchemaBits sb = new SchemaBits();
@@ -200,26 +207,22 @@ public class CqlDelimParser {
     }
 
     // Convenience method to return the INSERT statement for a PreparedStatement.
-    public String generateInsert() {
-	String insert = "INSERT INTO " + keyspace + "." + tablename + "(" + sbl.get(0).name;
-	String qmarks = "?";
-	for (int i = 1; i < sbl.size(); i++) {
-	    insert = insert + ", " + sbl.get(i).name;
-	    qmarks = qmarks + ", ?";
+    public Insert generateInsert() {
+	Insert insertStmt = QueryBuilder.insertInto(quote(keyspace), quote(tablename));
+	for(SchemaBits sb: sbl) {
+		insertStmt.value(quote(sb.name), bindMarker());
 	}
-	insert = insert + ") VALUES (" + qmarks + ")";
-	return insert;
+	return insertStmt;
     }
 
-    public String generateSelect() {
-	String select = "SELECT " + sbl.get(0).name;
-	for (int i = 1; i < sbl.size(); i++) {
-	    select = select + ", " + sbl.get(i).name;
+	public Select generateSelect() {
+		Select.Selection colSelector = QueryBuilder.select();
+		for(SchemaBits sb: sbl) {
+			colSelector.column(quote(sb.name));
+		}
+		return colSelector.from(quote(keyspace), quote(tablename));
 	}
-	select += " FROM " + keyspace + "." + tablename;
-	return select;
-    }
-    
+
     public String getKeyspace() {
 	return keyspace;
     }
@@ -236,5 +239,11 @@ public class CqlDelimParser {
     public String format(Row row) throws IndexOutOfBoundsException, InvalidTypeException {
 	return delimParser.format(row);
     }
+
+	// when upgrading to Java driver 3.0.0 this method
+	// can be replaced by Metadata.quote
+	public static String quote(String identifier) {
+	return '"' + identifier.replace("\"", "") + '"';
+	}
 }
 

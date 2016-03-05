@@ -71,7 +71,6 @@ class CqlDelimLoadTask implements Callable<Long> {
     private String BADINSERT = ".BADINSERT";
     private String LOG = ".LOG";
     private Session session;
-    private String insert;
     private PreparedStatement statement;
     private ConsistencyLevel consistencyLevel;
     private CqlDelimParser cdp;
@@ -168,8 +167,7 @@ class CqlDelimLoadTask implements Callable<Long> {
 	cdp = new CqlDelimParser(cqlSchema, delimiter, nullString, 
 				 dateFormatString, boolStyle, locale, 
 				 skipCols, session, true);
-	insert = cdp.generateInsert();
-	statement = session.prepare(insert);
+	statement = session.prepare(cdp.generateInsert());
 	statement.setRetryPolicy(new LoaderRetryPolicy(numRetries));
 	statement.setConsistencyLevel(consistencyLevel);
     }
