@@ -15,6 +15,10 @@
  */
 package com.datastax.loader;
 
+import com.datastax.driver.core.Metadata;
+import com.datastax.driver.core.querybuilder.Insert;
+import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.datastax.driver.core.querybuilder.Select;
 import com.datastax.loader.parser.Parser;
 import com.datastax.loader.parser.DelimParser;
 import com.datastax.loader.parser.IntegerParser;
@@ -50,6 +54,9 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.ColumnDefinitions;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 import com.datastax.driver.core.DataType;
+
+import static com.datastax.driver.core.Metadata.quote;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.bindMarker;
 
 public class CqlDelimParser {
     private Map<DataType.Name, Parser> pmap;
@@ -126,10 +133,15 @@ public class CqlDelimParser {
     }
 
     private List<SchemaBits> schemaBits(String in, Session session) throws ParseException {
-	String query = "SELECT " + in + " FROM " + keyspace + "." + tablename + " LIMIT 1";
-	ColumnDefinitions cd = session.execute(query).getColumnDefinitions();
 	String[] inList = in.split(",");
-	List<SchemaBits> sbl = new ArrayList<SchemaBits>();
+	Select.Selection columnsSelector = QueryBuilder.select();
+	for(String col: inList) {
+		columnsSelector.column(quote(col.trim()));
+	}
+	Select columnsMetaStmt = columnsSelector.from(quote(keyspace), quote(tablename)).limit(1);
+	ColumnDefinitions cd = session.execute(columnsMetaStmt).getColumnDefinitions();
+
+	List<SchemaBits> sbl = new ArrayList<SchemaBits>(inList.length);
 	for (int i = 0; i < inList.length; i++) {
 	    String col = inList[i].trim();
 	    SchemaBits sb = new SchemaBits();
@@ -201,25 +213,21 @@ public class CqlDelimParser {
 
     // Convenience method to return the INSERT statement for a PreparedStatement.
     public String generateInsert() {
-	String insert = "INSERT INTO " + keyspace + "." + tablename + "(" + sbl.get(0).name;
-	String qmarks = "?";
-	for (int i = 1; i < sbl.size(); i++) {
-	    insert = insert + ", " + sbl.get(i).name;
-	    qmarks = qmarks + ", ?";
+	Insert insertStmt = QueryBuilder.insertInto(quote(keyspace), quote(tablename));
+	for(SchemaBits sb: sbl) {
+		insertStmt.value(quote(sb.name), bindMarker());
 	}
-	insert = insert + ") VALUES (" + qmarks + ")";
-	return insert;
+	return insertStmt.toString();
     }
 
-    public String generateSelect() {
-	String select = "SELECT " + sbl.get(0).name;
-	for (int i = 1; i < sbl.size(); i++) {
-	    select = select + ", " + sbl.get(i).name;
+	public Select generateSelect() {
+		Select.Selection colSelector = QueryBuilder.select();
+		for(SchemaBits sb: sbl) {
+			colSelector.column(quote(sb.name));
+		}
+		return colSelector.from(quote(keyspace), quote(tablename));
 	}
-	select += " FROM " + keyspace + "." + tablename;
-	return select;
-    }
-    
+
     public String getKeyspace() {
 	return keyspace;
     }
