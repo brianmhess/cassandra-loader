@@ -282,11 +282,10 @@ public class CqlDelimUnload {
     private SSLOptions createSSLContext()
         throws KeyStoreException, FileNotFoundException, IOException, NoSuchAlgorithmException,
                KeyManagementException, CertificateException, UnrecoverableKeyException {
-        TrustManagerFactory tmf = null;
         KeyStore tks = KeyStore.getInstance("JKS");
         tks.load((InputStream) new FileInputStream(new File(truststorePath)),
 		 truststorePwd.toCharArray());
-        tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+		TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(tks);
 
         KeyManagerFactory kmf = null;

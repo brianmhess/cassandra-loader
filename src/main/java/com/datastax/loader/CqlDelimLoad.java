@@ -454,7 +454,7 @@ public class CqlDelimLoad {
 	    .addContactPoint(host)
 	    .withPort(port)
 	    //.withProtocolVersion(ProtocolVersion.V3) 
-//	    .withProtocolVersion(ProtocolVersion.V2) // Should be V3, but issues for now....
+	    // .withProtocolVersion(ProtocolVersion.V2) // Should be V3, but issues for now....
 	    //.withCompression(ProtocolOptions.Compression.LZ4)
 	    .withPoolingOptions(pOpts)
 	    .withLoadBalancingPolicy(new TokenAwarePolicy( DCAwareRoundRobinPolicy.builder().build(), true));
