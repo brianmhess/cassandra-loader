@@ -15,6 +15,7 @@
  */
 package com.datastax.loader;
 
+import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.loader.parser.BooleanParser;
 import com.datastax.loader.futures.FutureManager;
 import com.datastax.loader.futures.PrintingFutureSet;
@@ -419,11 +420,10 @@ public class CqlDelimLoad {
     private SSLOptions createSSLContext() 
 	throws KeyStoreException, FileNotFoundException, IOException, NoSuchAlgorithmException, 
 	       KeyManagementException, CertificateException, UnrecoverableKeyException {
-	TrustManagerFactory tmf = null;
 	KeyStore tks = KeyStore.getInstance("JKS");
 	tks.load((InputStream) new FileInputStream(new File(truststorePath)), 
 		truststorePwd.toCharArray());
-	tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+	TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
 	tmf.init(tks);
     
 	KeyManagerFactory kmf = null;
@@ -440,7 +440,7 @@ public class CqlDelimLoad {
 			tmf != null ? tmf.getTrustManagers() : null, 
 			new SecureRandom());
 
-	return new SSLOptions(sslContext, SSLOptions.DEFAULT_SSL_CIPHER_SUITES);
+	return JdkSSLOptions.builder().withSSLContext(sslContext).build();
     }
 
     private void setup() 
@@ -454,10 +454,10 @@ public class CqlDelimLoad {
 	    .addContactPoint(host)
 	    .withPort(port)
 	    //.withProtocolVersion(ProtocolVersion.V3) 
-	    .withProtocolVersion(ProtocolVersion.V2) // Should be V3, but issues for now....
+//	    .withProtocolVersion(ProtocolVersion.V2) // Should be V3, but issues for now....
 	    //.withCompression(ProtocolOptions.Compression.LZ4)
 	    .withPoolingOptions(pOpts)
-	    .withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy(), true));
+	    .withLoadBalancingPolicy(new TokenAwarePolicy( DCAwareRoundRobinPolicy.builder().build(), true));
 
 	if (null != username)
 	    clusterBuilder = clusterBuilder.withCredentials(username, password);

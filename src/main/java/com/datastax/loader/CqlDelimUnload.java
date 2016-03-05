@@ -15,6 +15,10 @@
  */
 package com.datastax.loader;
 
+import com.datastax.driver.core.JdkSSLOptions;
+import com.datastax.driver.core.querybuilder.Clause;
+import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.datastax.driver.core.querybuilder.Select;
 import com.datastax.loader.parser.BooleanParser;
 
 import java.lang.System;
@@ -72,6 +76,12 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
+
+import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.gt;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.lte;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.select;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.token;
 
 
 public class CqlDelimUnload {
@@ -302,7 +312,7 @@ public class CqlDelimUnload {
                         tmf != null ? tmf.getTrustManagers() : null,
                         new SecureRandom());
 
-        return new SSLOptions(sslContext, SSLOptions.DEFAULT_SSL_CIPHER_SUITES);
+        return JdkSSLOptions.builder().withSSLContext(sslContext).build();
     }
 
     private void setup()
@@ -316,7 +326,7 @@ public class CqlDelimUnload {
 	    .addContactPoint(host)
 	    .withPort(port)
             .withPoolingOptions(pOpts)
-	    .withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy()));
+	    .withLoadBalancingPolicy(new TokenAwarePolicy( DCAwareRoundRobinPolicy.builder().build()));
 	if (null != username)
 	    clusterBuilder = clusterBuilder.withCredentials(username, password);
         if (null != truststorePath)
@@ -378,15 +388,12 @@ public class CqlDelimUnload {
 	    executor.shutdown();
 	}
 	else {
-	    BigInteger begin = null;
-	    BigInteger end = null;
-	    BigInteger delta = null;
 	    List<String> beginList = new ArrayList<String>();
 	    List<String> endList = new ArrayList<String>();
 	    if (null != beginToken) {
-		begin = new BigInteger(beginToken);
-		end = new BigInteger(endToken);
-		delta = end.subtract(begin).divide(new BigInteger(String.valueOf(numThreads)));
+		BigInteger begin = new BigInteger(beginToken);
+		BigInteger end = new BigInteger(endToken);
+		BigInteger delta = end.subtract(begin).divide(new BigInteger(String.valueOf(numThreads)));
 		for (int mype = 0; mype < numThreads; mype++) {
 		    if (mype < numThreads - 1) {
 			beginList.add(begin.add(delta.multiply(new BigInteger(String.valueOf(mype)))).toString());
@@ -497,21 +504,12 @@ public class CqlDelimUnload {
 	}
 
 	private String getPartitionKey(CqlDelimParser cdp, Session tsession) {
-	    String keyspace = cdp.getKeyspace();
-	    String table = cdp.getTable();
-	    if (keyspace.startsWith("\"") && keyspace.endsWith("\""))
-		keyspace = keyspace.replaceAll("\"", "");
-	    else
-		keyspace = keyspace.toLowerCase();
-	    if (table.startsWith("\"") && table.endsWith("\""))
-		table = table.replaceAll("\"", "");
-	    else
-		table = table.toLowerCase();
-	    String query = "SELECT column_name, component_index, type "
-		+ "FROM system.schema_columns WHERE keyspace_name = '"
-		+ keyspace + "' AND columnfamily_name = '"
-		+ table + "'";
-            List<Row> rows = tsession.execute(query).all();
+	    String keyspace = cdp.getKeyspace().replace("\"", "");
+	    String table = cdp.getTable().replace("\"", "");
+		List<Row> rows = tsession.execute(select("column_name", "component_index", "type")
+									.from("system", "schema_columns")
+									.where(eq("keyspace_name", keyspace))
+									.and(eq("columnfamily_name", table))).all();
 	    if (rows.isEmpty()) {
 		System.err.println("Can't find the keyspace/table");
 		// error
@@ -547,14 +545,13 @@ public class CqlDelimUnload {
 	    cdp = new CqlDelimParser(cqlSchema, delimiter, nullString, 
 				     dateFormatString, 
 				     boolStyle, locale, null, session, false);
-	    String select = cdp.generateSelect();
-	    String partitionKey = getPartitionKey(cdp, session);
+		Select selectStmt = cdp.generateSelectNew();
 	    if (null != beginToken) {
-		select = select + " WHERE Token(" + partitionKey + ") > " 
-		    + beginToken + " AND Token(" + partitionKey + ") <= " 
-		    + endToken;
+        String partitionKey = getPartitionKey(cdp, session);
+        selectStmt.where(gt(token(partitionKey), beginToken))
+                .and(lte(token(partitionKey), endToken));
 	    }
-	    statement = session.prepare(select);
+		statement = session.prepare(selectStmt);
 	    statement.setConsistencyLevel(consistencyLevel);
 	}
 	
