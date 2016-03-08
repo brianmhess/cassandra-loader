@@ -1,7 +1,7 @@
 apply plugin: 'java'
 apply plugin: 'application'
 
-def versionNum = '0.0.17'
+def versionNum = '0.0.18'
 
 allprojects {
     tasks.withType(JavaCompile) {
@@ -29,7 +29,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.datastax.cassandra:cassandra-driver-core:2.1.6'
+    compile 'com.datastax.cassandra:cassandra-driver-core:3.0.0'
     compile 'org.xerial.snappy:snappy-java:1.0.5'
     compile 'net.jpountz.lz4:lz4:1.2.0'
 }

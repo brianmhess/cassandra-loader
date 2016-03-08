@@ -80,13 +80,14 @@ import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.SSLOptions;
+import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
 import com.codahale.metrics.Timer;
 
 public class CqlDelimLoad {
-    private String version = "0.0.17";
+    private String version = "0.0.18";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -416,7 +417,7 @@ public class CqlDelimLoad {
 	return validateArgs();
     }
 
-    private SSLOptions createSSLContext() 
+    private SSLOptions createSSLOptions() 
 	throws KeyStoreException, FileNotFoundException, IOException, NoSuchAlgorithmException, 
 	       KeyManagementException, CertificateException, UnrecoverableKeyException {
 	TrustManagerFactory tmf = null;
@@ -440,7 +441,7 @@ public class CqlDelimLoad {
 			tmf != null ? tmf.getTrustManagers() : null, 
 			new SecureRandom());
 
-	return new SSLOptions(sslContext, SSLOptions.DEFAULT_SSL_CIPHER_SUITES);
+	return JdkSSLOptions.builder().withSSLContext(sslContext).build();
     }
 
     private void setup() 
@@ -453,16 +454,15 @@ public class CqlDelimLoad {
 	Cluster.Builder clusterBuilder = Cluster.builder()
 	    .addContactPoint(host)
 	    .withPort(port)
-	    //.withProtocolVersion(ProtocolVersion.V3) 
-	    .withProtocolVersion(ProtocolVersion.V2) // Should be V3, but issues for now....
 	    //.withCompression(ProtocolOptions.Compression.LZ4)
 	    .withPoolingOptions(pOpts)
-	    .withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy(), true));
+	    .withLoadBalancingPolicy(new TokenAwarePolicy( DCAwareRoundRobinPolicy.builder().build()))
+	    ;
 
 	if (null != username)
 	    clusterBuilder = clusterBuilder.withCredentials(username, password);
 	if (null != truststorePath)
-	    clusterBuilder = clusterBuilder.withSSL(createSSLContext());
+	    clusterBuilder = clusterBuilder.withSSL(createSSLOptions());
 
 	cluster = clusterBuilder.build();
 	if (null == cluster) {

@@ -70,12 +70,13 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.SSLOptions;
+import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
 
 public class CqlDelimUnload {
-    private String version = "0.0.17";
+    private String version = "0.0.18";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -278,7 +279,7 @@ public class CqlDelimUnload {
 	return validateArgs();
     }
 
-    private SSLOptions createSSLContext()
+    private SSLOptions createSSLOptions()
         throws KeyStoreException, FileNotFoundException, IOException, NoSuchAlgorithmException,
                KeyManagementException, CertificateException, UnrecoverableKeyException {
         TrustManagerFactory tmf = null;
@@ -302,7 +303,7 @@ public class CqlDelimUnload {
                         tmf != null ? tmf.getTrustManagers() : null,
                         new SecureRandom());
 
-        return new SSLOptions(sslContext, SSLOptions.DEFAULT_SSL_CIPHER_SUITES);
+        return JdkSSLOptions.builder().withSSLContext(sslContext).build();
     }
 
     private void setup()
@@ -316,11 +317,11 @@ public class CqlDelimUnload {
 	    .addContactPoint(host)
 	    .withPort(port)
             .withPoolingOptions(pOpts)
-	    .withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy()));
+	    .withLoadBalancingPolicy(new TokenAwarePolicy( DCAwareRoundRobinPolicy.builder().build()));
 	if (null != username)
 	    clusterBuilder = clusterBuilder.withCredentials(username, password);
         if (null != truststorePath)
-            clusterBuilder = clusterBuilder.withSSL(createSSLContext());
+            clusterBuilder = clusterBuilder.withSSL(createSSLOptions());
 
 	cluster = clusterBuilder.build();
         if (null == cluster) {

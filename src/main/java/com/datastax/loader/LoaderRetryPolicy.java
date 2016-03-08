@@ -8,7 +8,9 @@ import java.io.FileWriter;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.WriteType;
+import com.datastax.driver.core.exceptions.DriverException;
 
 class LoaderRetryPolicy implements RetryPolicy {
     private int numRetries;
@@ -45,5 +47,18 @@ class LoaderRetryPolicy implements RetryPolicy {
             return RetryDecision.rethrow();
 
         return RetryDecision.retry(cl);
+    }
+
+    public RetryPolicy.RetryDecision onRequestError(Statement statement,
+						    ConsistencyLevel cl,
+						    DriverException e,
+						    int nbRetry) {
+	return RetryDecision.tryNextHost(cl);
+    }
+
+    public void close() {
+    }
+
+    public void init(Cluster cluster) {
     }
 }
