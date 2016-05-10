@@ -104,6 +104,7 @@ class CqlDelimLoadTask implements Callable<Long> {
     private int numRetries = 1;
     private long maxInsertErrors = 10;
     private long insertErrors = 0;
+    private boolean nullsUnset;
 
     public CqlDelimLoadTask(String inCqlSchema, String inDelimiter, 
 			    String inNullString, String inDateFormatString,
@@ -115,7 +116,8 @@ class CqlDelimLoadTask implements Callable<Long> {
 			    Session inSession, ConsistencyLevel inCl,
 			    int inNumFutures, int inBatchSize, int inNumRetries, 
 			    int inQueryTimeout, long inMaxInsertErrors,
-			    String inSuccessDir, String inFailureDir) {
+			    String inSuccessDir, String inFailureDir,
+			    boolean inNullsUnset) {
 	super();
 	cqlSchema = inCqlSchema;
 	delimiter = inDelimiter;
@@ -138,6 +140,7 @@ class CqlDelimLoadTask implements Callable<Long> {
 	maxInsertErrors = inMaxInsertErrors;
 	successDir = inSuccessDir;
 	failureDir = inFailureDir;
+	nullsUnset = inNullsUnset;
     }
 
     public Long call() throws IOException, ParseException {
@@ -149,7 +152,6 @@ class CqlDelimLoadTask implements Callable<Long> {
     private void setup() throws IOException, ParseException {
 	if (null == infile) {
 	    reader = new BufferedReader(new InputStreamReader(System.in));
-	    //readerName = CqlDelimLoad.STDIN;
 	    readerName = "stdin";
 	}
 	else {
@@ -229,6 +231,11 @@ class CqlDelimLoadTask implements Callable<Long> {
 		
 	    if (null != (elements = cdp.parse(line))) {
 		bind = statement.bind(elements.toArray());
+		if (nullsUnset) {
+		    for (int i = 0; i < elements.size(); i++)
+			if (null == elements.get(i))
+			    bind.unset(i);
+		}
 		if (1 == batchSize) {
 		    resultSetFuture = session.executeAsync(bind);
 		    if (!fm.add(resultSetFuture, line)) {
