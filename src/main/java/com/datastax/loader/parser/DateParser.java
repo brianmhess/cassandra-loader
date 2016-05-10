@@ -43,6 +43,8 @@ public class DateParser extends AbstractParser {
 
     public String format(Object o) {
 	Date v = (Date)o;
+    if (v == null)
+        return null;
 	return format.format(v);
     }
 }
