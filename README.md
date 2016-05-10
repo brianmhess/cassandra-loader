@@ -102,7 +102,7 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
 You can send data in on stdin by specifying the filename (via the -f switch) as "stdin" (case insensitive).
 That way, you could pipe data in from other commands:
 ```
-grep IMPORTANT data.csv | cassandra-loader -f stdin -h 1.2.3.4 -cql "test.itest(a, b)"
+grep IMPORTANT data.csv | cassandra-loader -f stdin -h 1.2.3.4 -schema "test.itest(a, b)"
 ```
 
 Collections are supported.  
