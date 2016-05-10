@@ -29,7 +29,7 @@ gradle loader
 ```
 
 All of the dependencies are included (namely, the Java driver - currently
-version 2.1.4).  The output will be the cassandra-loader executable
+version 2.1.6).  The output will be the cassandra-loader executable
 in the build directory.  There will also be an jar with all of the
 dependencies included in the build/libs/cassandra-loader-uber-<version>.jar
 
@@ -156,7 +156,7 @@ OPTIONS:
   -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]
   -nullString <nullString>       String that signifies NULL [none]
   -skipRows <skipRows>           Number of rows to skip [0]
-  -skipCOls <columnsToSkip>      Comma-separated list of columsn to skip in the input file
+  -skipCols <columnsToSkip>      Comma-separated list of columns to skip in the input file
   -maxRows <maxRows>             Maximum number of rows to read (-1 means all) [-1]
   -maxErrors <maxErrors>         Maximum parse errors to endure [10]
   -badDir <badDirectory>         Directory for where to place badly parsed rows. [none]

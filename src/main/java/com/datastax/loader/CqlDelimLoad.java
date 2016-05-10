@@ -142,7 +142,7 @@ public class CqlDelimLoad {
 	usage.append("  -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]\n");
 	usage.append("  -nullString <nullString>       String that signifies NULL [none]\n");
 	usage.append("  -skipRows <skipRows>           Number of rows to skip [0]\n");
-	usage.append("  -skipCOls <columnsToSkip>      Comma-separated list of columsn to skip in the input file\n");
+	usage.append("  -skipCols <columnsToSkip>      Comma-separated list of columns to skip in the input file\n");
 	usage.append("  -maxRows <maxRows>             Maximum number of rows to read (-1 means all) [-1]\n");
 	usage.append("  -maxErrors <maxErrors>         Maximum parse errors to endure [10]\n");
 	usage.append("  -badDir <badDirectory>         Directory for where to place badly parsed rows. [none]\n");
