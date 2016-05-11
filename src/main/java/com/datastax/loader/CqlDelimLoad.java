@@ -24,6 +24,7 @@ import java.lang.String;
 import java.lang.StringBuilder;
 import java.lang.Integer;
 import java.lang.Runtime;
+import java.lang.Boolean;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
@@ -80,13 +81,14 @@ import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.SSLOptions;
+import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
 import com.codahale.metrics.Timer;
 
 public class CqlDelimLoad {
-    private String version = "0.0.17";
+    private String version = "0.0.19";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -131,6 +133,7 @@ public class CqlDelimLoad {
 
     private int numThreads = Runtime.getRuntime().availableProcessors();
     private int batchSize = 1;
+    private boolean nullsUnset = false;
 
     private String usage() {
 	StringBuilder usage = new StringBuilder("version: ").append(version).append("\n");
@@ -141,7 +144,7 @@ public class CqlDelimLoad {
 	usage.append("  -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]\n");
 	usage.append("  -nullString <nullString>       String that signifies NULL [none]\n");
 	usage.append("  -skipRows <skipRows>           Number of rows to skip [0]\n");
-	usage.append("  -skipCOls <columnsToSkip>      Comma-separated list of columsn to skip in the input file\n");
+	usage.append("  -skipCols <columnsToSkip>      Comma-separated list of columsn to skip in the input file\n");
 	usage.append("  -maxRows <maxRows>             Maximum number of rows to read (-1 means all) [-1]\n");
 	usage.append("  -maxErrors <maxErrors>         Maximum parse errors to endure [10]\n");
 	usage.append("  -badDir <badDirectory>         Directory for where to place badly parsed rows. [none]\n");
@@ -166,6 +169,7 @@ public class CqlDelimLoad {
 	usage.append("  -rateFile <filename>           Where to print the rate statistics\n");
 	usage.append("  -successDir <dir>              Directory where to move successfully loaded files\n");
 	usage.append("  -failureDir <dir>              Directory where to move files that did not successfully load\n");
+	usage.append("  -nullsUnset [false|true]         Treat nulls as unset [faslse]\n");
 
 	usage.append("\n\nExamples:\n");
 	usage.append("cassandra-loader -f /path/to/file.csv -host localhost -schema \"test.test3(a, b, c)\"\n");
@@ -397,6 +401,8 @@ public class CqlDelimLoad {
 		return false;
 	    }
 	}
+	if (null != (tkey = amap.remove("-nullsUnset")))    nullsUnset = Boolean.parseBoolean(tkey);
+
 	if (-1 == maxRows)
 	    maxRows = Long.MAX_VALUE;
 	if (-1 == maxErrors)
@@ -416,7 +422,7 @@ public class CqlDelimLoad {
 	return validateArgs();
     }
 
-    private SSLOptions createSSLContext() 
+    private SSLOptions createSSLOptions() 
 	throws KeyStoreException, FileNotFoundException, IOException, NoSuchAlgorithmException, 
 	       KeyManagementException, CertificateException, UnrecoverableKeyException {
 	TrustManagerFactory tmf = null;
@@ -440,10 +446,10 @@ public class CqlDelimLoad {
 			tmf != null ? tmf.getTrustManagers() : null, 
 			new SecureRandom());
 
-	return new SSLOptions(sslContext, SSLOptions.DEFAULT_SSL_CIPHER_SUITES);
+	return JdkSSLOptions.builder().withSSLContext(sslContext).build();
     }
 
-    private void setup() 
+    private boolean setup() 
 	throws IOException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException,
 	       CertificateException, UnrecoverableKeyException {
 	// Connect to Cassandra
@@ -453,20 +459,26 @@ public class CqlDelimLoad {
 	Cluster.Builder clusterBuilder = Cluster.builder()
 	    .addContactPoint(host)
 	    .withPort(port)
-	    //.withProtocolVersion(ProtocolVersion.V3) 
-	    .withProtocolVersion(ProtocolVersion.V2) // Should be V3, but issues for now....
 	    //.withCompression(ProtocolOptions.Compression.LZ4)
 	    .withPoolingOptions(pOpts)
-	    .withLoadBalancingPolicy(new TokenAwarePolicy( new DCAwareRoundRobinPolicy(), true));
+	    .withLoadBalancingPolicy(new TokenAwarePolicy( DCAwareRoundRobinPolicy.builder().build()))
+	    ;
 
 	if (null != username)
 	    clusterBuilder = clusterBuilder.withCredentials(username, password);
 	if (null != truststorePath)
-	    clusterBuilder = clusterBuilder.withSSL(createSSLContext());
+	    clusterBuilder = clusterBuilder.withSSL(createSSLOptions());
 
 	cluster = clusterBuilder.build();
 	if (null == cluster) {
 	    throw new IOException("Could not create cluster");
+	}
+	if ((0 > cluster.getConfiguration().getProtocolOptions()
+	     .getProtocolVersion().compareTo(ProtocolVersion.V4))
+	    && nullsUnset) {
+	    System.err.println("Cannot use nullsUnset with ProtocolVersion less than V4 (prior to Cassandra 3.0");
+	    cleanup();
+	    return false;
 	}
 
 	if (null != rateFile) {
@@ -483,6 +495,8 @@ public class CqlDelimLoad {
 	rateLimiter = new RateLimiter(rate, progressRate, timer, rateStream);
 	//rateLimiter = new Latency999RateLimiter(rate, progressRate, 3000, 200, 10, 0.5, 0.1, cluster, false);
 	session = new RateLimitedSession(tsession, rateLimiter);
+
+	return true;
     }
 
     private void cleanup() {
@@ -506,7 +520,8 @@ public class CqlDelimLoad {
 	}
 
 	// Setup
-	setup();
+	if (false == setup())
+	    return false;
 	
 	// open file
 	Deque<File> fileList = new ArrayDeque<File>();
@@ -553,7 +568,8 @@ public class CqlDelimLoad {
 							 numFutures, batchSize,
 							 numRetries, queryTimeout,
 							 maxInsertErrors, 
-							 successDir, failureDir);
+							 successDir, failureDir,
+							 nullsUnset);
 	    Future<Long> res = executor.submit(worker);
 	    total = res.get();
 	    executor.shutdown();
@@ -576,7 +592,8 @@ public class CqlDelimLoad {
 							     numRetries, 
 							     queryTimeout,
 							     maxInsertErrors, 
-							     successDir, failureDir);
+							     successDir, failureDir,
+							     nullsUnset);
 		results.add(executor.submit(worker));
 	    }
 	    executor.shutdown();

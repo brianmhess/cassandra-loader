@@ -15,6 +15,8 @@
  */
 package com.datastax.loader;
 
+import java.util.Map;
+
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.CloseFuture;
@@ -52,6 +54,10 @@ public class EnhancedSession implements Session {
 	return session.execute(query, values);
     }
 
+    public ResultSet execute(String query, Map<String,Object> values) {
+	return session.execute(query, values);
+    }
+
     public ResultSetFuture executeAsync(Statement statement) {
 	return session.executeAsync(statement);
     }
@@ -61,6 +67,10 @@ public class EnhancedSession implements Session {
     }
 
     public ResultSetFuture executeAsync(String query, Object... values) {
+	return session.executeAsync(query, values);
+    }
+
+    public ResultSetFuture executeAsync(String query, Map<String,Object> values) {
 	return session.executeAsync(query, values);
     }
 
@@ -79,6 +89,10 @@ public class EnhancedSession implements Session {
     public EnhancedSession init() {
 	session.init();
 	return this;
+    }
+
+    public com.google.common.util.concurrent.ListenableFuture<Session> initAsync() {
+	return session.initAsync();
     }
 
     public boolean isClosed() {

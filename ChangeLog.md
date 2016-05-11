@@ -1,3 +1,6 @@
+## 0.0.18
+- Support for Cassandra 3.0
+
 ## 0.0.17
 - Fixed null collection issue / NPE (Issue 8)
 
