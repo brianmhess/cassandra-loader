@@ -17,12 +17,12 @@ loading of various types of delimited files, including
 ### Downloading
 
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.19/cassandra-loader
+https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.18/cassandra-loader
 
 Get it with wget:
 
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.19/cassandra-loader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.18/cassandra-loader
 ```
 
 ### Building
@@ -293,7 +293,7 @@ cassandra-unloader -f stdout -host host1 -schema "ks.table(a,b,c)" | cassandra-l
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.17/cassandra-unloader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.18/cassandra-unloader
 ```
 
 To build, run:
@@ -312,7 +312,7 @@ cassandra-unloader
 ###Usage statement:
 
 ```
-version: 0.0.17
+version: 0.0.18
 Usage: -f <outputStem> -host <ipaddress> -schema <schema> [OPTIONS]
 OPTIONS:
   -configFile <filename>         File with configuration options
