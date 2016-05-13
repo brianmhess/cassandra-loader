@@ -95,17 +95,12 @@ public class MapParser extends AbstractParser {
 	return elements;
     }
 
-    //public String format(Row row, int index) {
-    //  if (row.isNull(index))
-    //      return null;
-    //  Map<Object,Object> map = row.getMap(index, Object.class, Object.class);
     @SuppressWarnings("unchecked")
     public String format(Object o) {
 	Map<Object,Object> map = (Map<Object,Object>)o;
 	Iterator<Map.Entry<Object,Object> > iter = map.entrySet().iterator();
 	Map.Entry<Object,Object> me;
         StringBuilder sb = new StringBuilder();
-	sb.append("\"");
 	sb.append(collectionBegin);
 	if (iter.hasNext()) {
 	    me = iter.next();
@@ -121,7 +116,7 @@ public class MapParser extends AbstractParser {
 	    sb.append(valueParser.format(me.getValue()));
 	}
 	sb.append(collectionEnd);
-	sb.append("\"");
-	return sb.toString();
+
+	return quote(sb.toString());
     }
 }

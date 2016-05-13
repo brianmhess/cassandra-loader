@@ -92,7 +92,6 @@ public class SetParser extends AbstractParser {
 	Set<Object> set = (Set<Object>)o;
 	Iterator<Object> iter = set.iterator();
         StringBuilder sb = new StringBuilder();
-	sb.append("\"");
 	sb.append(collectionBegin);
 	if (iter.hasNext())
 	    sb.append(parser.format(iter.next()));
@@ -101,7 +100,7 @@ public class SetParser extends AbstractParser {
 	    sb.append(parser.format(iter.next()));
         }
         sb.append(collectionEnd);
-	sb.append("\"");
-        return sb.toString();
+
+        return quote(sb.toString());
     }
 }

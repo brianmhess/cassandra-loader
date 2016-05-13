@@ -177,8 +177,12 @@ public class DelimParser {
     }
 
     public String format(Row row) throws IndexOutOfBoundsException, InvalidTypeException {
-	StringBuilder retVal = new StringBuilder(parsers.get(0).format(row, 0));
 	String s;
+	StringBuilder retVal = new StringBuilder();
+	s = parsers.get(0).format(row, 0);
+	if (null == s)
+	    s = nullString;
+	retVal.append(s);
 	for (int i = 1; i < parsersSize; i++) {
 	    s = parsers.get(i).format(row, i);
 	    if (null == s)

@@ -29,8 +29,6 @@ public class ByteBufferParser extends AbstractParser {
 	    return null;
 	byte[] barry = DatatypeConverter.parseBase64Binary(toparse);
 	return ByteBuffer.wrap(barry);
-	//ByteBuffer bb = ByteBuffer.allocate(toparse.length());
-	//return bb.put(toparse.getBytes());
     }
 
     public String format(Object o) {
