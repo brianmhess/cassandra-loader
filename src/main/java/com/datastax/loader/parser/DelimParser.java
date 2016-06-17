@@ -122,8 +122,9 @@ public class DelimParser {
 	Object toAdd;
 	for (int i = 0; i < parsersSize; i++) {
 	    try {
-		if ((null != nullString) &&
-		    (nullString.equalsIgnoreCase(row[i])))
+		if ((null == row[i]) ||
+		    ((null != nullString) &&
+		     (nullString.equalsIgnoreCase(row[i]))))
 		    toAdd = null;
 		else
 		    toAdd = parsers.get(i).parse(row[i]);
