@@ -183,6 +183,7 @@ If you do not set the successDir then files that successfully loaded will remain
 ## Usage Statement:
 
 ```
+version: 0.0.20
 Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]
 OPTIONS:
   -configFile <filename>         File with configuration options
@@ -201,7 +202,8 @@ OPTIONS:
   -ssl-truststore-pw <pwd>       Password for SSL truststore [none]
   -ssl-keystore-path <path>      Path to SSL keystore [none]
   -ssl-keystore-pw <pwd>         Password for SSL keystore [none]
-  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]
+  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]
+  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]
   -batchSize <batchSize>         Number of INSERTs to batch together [1]
   -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','
   -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]
@@ -214,6 +216,7 @@ OPTIONS:
   -rateFile <filename>           Where to print the rate statistics
   -successDir <dir>              Directory where to move successfully loaded files
   -failureDir <dir>              Directory where to move files that did not successfully load
+  -nullsUnset [false|true]         Treat nulls as unset [faslse]
 
 
 Examples:
@@ -332,4 +335,11 @@ OPTIONS:
   -beginToken <tokenString>      Begin token [none]
   -endToken <tokenString>        End token [none]
   -where <predicate>             WHERE clause [none]
+```
+
+A few simple examples using the `-where` are as follows:
+
+```
+cassandra-unloader -host localhost -f stdout -schema "testks.testtable(pkey,ccol,x,y)" -where "pkey=5"
+cassandra-unloader -host localhost -f stdout -schema "testks.testtable(pkey,ccol,x,y)" -where "x = 100 ALLOW FILTERING"
 ```
