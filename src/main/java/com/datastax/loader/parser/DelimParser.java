@@ -15,21 +15,15 @@
  */
 package com.datastax.loader.parser;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.regex.Pattern;
-import java.util.StringTokenizer;
-import java.lang.String;
-import java.lang.StringBuilder;
-import java.lang.System;
-import java.lang.NumberFormatException;
-import java.lang.IndexOutOfBoundsException;
-import java.io.StringReader;
-import java.io.IOException;
-import java.text.ParseException;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DelimParser {
     private List<Parser> parsers;
@@ -43,7 +37,7 @@ public class DelimParser {
     private List<Boolean> skip;
 
     public static String DEFAULT_DELIMITER = ",";
-    public static String DEFAULT_NULLSTRING = "";
+    public static String DEFAULT_NULLSTRING = "null";
 
     public DelimParser() {
 	this(DEFAULT_DELIMITER);
@@ -54,44 +48,44 @@ public class DelimParser {
     }
 
     public DelimParser(String inDelimiter, String inNullString) {
-	parsers = new ArrayList<Parser>();
-	elements = new ArrayList<Object>();
-	skip = new ArrayList<Boolean>();
-	parsersSize = parsers.size();
-	if (null == inDelimiter)
-	    delimiter = DEFAULT_DELIMITER;
-	else 
-	    delimiter = inDelimiter;
-	if (null == inNullString)
-	    nullString = DEFAULT_NULLSTRING;
-	else
-	    nullString = inNullString;
-	delim = ("\\t".equals(delimiter)) ?  '\t' : delimiter.charAt(0);
-	quote = '\"';
-	escape = '\\';
+		parsers = new ArrayList<Parser>();
+		elements = new ArrayList<Object>();
+		skip = new ArrayList<Boolean>();
+		parsersSize = parsers.size();
+		if (null == inDelimiter)
+			delimiter = DEFAULT_DELIMITER;
+		else
+			delimiter = inDelimiter;
+		if (null == inNullString)
+			nullString = DEFAULT_NULLSTRING;
+		else
+			nullString = inNullString;
+		delim = ("\\t".equals(delimiter)) ?  '\t' : delimiter.charAt(0);
+		quote = '\"';
+		escape = '\\';
     }
     
     // Adds a parser to the list
-    public void add(Parser p) {
-	parsers.add(p);
-	skip.add(false);
-	parsersSize = parsers.size();
-    }
+	public void add(Parser p) {
+		parsers.add(p);
+		skip.add(false);
+		parsersSize = parsers.size();
+	}
 
-    public void addSkip(int idx) {
-	parsers.add(idx, new StringParser());
-	skip.add(idx, true);
-	parsersSize = parsers.size();
-    }
+	public void addSkip(int idx) {
+		parsers.add(idx, new StringParser());
+		skip.add(idx, true);
+		parsersSize = parsers.size();
+	}
 
     // This is where we apply rules like quoting, NULL, etc
     private String prepareToParse(String toparse) {
-	String trimmedToParse = toparse.trim();
-	if (trimmedToParse.startsWith("\"") && trimmedToParse.endsWith("\""))
-	    trimmedToParse = trimmedToParse.substring(1, trimmedToParse.length() - 1);
-	if (trimmedToParse.equals(nullString))
-	    return null;
-	return trimmedToParse;
+		String trimmedToParse = toparse.trim();
+		if (trimmedToParse.startsWith("\"") && trimmedToParse.endsWith("\""))
+			trimmedToParse = trimmedToParse.substring(1, trimmedToParse.length() - 1);
+		if (trimmedToParse.equals(nullString))
+			return null;
+		return trimmedToParse;
     }
 
     public List<Object> parse(String line) {
@@ -110,15 +104,19 @@ public class DelimParser {
 		    elements.add(toAdd);
 	    }
 	    catch (NumberFormatException e) {
-		System.err.println(String.format("Invalid number in input number %d: %s", i, e.getMessage()));
+			System.err.println(String.format("Invalid number in input number %d: %s", i, e.getMessage()));
 		return null;
 	    }
 	    catch (ParseException pe) {
-		System.err.println(String.format("Invalid format in input %d: %s", i, pe.getMessage()));
+			System.err.println(String.format("Invalid format in input %d: %s", i, pe.getMessage()));
+			StringWriter sw = new StringWriter();
+			PrintWriter pw = new PrintWriter(sw);
+			pe.printStackTrace(pw);
+			System.err.println(sw.toString());
 		return null;
 	    }
 	    catch (IOException e) {
-		System.err.println(String.format("Invalid number of fields - ran out of string: %s", i, e.getMessage()));
+			System.err.println(String.format("Invalid number of fields - ran out of string: %s", i, e.getMessage()));
 		return null;
 	    }
 	}
@@ -130,15 +128,15 @@ public class DelimParser {
 	return elements.toArray();
     }
 
-    public String format(Row row) throws IndexOutOfBoundsException, InvalidTypeException {
-	StringBuilder retVal = new StringBuilder(parsers.get(0).format(row, 0));
-	String s;
-	for (int i = 1; i < parsersSize; i++) {
-	    s = parsers.get(i).format(row, i);
-	    if (null == s)
-		s = nullString;
-	    retVal.append(delimiter).append(s);
+	public String format(Row row) throws IndexOutOfBoundsException, InvalidTypeException {
+		StringBuilder retVal = new StringBuilder(parsers.get(0).format(row, 0));
+		String s;
+		for (int i = 1; i < parsersSize; i++) {
+			s = parsers.get(i).format(row, i);
+			if (null == s)
+				s = nullString;
+			retVal.append(delimiter).append(s);
+		}
+		return retVal.toString();
 	}
-	return retVal.toString();
-    }
 }

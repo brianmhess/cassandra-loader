@@ -15,15 +15,11 @@
  */
 package com.datastax.loader.parser;
 
-import java.lang.Character;
-import java.lang.String;
-import java.lang.StringBuilder;
-import java.lang.IndexOutOfBoundsException;
-import java.io.StringReader;
-import java.io.IOException;
-import java.text.ParseException;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
+
+import java.io.IOException;
+import java.text.ParseException;
 
 public abstract class AbstractParser implements Parser {
     public abstract Object parse(String toparse) throws ParseException;
@@ -44,17 +40,24 @@ public abstract class AbstractParser implements Parser {
     }
 
     public String prepareToParse(String retstring, String nullString, Character quote) {
-	if (retstring.startsWith(quote.toString()) 
-	    && retstring.endsWith(quote.toString()))
-	    //if ((quote == retstring.charAt(0)) 
-	    //&& (quote == retstring.charAt(retstring.length() - 1)))
-	    retstring = retstring.substring(1, retstring.length() - 1);
-	else 
-	    retstring = retstring.trim();
-	if (null != nullString)
-	    if (nullString.equalsIgnoreCase(retstring))
-		return null;	
-	return retstring;
+		if (retstring.startsWith(quote.toString())
+			&& retstring.endsWith(quote.toString())) {
+			//if ((quote == retstring.charAt(0))
+			//&& (quote == retstring.charAt(retstring.length() - 1)))
+			retstring = retstring.substring(1, retstring.length() - 1);
+		}
+		else {
+			retstring = retstring.trim();
+		}
+		if (null != nullString) {
+			if (nullString.equalsIgnoreCase(retstring)) {
+				return null;
+			}
+		}
+		else if(nullString.equalsIgnoreCase(retstring)) {
+			return null;
+		}
+		return retstring;
     }
 
     public String getQuotedOrUnquoted(IndexedLine il, String nullString,

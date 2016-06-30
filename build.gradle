@@ -25,12 +25,16 @@ jar {
 }
 
 repositories {
-    mavenCentral()
+    maven {
+        url "http://repo1.maven.org/maven2"
+    }
 }
 
 dependencies {
     compile 'com.datastax.cassandra:cassandra-driver-core:3.0.0'
+    compile group: 'com.datastax.cassandra', name: 'cassandra-driver-mapping', version: '3.0.0'
     compile 'org.xerial.snappy:snappy-java:1.0.5'
+    compile group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1'
     compile 'net.jpountz.lz4:lz4:1.2.0'
     compile 'ch.qos.logback:logback-classic:1.1.3'
 }

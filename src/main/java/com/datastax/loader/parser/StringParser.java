@@ -15,25 +15,20 @@
  */
 package com.datastax.loader.parser;
 
-import java.lang.String;
-import java.lang.StringBuilder;
-import java.lang.IndexOutOfBoundsException;
-import java.io.StringReader;
-import java.io.IOException;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.exceptions.InvalidTypeException;
-
 // String parser - simple
 public class StringParser extends AbstractParser {
-    public String parse(String toparse) {
-	String ret = toparse.replaceAll("\\n", "\n");
-	return ret;
-    }
+	public String parse(String toparse) {
+		if (null == toparse){
+			return null;
+		}
+		String ret = toparse.replaceAll("\\n", "\n");
+		return ret;
+	}
 
-    public String format(Object o) {
-	String iv = (String)o;
-	String v = iv.replaceAll("\\n", "\\\\n").replaceAll("\"", "\\\"");
-	String ret = "\"" + v + "\"";
-	return ret;
-    }
+	public String format(Object o) {
+		String iv = (String)o;
+		String v = iv.replaceAll("\\n", "\\\\n").replaceAll("\"", "\\\"");
+		String ret = "\"" + v + "\"";
+		return ret;
+	}
 }
