@@ -26,14 +26,11 @@ import com.datastax.driver.core.exceptions.InvalidTypeException;
 // String parser - simple
 public class StringParser extends AbstractParser {
     public String parse(String toparse) {
-	String ret = toparse.replaceAll("\\n", "\n");
-	return ret;
+	return unquote(toparse);
     }
 
     public String format(Object o) {
 	String iv = (String)o;
-	String v = iv.replaceAll("\\n", "\\\\n").replaceAll("\"", "\\\"");
-	String ret = "\"" + v + "\"";
-	return ret;
+	return quote(iv);
     }
 }

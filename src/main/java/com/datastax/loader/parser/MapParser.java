@@ -25,9 +25,13 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.io.StringReader;
 import java.io.IOException;
+import java.io.StringReader;
 import java.text.ParseException;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
+
+import com.univocity.parsers.csv.CsvParser;
+import com.univocity.parsers.csv.CsvParserSettings;
 
 public class MapParser extends AbstractParser {
     private Parser keyParser;
@@ -40,6 +44,9 @@ public class MapParser extends AbstractParser {
     private char mapDelim;
     private String collectionNullString = null;
     private Map<Object,Object> elements;
+    
+    private CsvParser csvp = null;
+
     public MapParser(Parser inKeyParser, Parser inValueParser,
 		     char inCollectionDelim, char inCollectionBegin, 
 		     char inCollectionEnd, char inMapDelim) {
@@ -50,10 +57,19 @@ public class MapParser extends AbstractParser {
 	collectionEnd = inCollectionEnd;
 	mapDelim = inMapDelim;
 	elements = new HashMap<Object,Object>();
+
+	CsvParserSettings settings = new CsvParserSettings();
+	settings.getFormat().setLineSeparator("" + mapDelim);
+	settings.getFormat().setDelimiter(collectionDelim);
+	settings.getFormat().setQuote(collectionQuote);
+	settings.getFormat().setQuoteEscape(collectionEscape);
+	
+	csvp = new CsvParser(settings);
     }
     public Object parse(String toparse) throws ParseException {
 	if (null == toparse)
 	    return null;
+	toparse = unquote(toparse);
 	if (!toparse.startsWith(Character.toString(collectionBegin)))
 	    throw new ParseException("Must begin with " + collectionBegin 
 				     + "\n", 0);
@@ -61,44 +77,30 @@ public class MapParser extends AbstractParser {
 	    throw new ParseException("Must end with " + collectionEnd 
 				     + "\n", 0);
 	toparse = toparse.substring(1, toparse.length() - 1);
-	IndexedLine sr = new IndexedLine(toparse);
-	String parseit;
 	elements.clear();
+	StringReader sr = new StringReader(toparse);
+	csvp.beginParsing(sr);
 	try {
-	    while (null != (parseit = getQuotedOrUnquoted(sr, 
-							  collectionNullString,
-							  collectionDelim,
-							  collectionEscape,
-							  collectionQuote))) {
-		IndexedLine innerSr = new IndexedLine(parseit);
-		Object key = keyParser.parse(innerSr, collectionNullString, 
-					     mapDelim, collectionEscape, 
-					     collectionQuote, false);
-		Object value = valueParser.parse(innerSr, collectionNullString, 
-						 mapDelim, collectionEscape, 
-						 collectionQuote, true);
-		//System.err.println("key = " + key + "  value = " + value + "  remaining=" + rem);
+	    String[] row;
+	    while ((row = csvp.parseNext()) != null) {
+		Object key = keyParser.parse(row[0]);
+		Object value = valueParser.parse(row[1]);
 		elements.put(key, value);
 	    }
 	}
-	catch (IOException ioe) {
-	    System.err.println("Trouble parsing : " + ioe.getMessage());
+	catch (Exception e) {
+	    System.err.println("Trouble parsing : " + e.getMessage());
 	    return null;
 	}
 	return elements;
     }
 
-    //public String format(Row row, int index) {
-    //  if (row.isNull(index))
-    //      return null;
-    //  Map<Object,Object> map = row.getMap(index, Object.class, Object.class);
     @SuppressWarnings("unchecked")
     public String format(Object o) {
 	Map<Object,Object> map = (Map<Object,Object>)o;
 	Iterator<Map.Entry<Object,Object> > iter = map.entrySet().iterator();
 	Map.Entry<Object,Object> me;
         StringBuilder sb = new StringBuilder();
-	sb.append("\"");
 	sb.append(collectionBegin);
 	if (iter.hasNext()) {
 	    me = iter.next();
@@ -114,7 +116,7 @@ public class MapParser extends AbstractParser {
 	    sb.append(valueParser.format(me.getValue()));
 	}
 	sb.append(collectionEnd);
-	sb.append("\"");
-	return sb.toString();
+
+	return quote(sb.toString());
     }
 }

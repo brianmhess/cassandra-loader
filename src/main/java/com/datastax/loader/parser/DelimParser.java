@@ -31,6 +31,9 @@ import java.text.ParseException;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
+import com.univocity.parsers.csv.CsvParser;
+import com.univocity.parsers.csv.CsvParserSettings;
+
 public class DelimParser {
     private List<Parser> parsers;
     private int parsersSize;
@@ -41,6 +44,8 @@ public class DelimParser {
     private char quote;
     private char escape;
     private List<Boolean> skip;
+
+    private CsvParser csvp = null;
 
     public static String DEFAULT_DELIMITER = ",";
     public static String DEFAULT_NULLSTRING = "";
@@ -69,6 +74,14 @@ public class DelimParser {
 	delim = ("\\t".equals(delimiter)) ?  '\t' : delimiter.charAt(0);
 	quote = '\"';
 	escape = '\\';
+
+	CsvParserSettings settings = new CsvParserSettings();
+	settings.getFormat().setLineSeparator("\n");
+	settings.getFormat().setDelimiter(delim);
+	settings.getFormat().setQuote(quote);
+	settings.getFormat().setQuoteEscape(escape);
+	
+	csvp = new CsvParser(settings);
     }
     
     // Adds a parser to the list
@@ -95,7 +108,41 @@ public class DelimParser {
     }
 
     public List<Object> parse(String line) {
-	return parseComplex(line);
+	//return parseComplex(line);
+	return parseWithUnivocity(line);
+    }
+
+    public List<Object> parseWithUnivocity(String line) {
+	String[] row = csvp.parseLine(line);
+	if (row.length != parsersSize) {
+	    System.err.println("Row has different number of fields (" + row.length + ") than expected (" + parsersSize + ")");
+	    return null;
+	}
+	elements.clear();
+	Object toAdd;
+	for (int i = 0; i < parsersSize; i++) {
+	    try {
+		if ((null == row[i]) ||
+		    ((null != nullString) &&
+		     (nullString.equalsIgnoreCase(row[i]))))
+		    toAdd = null;
+		else
+		    toAdd = parsers.get(i).parse(row[i]);
+
+		if (!skip.get(i))
+		    elements.add(toAdd);
+	    }
+	    catch (NumberFormatException e) {
+		System.err.println(String.format("Invalid number in input number %d: %s", i, e.getMessage()));
+		return null;
+	    }
+	    catch (ParseException pe) {
+		System.err.println(String.format("Invalid format in input %d: %s", i, pe.getMessage()));
+		return null;
+	    }
+	}
+
+	return elements;
     }
 
     public List<Object> parseComplex(String line) {
@@ -131,8 +178,12 @@ public class DelimParser {
     }
 
     public String format(Row row) throws IndexOutOfBoundsException, InvalidTypeException {
-	StringBuilder retVal = new StringBuilder(parsers.get(0).format(row, 0));
 	String s;
+	StringBuilder retVal = new StringBuilder();
+	s = parsers.get(0).format(row, 0);
+	if (null == s)
+	    s = nullString;
+	retVal.append(s);
 	for (int i = 1; i < parsersSize; i++) {
 	    s = parsers.get(i).format(row, i);
 	    if (null == s)

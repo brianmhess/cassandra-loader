@@ -27,6 +27,9 @@ import java.text.ParseException;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
+import com.univocity.parsers.csv.CsvParser;
+import com.univocity.parsers.csv.CsvParserSettings;
+
 public class ListParser extends AbstractParser {
     private Parser parser;
     private char collectionDelim;
@@ -36,6 +39,9 @@ public class ListParser extends AbstractParser {
     private char collectionEscape = '\\';
     private String collectionNullString = "null";
     private List<Object> elements;
+    
+    private CsvParser csvp = null;
+    
     public ListParser(Parser inParser, char inCollectionDelim, 
 		      char inCollectionBegin, char inCollectionEnd) {
 	parser = inParser;
@@ -43,11 +49,20 @@ public class ListParser extends AbstractParser {
 	collectionBegin = inCollectionBegin;
 	collectionEnd = inCollectionEnd;
 	elements = new ArrayList<Object>();
+
+	CsvParserSettings settings = new CsvParserSettings();
+	settings.getFormat().setLineSeparator("\n");
+	settings.getFormat().setDelimiter(collectionDelim);
+	settings.getFormat().setQuote(collectionQuote);
+	settings.getFormat().setQuoteEscape(collectionEscape);
+	
+	csvp = new CsvParser(settings);
     }
 
     public Object parse(String toparse) throws ParseException {
 	if (null == toparse)
 	    return null;
+	toparse = unquote(toparse);
 	if (!toparse.startsWith(Character.toString(collectionBegin)))
 	    throw new ParseException("Must begin with " + collectionBegin 
 				     + "\n", 0);
@@ -55,20 +70,14 @@ public class ListParser extends AbstractParser {
 	    throw new ParseException("Must end with " + collectionEnd 
 				     + "\n", 0);
 	toparse = toparse.substring(1, toparse.length() - 1);
-	IndexedLine sr = new IndexedLine(toparse);
-	String parseit;
+	String[] row = csvp.parseLine(toparse);
 	elements.clear();
 	try {
-	    while (null != (parseit = getQuotedOrUnquoted(sr, 
-							  collectionNullString,
-							  collectionDelim,
-							  collectionEscape,
-							  collectionQuote))) {
-		elements.add(parser.parse(parseit));
-	    }
+	    for (int i = 0; i < row.length; i++) 
+		elements.add(parser.parse(row[i]));
 	}
-	catch (IOException ioe) {
-	    System.err.println("Trouble parsing : " + ioe.getMessage());
+	catch (Exception e) {
+	    System.err.println("Trouble parsing : " + e.getMessage());
 	    return null;
 	}
 	return elements;
@@ -82,7 +91,6 @@ public class ListParser extends AbstractParser {
     public String format(Object o) {
 	List<Object> list = (List<Object>)o;
 	StringBuilder sb = new StringBuilder();
-	sb.append("\"");
 	sb.append(collectionBegin);
 	if (list.size() > 0) {
 	    for (int i = 0; i < list.size() - 1; i++) {
@@ -92,7 +100,6 @@ public class ListParser extends AbstractParser {
 	    sb.append(parser.format(list.get(list.size() - 1)));
 	}
 	sb.append(collectionEnd);
-	sb.append("\"");
-	return sb.toString();
+	return quote(sb.toString());
     }
 }
