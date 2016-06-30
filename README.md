@@ -1,14 +1,5 @@
 # CASSANDRA-LOADER
 
-This branch gives the loader the ability to read json files. 
-
-**Note**: this does not use the Cassandra 3.0 native JSON functionality, it just takes your json and maps it to the delmited structure that cassandra-loader needs. If you have a sparse set of JSON files this WILL insert tombstones.
-
-- If you have a sparse JSON structure with a lot of data in C* 2.1, use the object mapper to avoid writing tombstones https://github.com/phact/object-mapper-demo
-- If you have a sparse JSON structure with a lot of data in C* 3.0, use the new Cassandra 3.0 JSON functionailty with the new C* 3.0 UNSET feature to avoid inserting tombstones.
-
-Enjoy!
-
 ## Introduction
 
 cassandra-loader is a general-purpose, delimited-file, bulk loader for 
@@ -28,10 +19,10 @@ loading of various types of delimited files, including
 This utility has already been built, and is available at
 https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.18/cassandra-loader
 
-To get the loader with -json functionality get it with wget:
+Get it with wget:
 
 ```
-wget https://github.com/phact/cassandra-loader/releases/download/json-2.1/cassandra-loader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.18/cassandra-loader
 ```
 
 ### Building
