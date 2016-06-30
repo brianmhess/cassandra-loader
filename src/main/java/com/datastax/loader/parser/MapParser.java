@@ -79,19 +79,19 @@ public class MapParser extends AbstractParser {
 	toparse = toparse.substring(1, toparse.length() - 1);
 	elements.clear();
 	StringReader sr = new StringReader(toparse);
-	System.err.println("!!! toparse: " + toparse); // BMH
 	csvp.beginParsing(sr);
 	try {
 	    String[] row;
 	    while ((row = csvp.parseNext()) != null) {
 		Object key = keyParser.parse(row[0]);
 		Object value = valueParser.parse(row[1]);
+		if ((null == key) || (null == value))
+		    throw new ParseException("Map keys and values must be non-null\n", 0);
 		elements.put(key, value);
 	    }
 	}
 	catch (Exception e) {
-	    System.err.println("Trouble parsing : " + e.getMessage());
-	    return null;
+	    throw new ParseException("Trouble parsing : " + e.getMessage(), 0);
 	}
 	return elements;
     }

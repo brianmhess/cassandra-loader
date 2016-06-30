@@ -1,0 +1,2 @@
+Error parsing line 1 in stdin: 3,"{\"abc\":,\"def\":}"
+*** DONE: stdin  number of lines processed: 1 (0 inserted)
