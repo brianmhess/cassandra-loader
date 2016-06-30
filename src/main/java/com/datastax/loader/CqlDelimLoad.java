@@ -473,6 +473,8 @@ public class CqlDelimLoad {
 	if (null == cluster) {
 	    throw new IOException("Could not create cluster");
 	}
+	Session tsession = cluster.connect();
+
 	if ((0 > cluster.getConfiguration().getProtocolOptions()
 	     .getProtocolVersion().compareTo(ProtocolVersion.V4))
 	    && nullsUnset) {
@@ -489,7 +491,6 @@ public class CqlDelimLoad {
 		rateStream = new PrintStream(new BufferedOutputStream(new FileOutputStream(rateFile)), true);
 	    }
 	}
-	Session tsession = cluster.connect();
 	Metrics metrics = cluster.getMetrics();
 	com.codahale.metrics.Timer timer = metrics.getRequestsTimer();
 	rateLimiter = new RateLimiter(rate, progressRate, timer, rateStream);
