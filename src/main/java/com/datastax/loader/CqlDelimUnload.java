@@ -62,6 +62,7 @@ import javax.net.ssl.TrustManagerFactory;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.ColumnMetadata;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.HostDistance;
@@ -73,7 +74,7 @@ import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
-import com.datastax.driver.core.exceptions.SyntaxError;
+import com.datastax.driver.core.exceptions.QueryValidationException;
 
 
 public class CqlDelimUnload {
@@ -362,6 +363,8 @@ public class CqlDelimUnload {
 	    else {
 		pstream = new PrintStream(new BufferedOutputStream(new FileOutputStream(filename + ".0")));
 	    }
+	    beginToken = null;
+	    endToken = null;
 	}
 	
 	// Launch Threads
@@ -507,7 +510,7 @@ public class CqlDelimUnload {
 	    return numRead;
 	}
 
-	private String getPartitionKey(CqlDelimParser cdp, Session tsession) {
+	private String getPartitionKey(CqlDelimParser cdp, Session session) {
 	    String keyspace = cdp.getKeyspace();
 	    String table = cdp.getTable();
 	    if (keyspace.startsWith("\"") && keyspace.endsWith("\""))
@@ -518,38 +521,12 @@ public class CqlDelimUnload {
 		table = table.replaceAll("\"", "");
 	    else
 		table = table.toLowerCase();
-	    String query = "SELECT column_name, component_index, type "
-		+ "FROM system.schema_columns WHERE keyspace_name = '"
-		+ keyspace + "' AND columnfamily_name = '"
-		+ table + "'";
-            List<Row> rows = tsession.execute(query).all();
-	    if (rows.isEmpty()) {
-		System.err.println("Can't find the keyspace/table");
-		// error
-	    }
-	    
-	    int numberOfPartitionKeys = 0;
-            for (Row row : rows) {
-                if (row.getString(2).equals("partition_key"))
-                    numberOfPartitionKeys++;
-	    }
-            if (0 == numberOfPartitionKeys) {
-		System.err.println("Can't find any partition keys");
-		// error
-	    }
 
-            String[] partitionKeyArray = new String[numberOfPartitionKeys];
-            for (Row row : rows) {
-                String type = row.getString(2);
-                String column = row.getString(0);
-                if (type.equals("partition_key")) {
-                    int componentIndex = row.isNull(1) ? 0 : row.getInt(1);
-                    partitionKeyArray[componentIndex] = "\"" + column + "\"";
-                }
-            }
-	    String partitionKey = partitionKeyArray[0];
-	    for (int i = 1; i < partitionKeyArray.length; i++) {
-		partitionKey = partitionKey + "," + partitionKeyArray[i];
+	    List<ColumnMetadata> lcm = session.getCluster().getMetadata()
+		.getKeyspace(keyspace).getTable(table).getPartitionKey();
+	    String partitionKey = lcm.get(0).getName();
+	    for (int i = 1; i < lcm.size(); i++) {
+		partitionKey = partitionKey + "," + lcm.get(i).getName();
 	    }
 	    return partitionKey;
 	}
@@ -567,13 +544,15 @@ public class CqlDelimUnload {
 		if (null != where)
 		    select = select + " AND " + where;
 	    }
-	    if (null != where)
-		select = select + " WHERE " + where;
+	    else {
+		if (null != where)
+		    select = select + " WHERE " + where;
+	    }
 	    try {
 		statement = session.prepare(select);
 	    }
-	    catch (SyntaxError e) {
-		System.err.println("Error creating statement: " + e.getMessage());
+	    catch (QueryValidationException iqe) {
+		System.err.println("Error creating statement: " + iqe.getMessage());
 		System.err.println("CQL Query: " + select);
 		if (null != where)
 		    System.err.println("Check your syntax for -where: " + where);
