@@ -293,7 +293,7 @@ cassandra-unloader -f stdout -host host1 -schema "ks.table(a,b,c)" | cassandra-l
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.17/cassandra-unloader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.19/cassandra-unloader
 ```
 
 To build, run:
@@ -312,7 +312,7 @@ cassandra-unloader
 ###Usage statement:
 
 ```
-version: 0.0.17
+version: 0.0.19
 Usage: -f <outputStem> -host <ipaddress> -schema <schema> [OPTIONS]
 OPTIONS:
   -configFile <filename>         File with configuration options
@@ -332,4 +332,5 @@ OPTIONS:
   -numThreads <numThreads>       Number of concurrent threads to unload [5]
   -beginToken <tokenString>      Begin token [none]
   -endToken <tokenString>        End token [none]
+  -where <predicate>             WHERE clause [none]
 ```
