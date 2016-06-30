@@ -73,6 +73,7 @@ import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
+import com.datastax.driver.core.exceptions.SyntaxError;
 
 
 public class CqlDelimUnload {
@@ -90,6 +91,7 @@ public class CqlDelimUnload {
     private Session session = null;
     private String beginToken = "-9223372036854775808";
     private String endToken = "9223372036854775807";
+    private String where = null;
 
     private String cqlSchema = null;
     private String filename = null;
@@ -123,6 +125,7 @@ public class CqlDelimUnload {
 	usage.append("  -numThreads <numThreads>       Number of concurrent threads to unload [5]\n");
 	usage.append("  -beginToken <tokenString>      Begin token [none]\n");
 	usage.append("  -endToken <tokenString>        End token [none]\n");
+	usage.append("  -where <predicate>             WHERE clause [none]\n");
 	return usage.toString();
     }
     
@@ -270,6 +273,7 @@ public class CqlDelimUnload {
 	if (null != (tkey = amap.remove("-numThreads")))    numThreads = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-beginToken")))    beginToken = tkey;
 	if (null != (tkey = amap.remove("-endToken")))      endToken = tkey;
+	if (null != (tkey = amap.remove("-where")))         where = tkey;
 	
 	if (!amap.isEmpty()) {
 	    for (String k : amap.keySet())
@@ -373,7 +377,7 @@ public class CqlDelimUnload {
 						      pstream, 
 						      beginToken,
 						      endToken, session,
-						      consistencyLevel);
+						      consistencyLevel, where);
 	    Future<Long> res = executor.submit(worker);
 	    total = res.get();
 	    executor.shutdown();
@@ -422,7 +426,8 @@ public class CqlDelimUnload {
 							  pstream, 
 							  tBeginString,
 							  tEndString, session,
-							  consistencyLevel);
+							  consistencyLevel,
+							  where);
 		results.add(executor.submit(worker));
 	    }
 	    executor.shutdown();
@@ -467,6 +472,7 @@ public class CqlDelimUnload {
 	private String endToken = null;
 	private String partitionKey = null;
 	private long numRead = 0;
+	private String where = null;
 
 	public ThreadExecute(String inCqlSchema, String inDelimiter, 
 			     String inNullString, 
@@ -475,7 +481,8 @@ public class CqlDelimUnload {
 			     Locale inLocale, 
 			     PrintStream inWriter,
 			     String inBeginToken, String inEndToken,
-			     Session inSession, ConsistencyLevel inConsistencyLevel) {
+			     Session inSession, ConsistencyLevel inConsistencyLevel,
+			     String inWhere) {
 	    super();
 	    cqlSchema = inCqlSchema;
 	    delimiter = inDelimiter;
@@ -488,10 +495,13 @@ public class CqlDelimUnload {
 	    session = inSession;
 	    writer = inWriter;
 	    consistencyLevel = inConsistencyLevel;
+	    where = inWhere;
 	}
 
 	public Long call() throws IOException, ParseException {
-	    setup();
+	    if (false == setup()) {
+		return 0L;
+	    }
 	    numRead = execute();
 	    cleanup();
 	    return numRead;
@@ -544,7 +554,7 @@ public class CqlDelimUnload {
 	    return partitionKey;
 	}
 
-	private void setup() throws IOException, ParseException {
+	private boolean setup() throws IOException, ParseException {
 	    cdp = new CqlDelimParser(cqlSchema, delimiter, nullString, 
 				     dateFormatString, 
 				     boolStyle, locale, null, session, false);
@@ -554,9 +564,23 @@ public class CqlDelimUnload {
 		select = select + " WHERE Token(" + partitionKey + ") > " 
 		    + beginToken + " AND Token(" + partitionKey + ") <= " 
 		    + endToken;
+		if (null != where)
+		    select = select + " AND " + where;
 	    }
-	    statement = session.prepare(select);
+	    if (null != where)
+		select = select + " WHERE " + where;
+	    try {
+		statement = session.prepare(select);
+	    }
+	    catch (SyntaxError e) {
+		System.err.println("Error creating statement: " + e.getMessage());
+		System.err.println("CQL Query: " + select);
+		if (null != where)
+		    System.err.println("Check your syntax for -where: " + where);
+		return false;
+	    }
 	    statement.setConsistencyLevel(consistencyLevel);
+	    return true;
 	}
 	
 	private void cleanup() throws IOException {
