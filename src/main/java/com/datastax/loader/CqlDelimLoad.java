@@ -88,7 +88,7 @@ import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 import com.codahale.metrics.Timer;
 
 public class CqlDelimLoad {
-    private String version = "0.0.19";
+    private String version = "0.0.20";
     private String host = null;
     private int port = 9042;
     private String username = null;

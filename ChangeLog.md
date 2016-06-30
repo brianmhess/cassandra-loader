@@ -1,3 +1,7 @@
+## 0.0.20
+- Fixed delimiter in MapParser
+- Catch NULLs in Map/Set/List parsing and throw in BADPARSE
+
 ## 0.0.19
 - Converted to parse with Univocity CSV parser
 - Added -where

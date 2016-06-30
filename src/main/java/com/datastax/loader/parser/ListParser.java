@@ -73,12 +73,17 @@ public class ListParser extends AbstractParser {
 	String[] row = csvp.parseLine(toparse);
 	elements.clear();
 	try {
-	    for (int i = 0; i < row.length; i++) 
-		elements.add(parser.parse(row[i]));
+	    for (int i = 0; i < row.length; i++) {
+		if (null == row[i])
+		    throw new ParseException("Sets may not have NULLs\n", 0);
+		Object o = parser.parse(row[i]);
+		if (null == o)
+		    throw new ParseException("Lists may not have NULLs", 0);
+		elements.add(o);
+	    }
 	}
 	catch (Exception e) {
-	    System.err.println("Trouble parsing : " + e.getMessage());
-	    return null;
+	    throw new ParseException("Trouble parsing : " + e.getMessage(), 0);
 	}
 	return elements;
     }
