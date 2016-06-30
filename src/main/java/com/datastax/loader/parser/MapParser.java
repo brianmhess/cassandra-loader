@@ -59,8 +59,8 @@ public class MapParser extends AbstractParser {
 	elements = new HashMap<Object,Object>();
 
 	CsvParserSettings settings = new CsvParserSettings();
-	settings.getFormat().setLineSeparator("" + mapDelim);
-	settings.getFormat().setDelimiter(collectionDelim);
+	settings.getFormat().setLineSeparator("" + collectionDelim);
+	settings.getFormat().setDelimiter(mapDelim);
 	settings.getFormat().setQuote(collectionQuote);
 	settings.getFormat().setQuoteEscape(collectionEscape);
 	
@@ -79,6 +79,7 @@ public class MapParser extends AbstractParser {
 	toparse = toparse.substring(1, toparse.length() - 1);
 	elements.clear();
 	StringReader sr = new StringReader(toparse);
+	System.err.println("!!! toparse: " + toparse); // BMH
 	csvp.beginParsing(sr);
 	try {
 	    String[] row;
