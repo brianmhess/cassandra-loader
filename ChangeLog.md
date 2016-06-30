@@ -1,5 +1,6 @@
-## master
+## 0.0.19
 - Converted to parse with Univocity CSV parser
+- Added -where
 
 ## 0.0.18
 - Support for Cassandra 3.0
