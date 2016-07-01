@@ -147,7 +147,11 @@ class CqlDelimLoadTask implements Callable<Long> {
         cdp = new CqlDelimParser(cqlSchema, delimiter, nullString,
                 dateFormatString, boolStyle, locale,
                 skipCols, session, true);
-        insert = cdp.generateInsert();
+        if (json) {
+            insert = cdp.generateJSONInsert();
+        }else {
+            insert = cdp.generateInsert();
+        }
         statement = session.prepare(insert);
         statement.setRetryPolicy(new LoaderRetryPolicy(numRetries));
         statement.setConsistencyLevel(consistencyLevel);
@@ -183,7 +187,8 @@ class CqlDelimLoadTask implements Callable<Long> {
                 maxInsertErrors,
                 logPrinter,
                 badInsertPrinter);
-        String line;
+        String line = "";
+        String jsonObject = "";
         int lineNumber = 0;
         long numInserted = 0;
         int numErrors = 0;
@@ -200,129 +205,28 @@ class CqlDelimLoadTask implements Callable<Long> {
 
             for (Object o : jsonArray){
                 JSONObject myRow = (JSONObject) o;
-                line = (String) myRow.get(sbl.get(0).name);
-                for (int i = 1; i < sbl.size(); i++){
-                    if(myRow.get(sbl.get(i).name) != null) {
-                        line = line + "," + myRow.get(sbl.get(i).name).toString();
-                    }else {
-                        line = line + ","+nullString  ;
-                    }
-                }
-                lineNumber++;
-                if (skipRows > 0) {
-                    skipRows--;
-                    continue;
-                }
-                if (maxRows-- < 0)
-                    break;
+                jsonObject = myRow.toString();
 
-                if (0 == line.trim().length())
-                    continue;
-
-                if (null != (elements = cdp.parse(line))) {
-                    bind = statement.bind(elements.toArray());
-                    if (nullsUnset) {
-                        for (int i = 0; i < elements.size(); i++)
-                            if (null == elements.get(i))
-                                bind.unset(i);
+                bind = statement.bind(jsonObject);
+                if (1 == batchSize) {
+                    resultSetFuture = session.executeAsync(bind);
+                    if (!fm.add(resultSetFuture, jsonObject)) {
+                        System.err.println("There was an error.  Please check the log file for more information (" + logFname + ")");
+                        cleanup(false);
+                        return -2;
                     }
-                    if (1 == batchSize) {
-                        resultSetFuture = session.executeAsync(bind);
-                        if (!fm.add(resultSetFuture, line)) {
+                    numInserted += 1;
+                } else {
+                    batch.add(bind);
+                    if (batchSize == batch.size()) {
+                        resultSetFuture = session.executeAsync(batch);
+                        if (!fm.add(resultSetFuture, jsonObject)) {
                             System.err.println("There was an error.  Please check the log file for more information (" + logFname + ")");
                             cleanup(false);
                             return -2;
                         }
-                        numInserted += 1;
-                    } else {
-                        batch.add(bind);
-                        if (batchSize == batch.size()) {
-                            resultSetFuture = session.executeAsync(batch);
-                            if (!fm.add(resultSetFuture, line)) {
-                                System.err.println("There was an error.  Please check the log file for more information (" + logFname + ")");
-                                cleanup(false);
-                                return -2;
-                            }
-                            numInserted += batch.size();
-                            batch.clear();
-                        }
-                    }
-                } else {
-                    if (null != logPrinter) {
-                        logPrinter.println(String.format("Error parsing line %d in %s: %s", lineNumber, readerName, line));
-                    }
-                    System.err.println(String.format("Error parsing line %d in %s: %s", lineNumber, readerName, line));
-                    if (null != badParsePrinter) {
-                        badParsePrinter.println(line);
-                    }
-                    numErrors++;
-                    if (maxErrors <= numErrors) {
-                        if (null != logPrinter) {
-                            logPrinter.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
-                        }
-                        System.err.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
-                        cleanup(false);
-                        return -1;
-                    }
-                }
-            }
-
-            while ((line = reader.readLine()) != null) {
-                lineNumber++;
-                if (skipRows > 0) {
-                    skipRows--;
-                    continue;
-                }
-                if (maxRows-- < 0)
-                    break;
-
-                if (0 == line.trim().length())
-                    continue;
-
-                if (null != (elements = cdp.parse(line))) {
-                    bind = statement.bind(elements.toArray());
-                    if (nullsUnset) {
-                        for (int i = 0; i < elements.size(); i++)
-                            if (null == elements.get(i))
-                                bind.unset(i);
-                    }
-                    if (1 == batchSize) {
-                        resultSetFuture = session.executeAsync(bind);
-                        if (!fm.add(resultSetFuture, line)) {
-                            System.err.println("There was an error.  Please check the log file for more information (" + logFname + ")");
-                            cleanup(false);
-                            return -2;
-                        }
-                        numInserted += 1;
-                    } else {
-                        batch.add(bind);
-                        if (batchSize == batch.size()) {
-                            resultSetFuture = session.executeAsync(batch);
-                            if (!fm.add(resultSetFuture, line)) {
-                                System.err.println("There was an error.  Please check the log file for more information (" + logFname + ")");
-                                cleanup(false);
-                                return -2;
-                            }
-                            numInserted += batch.size();
-                            batch.clear();
-                        }
-                    }
-                } else {
-                    if (null != logPrinter) {
-                        logPrinter.println(String.format("Error parsing line %d in %s: %s", lineNumber, readerName, line));
-                    }
-                    System.err.println(String.format("Error parsing line %d in %s: %s", lineNumber, readerName, line));
-                    if (null != badParsePrinter) {
-                        badParsePrinter.println(line);
-                    }
-                    numErrors++;
-                    if (maxErrors <= numErrors) {
-                        if (null != logPrinter) {
-                            logPrinter.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
-                        }
-                        System.err.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
-                        cleanup(false);
-                        return -1;
+                        numInserted += batch.size();
+                        batch.clear();
                     }
                 }
             }
@@ -389,9 +293,16 @@ class CqlDelimLoadTask implements Callable<Long> {
         }
         if ((batchSize > 1) && (batch.size() > 0)) {
             resultSetFuture = session.executeAsync(batch);
-            if (!fm.add(resultSetFuture, line)) {
-                cleanup(false);
-                return -2;
+            if (json){
+                if (!fm.add(resultSetFuture, jsonObject)) {
+                    cleanup(false);
+                    return -2;
+                }
+            }else{
+                if (!fm.add(resultSetFuture, line)) {
+                    cleanup(false);
+                    return -2;
+                }
             }
             numInserted += batch.size();
         }

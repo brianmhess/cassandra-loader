@@ -192,6 +192,11 @@ public class CqlDelimParser {
 		return insert;
 	}
 
+	public String generateJSONInsert() {
+		String insert = "INSERT INTO " + keyspace + "." + tablename + " JSON ?";
+		return insert;
+	}
+
 	public String generateSelect() {
 		String select = "SELECT " + sbl.get(0).name;
 		for (int i = 1; i < sbl.size(); i++) {
