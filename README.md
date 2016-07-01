@@ -88,7 +88,7 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
  `-ssl-truststore-pwd`  | Truststore Password | none                | Password to SSL truststore
  `-ssl-keystore-path`   | Keystore Path       | none                | Path to SSL keystore
  `-ssl-keystore-path`   | Keystore Password   | none                | Password to SSL keystore
- '-consistencyLevel | Consistency Level | ONE                       | CQL Consistency Level
+ '-consistencyLevel`    | Consistency Level   | ONE                 | CQL Consistency Level
  `-numThreads`    | Number of threads  | Number of CPUs             | Number of threads to use (one per file)
  `-numFutures`    | Number of Futures  | 1000                       | Number of Java driver futures in flight.
  `-numRetries`    | Number of retries  | 1                          | Number of times to retry the INSERT before declaring defeat.
