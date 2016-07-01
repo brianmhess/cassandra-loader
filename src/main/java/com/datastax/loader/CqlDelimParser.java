@@ -47,7 +47,8 @@ import java.util.regex.Matcher;
 
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.ColumnDefinitions;
+import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.ColumnMetadata;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 import com.datastax.driver.core.DataType;
 
@@ -66,6 +67,19 @@ public class CqlDelimParser {
 	// Optionally provide things for the line parser - date format, boolean format, locale
 	initPmap(inDateFormatString, inBoolStyle, inLocale, bLoader);
 	processCqlSchema(inCqlSchema, session);
+	createDelimParser(inDelimiter, inNullString, skipList);
+    }	
+
+    public CqlDelimParser(String inKeyspace, String inTable, String inDelimiter, 
+			  String inNullString, String inDateFormatString, 
+			  BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
+			  String skipList, Session session, boolean bLoader) 
+	throws ParseException {
+	// Optionally provide things for the line parser - date format, boolean format, locale
+	keyspace = inKeyspace;
+	tablename = inTable;
+	initPmap(inDateFormatString, inBoolStyle, inLocale, bLoader);
+	processCqlSchema(session);
 	createDelimParser(inDelimiter, inNullString, skipList);
     }	
 
@@ -125,15 +139,29 @@ public class CqlDelimParser {
 	sbl = schemaBits(schemaString, session);
     }
 
+    private void processCqlSchema(Session session) throws ParseException {
+	sbl = schemaBits(null, session);
+    }
+
+
     private List<SchemaBits> schemaBits(String in, Session session) throws ParseException {
-	String query = "SELECT " + in + " FROM " + keyspace + "." + tablename + " LIMIT 1";
-	ColumnDefinitions cd = session.execute(query).getColumnDefinitions();
-	String[] inList = in.split(",");
+	TableMetadata tm = session.getCluster().getMetadata()
+	    .getKeyspace(keyspace).getTable(tablename);
+	List<String> inList = new ArrayList<String>();
+	if (null != in) {
+	    String[] tlist = in.split(",");
+	    for (int i = 0; i < tlist.length; i++)
+		inList.add(tlist[i].trim());
+	}
+	else {
+	    for (ColumnMetadata cm : tm.getColumns())
+		inList.add(cm.getName());
+	}
 	List<SchemaBits> sbl = new ArrayList<SchemaBits>();
-	for (int i = 0; i < inList.length; i++) {
-	    String col = inList[i].trim();
+	for (int i = 0; i < inList.size(); i++) {
+	    String col = inList.get(i);
 	    SchemaBits sb = new SchemaBits();
-	    DataType dt = cd.getType(col);
+	    DataType dt = tm.getColumn(col).getType();
 	    sb.name = col;
 	    sb.datatype = dt.getName();
 	    if (dt.isCollection()) {
@@ -231,6 +259,10 @@ public class CqlDelimParser {
     // Pass through to parse the line - the DelimParser we created will be used.
     public List<Object> parse(String line) {
 	return delimParser.parse(line);
+    }
+
+    public List<Object> parse(String[] row) {
+	return delimParser.parse(row);
     }
 
     public String format(Row row) throws IndexOutOfBoundsException, InvalidTypeException {

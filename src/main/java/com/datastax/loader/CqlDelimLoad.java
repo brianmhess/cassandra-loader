@@ -112,6 +112,9 @@ public class CqlDelimLoad {
     private PrintStream rateStream = null;
 
     private String cqlSchema = null;
+    private String table = null;
+    private String keyspace = null;
+    private String format = "delim";
 
     private long maxErrors = 10;
     private long skipRows = 0;
@@ -169,7 +172,10 @@ public class CqlDelimLoad {
 	usage.append("  -rateFile <filename>           Where to print the rate statistics\n");
 	usage.append("  -successDir <dir>              Directory where to move successfully loaded files\n");
 	usage.append("  -failureDir <dir>              Directory where to move files that did not successfully load\n");
-	usage.append("  -nullsUnset [false|true]         Treat nulls as unset [faslse]\n");
+	usage.append("  -nullsUnset [false|true]       Treat nulls as unset [faslse]\n");
+	usage.append("  -format [delim|json]           Format of data: delimited or JSON [delim]\n");
+	usage.append("  -table <tableName>             Table name (when using JSON)\n");
+	usage.append("  -keyspace <keyspaceName>       Keyspace name (when using JSON)\n");
 
 	usage.append("\n\nExamples:\n");
 	usage.append("cassandra-loader -f /path/to/file.csv -host localhost -schema \"test.test3(a, b, c)\"\n");
@@ -179,6 +185,33 @@ public class CqlDelimLoad {
     }
     
     private boolean validateArgs() {
+	if (format.equalsIgnoreCase("delim")) {
+	    if (null == cqlSchema) {
+		System.err.println("Must provide a schema");
+		return false;
+	    }
+	    if (null != keyspace)
+		System.err.println("In format=delim, ignoring keyspace");
+	    if (null != table)
+		System.err.println("In format=delim, ignoring table");
+	}
+	else if (format.equalsIgnoreCase("json")) {
+	    if (null == keyspace) {
+		System.err.println("Must provide a keyspace");
+		return false;
+	    }
+	    if (null == table) {
+		System.err.println("Must provide a table");
+		return false;
+	    }
+	    if (null != cqlSchema)
+		System.err.println("In format=json, ignoring schema");
+	}
+	else {
+	    System.err.println("Unknown format option");
+	    return false;
+	}
+
 	if (0 >= numFutures) {
 	    System.err.println("Number of futures must be positive (" + numFutures + ")");
 	    return false;
@@ -357,11 +390,10 @@ public class CqlDelimLoad {
 	    return false;
 	}
 
-	cqlSchema = amap.remove("-schema");
-	if (null == cqlSchema) { // schema is required
-	    System.err.println("Must provide a schema");
-	    return false;
-	}
+	if (null != (tkey = amap.remove("-format")))        format = tkey;
+	if (null != (tkey = amap.remove("-schema")))        cqlSchema = tkey;
+	if (null != (tkey = amap.remove("-table")))         table = tkey;
+	if (null != (tkey = amap.remove("-keyspace")))      keyspace = tkey;
 
 	if (null != (tkey = amap.remove("-port")))          port = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-user")))          username = tkey;
@@ -570,7 +602,8 @@ public class CqlDelimLoad {
 							 numRetries, queryTimeout,
 							 maxInsertErrors, 
 							 successDir, failureDir,
-							 nullsUnset);
+							 nullsUnset, format,
+							 keyspace, table);
 	    Future<Long> res = executor.submit(worker);
 	    total = res.get();
 	    executor.shutdown();
@@ -594,7 +627,8 @@ public class CqlDelimLoad {
 							     queryTimeout,
 							     maxInsertErrors, 
 							     successDir, failureDir,
-							     nullsUnset);
+							     nullsUnset, format,
+							     keyspace, table);
 		results.add(executor.submit(worker));
 	    }
 	    executor.shutdown();

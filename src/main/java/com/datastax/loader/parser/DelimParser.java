@@ -114,6 +114,10 @@ public class DelimParser {
 
     public List<Object> parseWithUnivocity(String line) {
 	String[] row = csvp.parseLine(line);
+	return parse(row);
+    }
+
+    public List<Object> parse(String[] row) {
 	if (row.length != parsersSize) {
 	    System.err.println("Row has different number of fields (" + row.length + ") than expected (" + parsersSize + ")");
 	    return null;
