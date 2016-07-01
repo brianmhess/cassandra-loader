@@ -110,6 +110,7 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
  `-successDir`    | Success directory  | &lt;not set&gt;                  | Location to move successfully loaded files
  `-failureDir`    | Failure directory  | &lt;not set&gt;                  | Location to move files that failed to load
  `-batchSize`     | Batch size         | 1                          | Size of unlogged batches. If set to 1 then no batching.
+ `-json`          | Insert a JSON      | 1                          | False by default, turn on if your file has an array of JSON objects
 
 ## Comments
 
