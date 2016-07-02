@@ -281,7 +281,7 @@ class CqlDelimLoadTask implements Callable<Long> {
 			}
 		} // if (format.equalsIgnoreCase("delim"))
 		else if (format.equalsIgnoreCase("json")) {
-			List<String> columnBackbone = cdp.getColumnsMeta();
+			List<String> columnBackbone = cdp.getColumnNames();
 			int columnCount = columnBackbone.size();
 			for (Object o : jsonArray) {
 				JSONObject jsonRow = (JSONObject) o;

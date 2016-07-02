@@ -28,15 +28,15 @@ public class CqlDelimParser {
 	private Map<DataType.Name, Parser> pmap;
 	private List<SchemaBits> sbl;
 
-	public List<String> getColumnsMeta() {
-		return columnsMeta;
+	public List<String> getColumnNames() {
+		return columnNames;
 	}
 
-	public void setColumnsMeta(List<String> columnsMeta) {
-		this.columnsMeta = columnsMeta;
+	private void setColumnNames(List<String> columnNames) {
+		this.columnNames = columnNames;
 	}
 
-	private List<String> columnsMeta;
+	private List<String> columnNames;
 	private String keyspace;
 	private String tablename;
 	private DelimParser delimParser;
@@ -140,7 +140,7 @@ public class CqlDelimParser {
 				inList.add(cm.getName());
 		}
 		//keep the list of columns from metadata to use as column backbone for JSON
-		setColumnsMeta(inList);
+		setColumnNames(inList);
 		List<SchemaBits> sbl = new ArrayList<SchemaBits>();
 		for (int i = 0; i < inList.size(); i++) {
 			String col = inList.get(i);
