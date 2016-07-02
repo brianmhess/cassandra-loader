@@ -15,24 +15,15 @@
  */
 package com.datastax.loader.parser;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.regex.Pattern;
-import java.util.StringTokenizer;
-import java.lang.String;
-import java.lang.StringBuilder;
-import java.lang.System;
-import java.lang.NumberFormatException;
-import java.lang.IndexOutOfBoundsException;
-import java.io.StringReader;
-import java.io.IOException;
-import java.text.ParseException;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
-
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
+
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DelimParser {
     private List<Parser> parsers;
@@ -65,7 +56,7 @@ public class DelimParser {
 	parsersSize = parsers.size();
 	if (null == inDelimiter)
 	    delimiter = DEFAULT_DELIMITER;
-	else 
+	else
 	    delimiter = inDelimiter;
 	if (null == inNullString)
 	    nullString = DEFAULT_NULLSTRING;
@@ -80,10 +71,10 @@ public class DelimParser {
 	settings.getFormat().setDelimiter(delim);
 	settings.getFormat().setQuote(quote);
 	settings.getFormat().setQuoteEscape(escape);
-	
+
 	csvp = new CsvParser(settings);
     }
-    
+
     // Adds a parser to the list
     public void add(Parser p) {
 	parsers.add(p);
@@ -154,8 +145,8 @@ public class DelimParser {
 	IndexedLine sr = new IndexedLine(line);
 	for (int i = 0; i < parsersSize; i++) {
 	    try {
-		Object toAdd = parsers.get(i).parse(sr, nullString, delim, 
-						    escape, quote, 
+		Object toAdd = parsers.get(i).parse(sr, nullString, delim,
+						    escape, quote,
 						    (parsersSize-1 == i));
 		if (!skip.get(i))
 		    elements.add(toAdd);
