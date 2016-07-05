@@ -291,7 +291,7 @@ class CqlDelimLoadTask implements Callable<Long> {
 					if (jsonRow.get(columnBackbone.get(i)) != null) {
 						jsonElements[i] = jsonRow.get(columnBackbone.get(i)).toString();
 					} else {
-						jsonElements[i] = nullString;
+						jsonElements[i] = null;
 					}
 				}
 				if (null != (elements = cdp.parse(jsonElements))) {
