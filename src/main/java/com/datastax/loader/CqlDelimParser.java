@@ -15,12 +15,36 @@
  */
 package com.datastax.loader;
 
-import com.datastax.driver.core.*;
+import com.datastax.driver.core.ColumnMetadata;
+import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
-import com.datastax.loader.parser.*;
+import com.datastax.loader.parser.BigDecimalParser;
+import com.datastax.loader.parser.BigIntegerParser;
+import com.datastax.loader.parser.BooleanParser;
+import com.datastax.loader.parser.ByteBufferParser;
+import com.datastax.loader.parser.DateParser;
+import com.datastax.loader.parser.DelimParser;
+import com.datastax.loader.parser.DoubleParser;
+import com.datastax.loader.parser.FloatParser;
+import com.datastax.loader.parser.InetAddressParser;
+import com.datastax.loader.parser.IntegerParser;
+import com.datastax.loader.parser.ListParser;
+import com.datastax.loader.parser.LongParser;
+import com.datastax.loader.parser.MapParser;
+import com.datastax.loader.parser.Parser;
+import com.datastax.loader.parser.SetParser;
+import com.datastax.loader.parser.StringParser;
+import com.datastax.loader.parser.UUIDParser;
 
 import java.text.ParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
