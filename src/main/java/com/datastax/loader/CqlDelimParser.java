@@ -15,43 +15,52 @@
  */
 package com.datastax.loader;
 
-import com.datastax.loader.parser.Parser;
-import com.datastax.loader.parser.DelimParser;
-import com.datastax.loader.parser.IntegerParser;
-import com.datastax.loader.parser.LongParser;
-import com.datastax.loader.parser.FloatParser;
-import com.datastax.loader.parser.DoubleParser;
-import com.datastax.loader.parser.StringParser;
-import com.datastax.loader.parser.BooleanParser;
-import com.datastax.loader.parser.UUIDParser;
-import com.datastax.loader.parser.BigDecimalParser;
-import com.datastax.loader.parser.BigIntegerParser;
-import com.datastax.loader.parser.ByteBufferParser;
-import com.datastax.loader.parser.InetAddressParser;
-import com.datastax.loader.parser.DateParser;
-import com.datastax.loader.parser.ListParser;
-import com.datastax.loader.parser.SetParser;
-import com.datastax.loader.parser.MapParser;
-
-import java.text.ParseException;
-import java.util.Map;
-import java.util.List;
-import java.util.HashMap;
-import java.util.ArrayList;
-import java.util.Locale;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-
+import com.datastax.driver.core.ColumnMetadata;
+import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TableMetadata;
-import com.datastax.driver.core.ColumnMetadata;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
-import com.datastax.driver.core.DataType;
+import com.datastax.loader.parser.BigDecimalParser;
+import com.datastax.loader.parser.BigIntegerParser;
+import com.datastax.loader.parser.BooleanParser;
+import com.datastax.loader.parser.ByteBufferParser;
+import com.datastax.loader.parser.DateParser;
+import com.datastax.loader.parser.DelimParser;
+import com.datastax.loader.parser.DoubleParser;
+import com.datastax.loader.parser.FloatParser;
+import com.datastax.loader.parser.InetAddressParser;
+import com.datastax.loader.parser.IntegerParser;
+import com.datastax.loader.parser.ListParser;
+import com.datastax.loader.parser.LongParser;
+import com.datastax.loader.parser.MapParser;
+import com.datastax.loader.parser.Parser;
+import com.datastax.loader.parser.SetParser;
+import com.datastax.loader.parser.StringParser;
+import com.datastax.loader.parser.UUIDParser;
+
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class CqlDelimParser {
     private Map<DataType.Name, Parser> pmap;
     private List<SchemaBits> sbl;
+
+    public List<String> getColumnNames() {
+        return columnNames;
+    }
+
+    private void setColumnNames(List<String> columnNames) {
+        this.columnNames = columnNames;
+    }
+
+    private List<String> columnNames;
     private String keyspace;
     private String tablename;
     private DelimParser delimParser;
@@ -67,7 +76,7 @@ public class CqlDelimParser {
         createDelimParser(inDelimiter, inNullString, skipList);
     }   
 
-    public CqlDelimParser(String inKeyspace, String inTable, String inDelimiter, 
+    public CqlDelimParser(String inKeyspace, String inTable, String inDelimiter,
                           String inNullString, String inDateFormatString, 
                           BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
                           String skipList, Session session, boolean bLoader) 
@@ -78,7 +87,7 @@ public class CqlDelimParser {
         initPmap(inDateFormatString, inBoolStyle, inLocale, bLoader);
         processCqlSchema(session);
         createDelimParser(inDelimiter, inNullString, skipList);
-    }   
+    }
 
     // used internally to store schema information
     private class SchemaBits {
@@ -154,6 +163,8 @@ public class CqlDelimParser {
             for (ColumnMetadata cm : tm.getColumns())
                 inList.add(cm.getName());
         }
+        //keep the list of columns from metadata to use as column backbone for JSON
+        setColumnNames(inList);
         List<SchemaBits> sbl = new ArrayList<SchemaBits>();
         for (int i = 0; i < inList.size(); i++) {
             String col = inList.get(i);
@@ -244,7 +255,7 @@ public class CqlDelimParser {
         select += " FROM " + keyspace + "." + tablename;
         return select;
     }
-    
+
     public String getKeyspace() {
         return keyspace;
     }

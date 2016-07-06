@@ -15,51 +15,36 @@
  */
 package com.datastax.loader;
 
-import com.datastax.loader.parser.BooleanParser;
+import com.datastax.driver.core.BatchStatement;
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Session;
 import com.datastax.loader.futures.FutureManager;
 import com.datastax.loader.futures.PrintingFutureSet;
+import com.datastax.loader.parser.BooleanParser;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Deque;
-import java.util.ArrayDeque;
-import java.util.Comparator;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.io.File;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.InputStreamReader;
-import java.io.IOException;
-import java.io.FileOutputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.text.ParseException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.ProtocolVersion;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.policies.TokenAwarePolicy;
-import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
+import java.text.ParseException;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 class CqlDelimLoadTask implements Callable<Long> {
     private String BADPARSE = ".BADPARSE";
@@ -105,6 +90,7 @@ class CqlDelimLoadTask implements Callable<Long> {
     private String format = "delim";
     private String keyspace = null;
     private String table = null;
+    private JSONArray jsonArray;
 
     public CqlDelimLoadTask(String inCqlSchema, String inDelimiter, 
                             String inNullString, String inDateFormatString,
@@ -147,13 +133,13 @@ class CqlDelimLoadTask implements Callable<Long> {
         table = inTable;
     }
 
-    public Long call() throws IOException, ParseException {
+    public Long call() throws IOException, ParseException, org.json.simple.parser.ParseException {
         setup();
         numInserted = execute();
         return numInserted;
     }
 
-    private void setup() throws IOException, ParseException {
+    private void setup() throws IOException, ParseException, org.json.simple.parser.ParseException {
         if (null == infile) {
             reader = new BufferedReader(new InputStreamReader(System.in));
             readerName = "stdin";
@@ -162,7 +148,13 @@ class CqlDelimLoadTask implements Callable<Long> {
             reader = new BufferedReader(new FileReader(infile));
             readerName = infile.getName();
         }
-            
+
+        //setup json reader
+        if(format.equalsIgnoreCase("json")){
+            JSONParser parser = new JSONParser();
+            jsonArray= (JSONArray) parser.parse(reader);
+        }
+
         // Prepare Badfile
         if (null != badDir) {
             badParsePrinter = new PrintStream(new BufferedOutputStream(new FileOutputStream(badDir + "/" + readerName + BADPARSE)));
@@ -170,10 +162,18 @@ class CqlDelimLoadTask implements Callable<Long> {
             logFname = badDir + "/" + readerName + LOG;
             logPrinter = new PrintStream(new BufferedOutputStream(new FileOutputStream(logFname)));
         }
-            
-        cdp = new CqlDelimParser(cqlSchema, delimiter, nullString, 
-                                 dateFormatString, boolStyle, locale, 
-                                 skipCols, session, true);
+
+        if (format.equalsIgnoreCase("delim")) {
+            cdp = new CqlDelimParser(cqlSchema, delimiter, nullString,
+                                     dateFormatString, boolStyle, locale,
+                                     skipCols, session, true);
+        }
+        else if (format.equalsIgnoreCase("json")) {
+            cdp = new CqlDelimParser(keyspace, table, delimiter, nullString, 
+                                     dateFormatString, boolStyle, locale, 
+                                     skipCols, session, true);
+        }
+
         insert = cdp.generateInsert();
         statement = session.prepare(insert);
         statement.setRetryPolicy(new LoaderRetryPolicy(numRetries));
@@ -209,7 +209,7 @@ class CqlDelimLoadTask implements Callable<Long> {
         }
     }
 
-    private int sendInserts(List<Object> elements, String line) {
+    private int sendInsert(List<Object> elements, String line) {
         BoundStatement bind = statement.bind(elements.toArray());
         ResultSetFuture resultSetFuture;
         int retval = 0;
@@ -264,12 +264,12 @@ class CqlDelimLoadTask implements Callable<Long> {
                 }
                 if (maxRows-- < 0)
                     break;
-                
+
                 if (0 == line.trim().length())
                     continue;
-                
+
                 if (null != (elements = cdp.parse(line))) {
-                    int ret = sendInserts(elements, line);
+                    int ret = sendInsert(elements, line);
                     if (-2 == ret) {
                         cleanup(false);
                         return -2;
@@ -297,17 +297,46 @@ class CqlDelimLoadTask implements Callable<Long> {
             }
         } // if (format.equalsIgnoreCase("delim"))
         else if (format.equalsIgnoreCase("json")) {
-
-            System.err.println("JSON NOT YET IMPLEMENTED!");
-
-            // JSON code to get List<Object> elements put JSON string in line
-            int ret = sendInserts(elements, line);
-            if (-2 == ret) {
-                cleanup(false);
-                return -2;
+            List<String> columnBackbone = cdp.getColumnNames();
+            int columnCount = columnBackbone.size();
+            for (Object o : jsonArray) {
+                JSONObject jsonRow = (JSONObject) o;
+                String[] jsonElements = new String[columnCount];
+                jsonElements[0] = jsonRow.get(columnBackbone.get(0)).toString();
+                for (int i = 1; i < columnCount; i++) {
+                    if (null != jsonRow.get(columnBackbone.get(i))) {
+                        jsonElements[i] = jsonRow.get(columnBackbone.get(i)).toString();
+                    } else {
+                        jsonElements[i] = null;
+                    }
+                }
+                if (null != (elements = cdp.parse(jsonElements))) {
+                    int ret = sendInsert(elements, line);
+                    if (-2 == ret) {
+                        cleanup(false);
+                        return -2;
+                    }
+                    numInserted += ret;
+                } else {
+                    if (null != logPrinter) {
+                        logPrinter.println(String.format("Error parsing JSON item %d in %s: %s", lineNumber, readerName, line));
+                    }
+                    System.err.println(String.format("Error parsing JSON item %d in %s: %s", lineNumber, readerName, line));
+                    if (null != badParsePrinter) {
+                        badParsePrinter.println(line);
+                    }
+                    numErrors++;
+                    if (maxErrors <= numErrors) {
+                        if (null != logPrinter) {
+                            logPrinter.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
+                        }
+                        System.err.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
+                        cleanup(false);
+                        return -1;
+                    }
+                }
             }
-            numInserted += ret;
-        }
+        }// if (format.equalsIgnoreCase("json"))
 
         // Send last partially filled batch
         if ((batchSize > 1) && (batch.size() > 0)) {
