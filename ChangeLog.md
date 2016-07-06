@@ -1,3 +1,6 @@
+## 0.0.21
+Added JSON parsing input format for cassandra-loader
+
 ## 0.0.19
 - Converted to parse with Univocity CSV parser
 - Added -where

@@ -23,6 +23,7 @@ import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.datastax.loader.futures.FutureManager;
 import com.datastax.loader.futures.PrintingFutureSet;
+import com.datastax.loader.futures.JsonPrintingFutureSet;
 import com.datastax.loader.parser.BooleanParser;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -179,16 +180,29 @@ class CqlDelimLoadTask implements Callable<Long> {
         statement.setRetryPolicy(new LoaderRetryPolicy(numRetries));
         statement.setConsistencyLevel(consistencyLevel);
         batch = new BatchStatement(BatchStatement.Type.UNLOGGED);
-        fm = new PrintingFutureSet(numFutures, queryTimeout, 
-                                   maxInsertErrors, logPrinter, 
-                                   badInsertPrinter);
+        if (format.equalsIgnoreCase("delim")) {
+            fm = new PrintingFutureSet(numFutures, queryTimeout, 
+                                       maxInsertErrors, logPrinter, 
+                                       badInsertPrinter);
+        }
+        else if (format.equalsIgnoreCase("json")) {
+            fm = new JsonPrintingFutureSet(numFutures, queryTimeout, 
+                                       maxInsertErrors, logPrinter, 
+                                       badInsertPrinter);
+        }
     }
         
     private void cleanup(boolean success) throws IOException {
-        if (null != badParsePrinter)
+        if (null != badParsePrinter) {
+            if (format.equalsIgnoreCase("json"))
+                badParsePrinter.println("]");
             badParsePrinter.close();
-        if (null != badInsertPrinter)
+        }
+        if (null != badInsertPrinter) {
+            if (format.equalsIgnoreCase("json"))
+                badInsertPrinter.println("]");
             badInsertPrinter.close();
+        }
         if (null != logPrinter)
             logPrinter.close();
         if (success) {
@@ -297,6 +311,8 @@ class CqlDelimLoadTask implements Callable<Long> {
             }
         } // if (format.equalsIgnoreCase("delim"))
         else if (format.equalsIgnoreCase("json")) {
+            boolean firstBadJson = true;
+            String badJsonDelim = "[\n";
             List<String> columnBackbone = cdp.getColumnNames();
             int columnCount = columnBackbone.size();
             for (Object o : jsonArray) {
@@ -318,12 +334,17 @@ class CqlDelimLoadTask implements Callable<Long> {
                     }
                     numInserted += ret;
                 } else {
+                    String badString = jsonRow.toJSONString();
                     if (null != logPrinter) {
-                        logPrinter.println(String.format("Error parsing JSON item %d in %s: %s", lineNumber, readerName, line));
+                        logPrinter.println(String.format("Error parsing JSON item %d in %s: %s", lineNumber, readerName, badString));
                     }
-                    System.err.println(String.format("Error parsing JSON item %d in %s: %s", lineNumber, readerName, line));
+                    System.err.println(String.format("Error parsing JSON item %d in %s: %s", lineNumber, readerName, badString));
                     if (null != badParsePrinter) {
-                        badParsePrinter.println(line);
+                        badParsePrinter.println(badJsonDelim + badString);
+                        if (firstBadJson) {
+                            firstBadJson = false;
+                            badJsonDelim = ",\n";
+                        }
                     }
                     numErrors++;
                     if (maxErrors <= numErrors) {

@@ -82,7 +82,7 @@ import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 import com.codahale.metrics.Timer;
 
 public class CqlDelimLoad {
-    private String version = "0.0.19";
+    private String version = "0.0.21";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -134,8 +134,12 @@ public class CqlDelimLoad {
 
     private String usage() {
         StringBuilder usage = new StringBuilder("version: ").append(version).append("\n");
-        usage.append("Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]\n");
+        usage.append("Usage: -f <filename> -host <ipaddress> [OPTIONS]\n");
         usage.append("OPTIONS:\n");
+        usage.append("  -format [delim|json]           Format of data: delimited or JSON [delim]\n");
+        usage.append("  -schema <schema>               Table schema (when using delim)\n");
+        usage.append("  -table <tableName>             Table name (when using json)\n");
+        usage.append("  -keyspace <keyspaceName>       Keyspace name (when using json)\n");
         usage.append("  -configFile <filename>         File with configuration options\n");
         usage.append("  -delim <delimiter>             Delimiter to use [,]\n");
         usage.append("  -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]\n");
