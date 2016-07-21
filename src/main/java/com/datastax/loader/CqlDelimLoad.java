@@ -152,7 +152,7 @@ public class CqlDelimLoad {
 	usage.append("  -user <username>               Cassandra username [none]\n");
 	usage.append("  -pw <password>                 Password for user [none]\n");
 	usage.append("  -ssl-truststore-path <path>    Path to SSL truststore [none]\n");
-	usage.append("  -ssl-truststore-pw <pwd>       Password for SSL truststore [none]\n");
+	usage.append("  -ssl-truststore-pwd <pwd>       Password for SSL truststore [none]\n");
 	usage.append("  -ssl-keystore-path <path>      Path to SSL keystore [none]\n");
 	usage.append("  -ssl-keystore-pw <pwd>         Password for SSL keystore [none]\n");
 	usage.append("  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]\n");
