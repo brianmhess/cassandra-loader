@@ -15,71 +15,20 @@
  */
 package com.datastax.loader;
 
+import com.datastax.driver.core.*;
+import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
+import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.loader.parser.BooleanParser;
-import com.datastax.loader.futures.FutureManager;
-import com.datastax.loader.futures.PrintingFutureSet;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Deque;
-import java.util.ArrayDeque;
-import java.util.Comparator;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.io.File;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.InputStreamReader;
-import java.io.IOException;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.FileInputStream;
-import java.io.BufferedOutputStream;
-import java.io.PrintStream;
-import java.io.FileNotFoundException;
-import java.text.ParseException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.security.KeyStore;
-import java.security.SecureRandom;
-import java.security.KeyStoreException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
-
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Metrics;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.ProtocolVersion;
-import com.datastax.driver.core.PoolingOptions;
-import com.datastax.driver.core.ProtocolOptions;
-import com.datastax.driver.core.HostDistance;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.SSLOptions;
-import com.datastax.driver.core.JdkSSLOptions;
-import com.datastax.driver.core.policies.TokenAwarePolicy;
-import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
-
-import com.codahale.metrics.Timer;
+import java.io.*;
+import java.security.*;
+import java.security.cert.CertificateException;
+import java.text.ParseException;
+import java.util.*;
+import java.util.concurrent.*;
 
 public class CqlDelimLoad {
     private String version = "0.0.21";
@@ -136,7 +85,7 @@ public class CqlDelimLoad {
         StringBuilder usage = new StringBuilder("version: ").append(version).append("\n");
         usage.append("Usage: -f <filename> -host <ipaddress> [OPTIONS]\n");
         usage.append("OPTIONS:\n");
-        usage.append("  -format [delim|json]           Format of data: delimited or JSON [delim]\n");
+        usage.append("  -format [delim|jsonarray|jsonline]  Format of data: delimited, jsonarray (array of json objects) or jsonline (json object per line) [delim]\n");
         usage.append("  -schema <schema>               Table schema (when using delim)\n");
         usage.append("  -table <tableName>             Table name (when using json)\n");
         usage.append("  -keyspace <keyspaceName>       Keyspace name (when using json)\n");
@@ -171,9 +120,6 @@ public class CqlDelimLoad {
         usage.append("  -successDir <dir>              Directory where to move successfully loaded files\n");
         usage.append("  -failureDir <dir>              Directory where to move files that did not successfully load\n");
         usage.append("  -nullsUnset [false|true]       Treat nulls as unset [faslse]\n");
-        usage.append("  -format [delim|json]           Format of data: delimited or JSON [delim]\n");
-        usage.append("  -table <tableName>             Table name (when using JSON)\n");
-        usage.append("  -keyspace <keyspaceName>       Keyspace name (when using JSON)\n");
 
         usage.append("\n\nExamples:\n");
         usage.append("cassandra-loader -f /path/to/file.csv -host localhost -schema \"test.test3(a, b, c)\"\n");
@@ -193,7 +139,7 @@ public class CqlDelimLoad {
             if (null != table)
                 System.err.println("In format=delim, ignoring table");
         }
-        else if (format.equalsIgnoreCase("json")) {
+        else if (format.equalsIgnoreCase("jsonarray") || format.equalsIgnoreCase("jsonline")) {
             if (null == keyspace) {
                 System.err.println("Must provide a keyspace");
                 return false;
@@ -203,7 +149,7 @@ public class CqlDelimLoad {
                 return false;
             }
             if (null != cqlSchema)
-                System.err.println("In format=json, ignoring schema");
+                System.err.println("In format="+format+", ignoring schema");
         }
         else {
             System.err.println("Unknown format option");

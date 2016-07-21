@@ -151,7 +151,7 @@ class CqlDelimLoadTask implements Callable<Long> {
         }
 
         //setup json reader
-        if(format.equalsIgnoreCase("json")){
+        if(format.equalsIgnoreCase("jsonarray")){
             JSONParser parser = new JSONParser();
             jsonArray= (JSONArray) parser.parse(reader);
         }
@@ -169,7 +169,7 @@ class CqlDelimLoadTask implements Callable<Long> {
                                      dateFormatString, boolStyle, locale,
                                      skipCols, session, true);
         }
-        else if (format.equalsIgnoreCase("json")) {
+        else if (format.equalsIgnoreCase("jsonarray") || format.equalsIgnoreCase("jsonline")) {
             cdp = new CqlDelimParser(keyspace, table, delimiter, nullString, 
                                      dateFormatString, boolStyle, locale, 
                                      skipCols, session, true);
@@ -185,7 +185,7 @@ class CqlDelimLoadTask implements Callable<Long> {
                                        maxInsertErrors, logPrinter, 
                                        badInsertPrinter);
         }
-        else if (format.equalsIgnoreCase("json")) {
+        else if (format.equalsIgnoreCase("jsonarray")|| format.equalsIgnoreCase("jsonline")) {
             fm = new JsonPrintingFutureSet(numFutures, queryTimeout, 
                                        maxInsertErrors, logPrinter, 
                                        badInsertPrinter);
@@ -194,12 +194,12 @@ class CqlDelimLoadTask implements Callable<Long> {
         
     private void cleanup(boolean success) throws IOException {
         if (null != badParsePrinter) {
-            if (format.equalsIgnoreCase("json"))
+            if (format.equalsIgnoreCase("jsonarray"))
                 badParsePrinter.println("]");
             badParsePrinter.close();
         }
         if (null != badInsertPrinter) {
-            if (format.equalsIgnoreCase("json"))
+            if (format.equalsIgnoreCase("jsonarray"))
                 badInsertPrinter.println("]");
             badInsertPrinter.close();
         }
@@ -310,7 +310,7 @@ class CqlDelimLoadTask implements Callable<Long> {
                 }
             }
         } // if (format.equalsIgnoreCase("delim"))
-        else if (format.equalsIgnoreCase("json")) {
+        else if (format.equalsIgnoreCase("jsonarray")) {
             boolean firstBadJson = true;
             String badJsonDelim = "[\n";
             List<String> columnBackbone = cdp.getColumnNames();
@@ -357,7 +357,46 @@ class CqlDelimLoadTask implements Callable<Long> {
                     }
                 }
             }
-        }// if (format.equalsIgnoreCase("json"))
+        }// if (format.equalsIgnoreCase("jsonarray"))
+        else if (format.equalsIgnoreCase("jsonline")) {
+            List<String> columnBackbone = cdp.getColumnNames();
+            int columnCount = columnBackbone.size();
+            while ((line = reader.readLine()) != null) {
+                JSONObject jsonRow = cdp.parseJsonLine(line);
+                String[] jsonElements = new String[columnCount];
+                jsonElements[0] = jsonRow.get(columnBackbone.get(0)).toString();
+                for (int i = 1; i < columnCount; i++) {
+                    if (null != jsonRow.get(columnBackbone.get(i))) {
+                        jsonElements[i] = jsonRow.get(columnBackbone.get(i)).toString();
+                    } else {
+                        jsonElements[i] = null;
+                    }
+                }
+                if (null != (elements = cdp.parse(jsonElements))) {
+                    int ret = sendInsert(elements, line);
+                    if (-2 == ret) {
+                        cleanup(false);
+                        return -2;
+                    }
+                    numInserted += ret;
+                } else {
+                    String badString = jsonRow.toJSONString();
+                    if (null != logPrinter) {
+                        logPrinter.println(String.format("Error parsing JSON item %d in %s: %s", lineNumber, readerName, badString));
+                    }
+                    System.err.println(String.format("Error parsing JSON item %d in %s: %s", lineNumber, readerName, badString));
+                    numErrors++;
+                    if (maxErrors <= numErrors) {
+                        if (null != logPrinter) {
+                            logPrinter.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
+                        }
+                        System.err.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
+                        cleanup(false);
+                        return -1;
+                    }
+                }
+            }
+        }// if (format.equalsIgnoreCase("jsonline"))
 
         // Send last partially filled batch
         if ((batchSize > 1) && (batch.size() > 0)) {
