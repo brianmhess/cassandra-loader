@@ -201,7 +201,7 @@ OPTIONS:
   -ssl-truststore-path <path>    Path to SSL truststore [none]
   -ssl-truststore-pwd <pwd>       Password for SSL truststore [none]
   -ssl-keystore-path <path>      Path to SSL keystore [none]
-  -ssl-keystore-pw <pwd>         Password for SSL keystore [none]
+  -ssl-keystore-pwd <pwd>         Password for SSL keystore [none]
   -consistencyLevel <CL>         Consistency level [LOCAL_ONE]
   -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]
   -batchSize <batchSize>         Number of INSERTs to batch together [1]
@@ -327,7 +327,7 @@ OPTIONS:
   -ssl-truststore-path <path>    Path to SSL truststore [none]
   -ssl-truststore-pwd <pwd>       Password for SSL truststore [none]
   -ssl-keystore-path <path>      Path to SSL keystore [none]
-  -ssl-keystore-pw <pwd>         Password for SSL keystore [none]
+  -ssl-keystore-pwd <pwd>         Password for SSL keystore [none]
   -consistencyLevel <CL>         Consistency level [LOCAL_ONE]
   -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','
   -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]
