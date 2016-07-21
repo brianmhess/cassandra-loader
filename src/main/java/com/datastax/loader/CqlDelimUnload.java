@@ -119,7 +119,7 @@ public class CqlDelimUnload {
         usage.append("  -ssl-truststore-path <path>    Path to SSL truststore [none]\n");
         usage.append("  -ssl-truststore-pwd <pwd>       Password for SSL truststore [none]\n");
         usage.append("  -ssl-keystore-path <path>      Path to SSL keystore [none]\n");
-        usage.append("  -ssl-keystore-pw <pwd>         Password for SSL keystore [none]\n");
+        usage.append("  -ssl-keystore-pwd <pwd>         Password for SSL keystore [none]\n");
         usage.append("  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]\n");
 	usage.append("  -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','\n");
 	usage.append("  -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]\n");
