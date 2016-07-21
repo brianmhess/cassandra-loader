@@ -154,7 +154,7 @@ public class CqlDelimLoad {
 	usage.append("  -ssl-truststore-path <path>    Path to SSL truststore [none]\n");
 	usage.append("  -ssl-truststore-pwd <pwd>       Password for SSL truststore [none]\n");
 	usage.append("  -ssl-keystore-path <path>      Path to SSL keystore [none]\n");
-	usage.append("  -ssl-keystore-pw <pwd>         Password for SSL keystore [none]\n");
+	usage.append("  -ssl-keystore-pwd <pwd>         Password for SSL keystore [none]\n");
 	usage.append("  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]\n");
 	usage.append("  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]\n");
 	usage.append("  -batchSize <batchSize>         Number of INSERTs to batch together [1]\n");
