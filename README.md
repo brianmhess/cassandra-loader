@@ -17,12 +17,12 @@ loading of various types of delimited files, including
 ### Downloading
 
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.18/cassandra-loader
+https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.20/cassandra-loader
 
 Get it with wget:
 
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.18/cassandra-loader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.20/cassandra-loader
 ```
 
 ### Building
@@ -125,7 +125,6 @@ grep IMPORTANT data.csv | cassandra-loader -f stdin -h 1.2.3.4 -schema "test.ite
 ### Support for collections 
 
 Collections are supported.  Their format is the CQL native one.
->>>>>>> 44fffce221730650e6531d3bb2808495e670cafd
 Sets are started with '{' and ended with '}' and enclose a comma-separated list
 {1,2,3} or {"a","b","c"}
 Lists are started with '[' and ended with ']' and enclose a comma-separated list
@@ -184,6 +183,7 @@ If you do not set the successDir then files that successfully loaded will remain
 ## Usage Statement:
 
 ```
+version: 0.0.20
 Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]
 OPTIONS:
   -configFile <filename>         File with configuration options
@@ -202,7 +202,8 @@ OPTIONS:
   -ssl-truststore-pw <pwd>       Password for SSL truststore [none]
   -ssl-keystore-path <path>      Path to SSL keystore [none]
   -ssl-keystore-pw <pwd>         Password for SSL keystore [none]
-  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]
+  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]
+  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]
   -batchSize <batchSize>         Number of INSERTs to batch together [1]
   -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','
   -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]
@@ -215,6 +216,7 @@ OPTIONS:
   -rateFile <filename>           Where to print the rate statistics
   -successDir <dir>              Directory where to move successfully loaded files
   -failureDir <dir>              Directory where to move files that did not successfully load
+  -nullsUnset [false|true]         Treat nulls as unset [faslse]
 
 
 Examples:
@@ -293,7 +295,7 @@ cassandra-unloader -f stdout -host host1 -schema "ks.table(a,b,c)" | cassandra-l
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.18/cassandra-unloader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.20/cassandra-unloader
 ```
 
 To build, run:
@@ -312,7 +314,7 @@ cassandra-unloader
 ###Usage statement:
 
 ```
-version: 0.0.18
+version: 0.0.20
 Usage: -f <outputStem> -host <ipaddress> -schema <schema> [OPTIONS]
 OPTIONS:
   -configFile <filename>         File with configuration options
@@ -332,4 +334,12 @@ OPTIONS:
   -numThreads <numThreads>       Number of concurrent threads to unload [5]
   -beginToken <tokenString>      Begin token [none]
   -endToken <tokenString>        End token [none]
+  -where <predicate>             WHERE clause [none]
+```
+
+A few simple examples using the `-where` are as follows:
+
+```
+cassandra-unloader -host localhost -f stdout -schema "testks.testtable(pkey,ccol,x,y)" -where "pkey=5"
+cassandra-unloader -host localhost -f stdout -schema "testks.testtable(pkey,ccol,x,y)" -where "x = 100 ALLOW FILTERING"
 ```

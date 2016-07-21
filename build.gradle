@@ -1,7 +1,7 @@
 apply plugin: 'java'
 apply plugin: 'application'
 
-def versionNum = '0.0.19'
+def versionNum = '0.0.20'
 
 allprojects {
     tasks.withType(JavaCompile) {
@@ -33,6 +33,8 @@ dependencies {
     compile 'org.xerial.snappy:snappy-java:1.0.5'
     compile 'net.jpountz.lz4:lz4:1.2.0'
     compile 'ch.qos.logback:logback-classic:1.1.3'
+    compile 'com.univocity:univocity-parsers:2.1.1'
+    compile 'org.apache.commons:commons-lang3:3.0'
 }
 
 task uberloader(type: Jar) {

@@ -62,6 +62,7 @@ import javax.net.ssl.TrustManagerFactory;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.ColumnMetadata;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.HostDistance;
@@ -73,10 +74,11 @@ import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
+import com.datastax.driver.core.exceptions.QueryValidationException;
 
 
 public class CqlDelimUnload {
-    private String version = "0.0.19";
+    private String version = "0.0.20";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -90,6 +92,7 @@ public class CqlDelimUnload {
     private Session session = null;
     private String beginToken = "-9223372036854775808";
     private String endToken = "9223372036854775807";
+    private String where = null;
 
     private String cqlSchema = null;
     private String filename = null;
@@ -123,6 +126,7 @@ public class CqlDelimUnload {
 	usage.append("  -numThreads <numThreads>       Number of concurrent threads to unload [5]\n");
 	usage.append("  -beginToken <tokenString>      Begin token [none]\n");
 	usage.append("  -endToken <tokenString>        End token [none]\n");
+	usage.append("  -where <predicate>             WHERE clause [none]\n");
 	return usage.toString();
     }
     
@@ -270,6 +274,7 @@ public class CqlDelimUnload {
 	if (null != (tkey = amap.remove("-numThreads")))    numThreads = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-beginToken")))    beginToken = tkey;
 	if (null != (tkey = amap.remove("-endToken")))      endToken = tkey;
+	if (null != (tkey = amap.remove("-where")))         where = tkey;
 	
 	if (!amap.isEmpty()) {
 	    for (String k : amap.keySet())
@@ -358,6 +363,8 @@ public class CqlDelimUnload {
 	    else {
 		pstream = new PrintStream(new BufferedOutputStream(new FileOutputStream(filename + ".0")));
 	    }
+	    beginToken = null;
+	    endToken = null;
 	}
 	
 	// Launch Threads
@@ -373,7 +380,7 @@ public class CqlDelimUnload {
 						      pstream, 
 						      beginToken,
 						      endToken, session,
-						      consistencyLevel);
+						      consistencyLevel, where);
 	    Future<Long> res = executor.submit(worker);
 	    total = res.get();
 	    executor.shutdown();
@@ -422,7 +429,8 @@ public class CqlDelimUnload {
 							  pstream, 
 							  tBeginString,
 							  tEndString, session,
-							  consistencyLevel);
+							  consistencyLevel,
+							  where);
 		results.add(executor.submit(worker));
 	    }
 	    executor.shutdown();
@@ -467,6 +475,7 @@ public class CqlDelimUnload {
 	private String endToken = null;
 	private String partitionKey = null;
 	private long numRead = 0;
+	private String where = null;
 
 	public ThreadExecute(String inCqlSchema, String inDelimiter, 
 			     String inNullString, 
@@ -475,7 +484,8 @@ public class CqlDelimUnload {
 			     Locale inLocale, 
 			     PrintStream inWriter,
 			     String inBeginToken, String inEndToken,
-			     Session inSession, ConsistencyLevel inConsistencyLevel) {
+			     Session inSession, ConsistencyLevel inConsistencyLevel,
+			     String inWhere) {
 	    super();
 	    cqlSchema = inCqlSchema;
 	    delimiter = inDelimiter;
@@ -488,16 +498,19 @@ public class CqlDelimUnload {
 	    session = inSession;
 	    writer = inWriter;
 	    consistencyLevel = inConsistencyLevel;
+	    where = inWhere;
 	}
 
 	public Long call() throws IOException, ParseException {
-	    setup();
+	    if (false == setup()) {
+		return 0L;
+	    }
 	    numRead = execute();
 	    cleanup();
 	    return numRead;
 	}
 
-	private String getPartitionKey(CqlDelimParser cdp, Session tsession) {
+	private String getPartitionKey(CqlDelimParser cdp, Session session) {
 	    String keyspace = cdp.getKeyspace();
 	    String table = cdp.getTable();
 	    if (keyspace.startsWith("\"") && keyspace.endsWith("\""))
@@ -508,43 +521,17 @@ public class CqlDelimUnload {
 		table = table.replaceAll("\"", "");
 	    else
 		table = table.toLowerCase();
-	    String query = "SELECT column_name, component_index, type "
-		+ "FROM system.schema_columns WHERE keyspace_name = '"
-		+ keyspace + "' AND columnfamily_name = '"
-		+ table + "'";
-            List<Row> rows = tsession.execute(query).all();
-	    if (rows.isEmpty()) {
-		System.err.println("Can't find the keyspace/table");
-		// error
-	    }
-	    
-	    int numberOfPartitionKeys = 0;
-            for (Row row : rows) {
-                if (row.getString(2).equals("partition_key"))
-                    numberOfPartitionKeys++;
-	    }
-            if (0 == numberOfPartitionKeys) {
-		System.err.println("Can't find any partition keys");
-		// error
-	    }
 
-            String[] partitionKeyArray = new String[numberOfPartitionKeys];
-            for (Row row : rows) {
-                String type = row.getString(2);
-                String column = row.getString(0);
-                if (type.equals("partition_key")) {
-                    int componentIndex = row.isNull(1) ? 0 : row.getInt(1);
-                    partitionKeyArray[componentIndex] = "\"" + column + "\"";
-                }
-            }
-	    String partitionKey = partitionKeyArray[0];
-	    for (int i = 1; i < partitionKeyArray.length; i++) {
-		partitionKey = partitionKey + "," + partitionKeyArray[i];
+	    List<ColumnMetadata> lcm = session.getCluster().getMetadata()
+		.getKeyspace(keyspace).getTable(table).getPartitionKey();
+	    String partitionKey = lcm.get(0).getName();
+	    for (int i = 1; i < lcm.size(); i++) {
+		partitionKey = partitionKey + "," + lcm.get(i).getName();
 	    }
 	    return partitionKey;
 	}
 
-	private void setup() throws IOException, ParseException {
+	private boolean setup() throws IOException, ParseException {
 	    cdp = new CqlDelimParser(cqlSchema, delimiter, nullString, 
 				     dateFormatString, 
 				     boolStyle, locale, null, session, false);
@@ -554,9 +541,25 @@ public class CqlDelimUnload {
 		select = select + " WHERE Token(" + partitionKey + ") > " 
 		    + beginToken + " AND Token(" + partitionKey + ") <= " 
 		    + endToken;
+		if (null != where)
+		    select = select + " AND " + where;
 	    }
-	    statement = session.prepare(select);
+	    else {
+		if (null != where)
+		    select = select + " WHERE " + where;
+	    }
+	    try {
+		statement = session.prepare(select);
+	    }
+	    catch (QueryValidationException iqe) {
+		System.err.println("Error creating statement: " + iqe.getMessage());
+		System.err.println("CQL Query: " + select);
+		if (null != where)
+		    System.err.println("Check your syntax for -where: " + where);
+		return false;
+	    }
 	    statement.setConsistencyLevel(consistencyLevel);
+	    return true;
 	}
 	
 	private void cleanup() throws IOException {

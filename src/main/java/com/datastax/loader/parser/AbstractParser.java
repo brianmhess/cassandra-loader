@@ -25,6 +25,8 @@ import java.text.ParseException;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
+import org.apache.commons.lang3.StringEscapeUtils;
+
 public abstract class AbstractParser implements Parser {
     public abstract Object parse(String toparse) throws ParseException;
     public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
@@ -110,5 +112,23 @@ public abstract class AbstractParser implements Parser {
 	    }
 	}
 	return sb.toString();
+    }
+
+    public String quote(String instr) {
+	return "\"" + escape(instr) + "\"";
+    }
+
+    public String unquote(String instr) {
+	if ((instr.startsWith("\"")) && (instr.endsWith("\"")))
+	    return unescape(instr.substring(1, instr.length() - 1));
+	return instr;
+    }
+
+    public String escape(String instr) {
+	return StringEscapeUtils.escapeJava(instr);
+    }
+
+    public String unescape(String instr) {
+	return StringEscapeUtils.unescapeJava(instr);
     }
 }
