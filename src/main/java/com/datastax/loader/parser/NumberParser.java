@@ -15,13 +15,11 @@
  */
 package com.datastax.loader.parser;
 
-import java.lang.String;
-import java.lang.Number;
 import java.util.Locale;
 import java.text.NumberFormat;
 import java.text.DecimalFormat;
 import java.text.ParseException;
-import java.lang.IndexOutOfBoundsException;
+
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
@@ -31,30 +29,30 @@ import com.datastax.driver.core.exceptions.InvalidTypeException;
 public class NumberParser extends AbstractParser {
     protected NumberFormat nf;
     public NumberParser() {
-	this(null);
+        this(null);
     }
     
     public NumberParser(Locale locale) {
-	this(locale, true);
+        this(locale, true);
     }
 
     public NumberParser(Locale locale, Boolean grouping) {
-	if (null == locale)
-	    locale = Locale.ENGLISH;
-	nf = NumberFormat.getInstance(locale);
-	if (nf instanceof DecimalFormat) {
-	    ((DecimalFormat) nf).setGroupingUsed(grouping);
-	}
+        if (null == locale)
+            locale = Locale.ENGLISH;
+        nf = NumberFormat.getInstance(locale);
+        if (nf instanceof DecimalFormat) {
+            ((DecimalFormat) nf).setGroupingUsed(grouping);
+        }
     }
     
     // Need this method for the subclasses
     public Number parse(String toparse) throws ParseException {
-	if ((null == toparse) || (0 == toparse.length()))
-	    return null;
-	return nf.parse(toparse);
+        if ((null == toparse) || (0 == toparse.length()))
+            return null;
+        return nf.parse(toparse);
     }
 
     public String format(Object o) {
-	return nf.format(o);
+        return nf.format(o);
     }
 }

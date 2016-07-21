@@ -23,6 +23,7 @@ import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.datastax.loader.futures.FutureManager;
 import com.datastax.loader.futures.PrintingFutureSet;
+import com.datastax.loader.futures.JsonPrintingFutureSet;
 import com.datastax.loader.parser.BooleanParser;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -92,19 +93,19 @@ class CqlDelimLoadTask implements Callable<Long> {
     private String table = null;
     private JSONArray jsonArray;
 
-    public CqlDelimLoadTask(String inCqlSchema, String inDelimiter,
-            String inNullString, String inDateFormatString,
-            BooleanParser.BoolStyle inBoolStyle,
-            Locale inLocale,
-            long inMaxErrors, long inSkipRows,
-            String inSkipCols, long inMaxRows,
-            String inBadDir, File inFile,
-            Session inSession, ConsistencyLevel inCl,
-            int inNumFutures, int inBatchSize, int inNumRetries,
-            int inQueryTimeout, long inMaxInsertErrors,
-            String inSuccessDir, String inFailureDir,
-            boolean inNullsUnset, String inFormat,
-            String inKeyspace, String inTable) {
+    public CqlDelimLoadTask(String inCqlSchema, String inDelimiter, 
+                            String inNullString, String inDateFormatString,
+                            BooleanParser.BoolStyle inBoolStyle, 
+                            Locale inLocale, 
+                            long inMaxErrors, long inSkipRows, 
+                            String inSkipCols, long inMaxRows,
+                            String inBadDir, File inFile,
+                            Session inSession, ConsistencyLevel inCl,
+                            int inNumFutures, int inBatchSize, int inNumRetries, 
+                            int inQueryTimeout, long inMaxInsertErrors,
+                            String inSuccessDir, String inFailureDir,
+                            boolean inNullsUnset, String inFormat,
+                            String inKeyspace, String inTable) {
         super();
         cqlSchema = inCqlSchema;
         delimiter = inDelimiter;
@@ -163,45 +164,61 @@ class CqlDelimLoadTask implements Callable<Long> {
             logPrinter = new PrintStream(new BufferedOutputStream(new FileOutputStream(logFname)));
         }
 
-
         if (format.equalsIgnoreCase("delim")) {
             cdp = new CqlDelimParser(cqlSchema, delimiter, nullString,
-                    dateFormatString, boolStyle, locale,
-                    skipCols, session, true);
-        }else if (format.equalsIgnoreCase("json")){
-            cdp = new CqlDelimParser(keyspace,table, delimiter,nullString, dateFormatString, boolStyle, locale, skipCols, session, true);
+                                     dateFormatString, boolStyle, locale,
+                                     skipCols, session, true);
         }
+        else if (format.equalsIgnoreCase("json")) {
+            cdp = new CqlDelimParser(keyspace, table, delimiter, nullString, 
+                                     dateFormatString, boolStyle, locale, 
+                                     skipCols, session, true);
+        }
+
         insert = cdp.generateInsert();
         statement = session.prepare(insert);
         statement.setRetryPolicy(new LoaderRetryPolicy(numRetries));
         statement.setConsistencyLevel(consistencyLevel);
         batch = new BatchStatement(BatchStatement.Type.UNLOGGED);
-        fm = new PrintingFutureSet(numFutures, queryTimeout,
-                maxInsertErrors, logPrinter,
-                badInsertPrinter);
+        if (format.equalsIgnoreCase("delim")) {
+            fm = new PrintingFutureSet(numFutures, queryTimeout, 
+                                       maxInsertErrors, logPrinter, 
+                                       badInsertPrinter);
+        }
+        else if (format.equalsIgnoreCase("json")) {
+            fm = new JsonPrintingFutureSet(numFutures, queryTimeout, 
+                                       maxInsertErrors, logPrinter, 
+                                       badInsertPrinter);
+        }
     }
-
+        
     private void cleanup(boolean success) throws IOException {
-        if (null != badParsePrinter)
+        if (null != badParsePrinter) {
+            if (format.equalsIgnoreCase("json"))
+                badParsePrinter.println("]");
             badParsePrinter.close();
-        if (null != badInsertPrinter)
+        }
+        if (null != badInsertPrinter) {
+            if (format.equalsIgnoreCase("json"))
+                badInsertPrinter.println("]");
             badInsertPrinter.close();
+        }
         if (null != logPrinter)
             logPrinter.close();
         if (success) {
             if (null != successDir) {
                 Path src = infile.toPath();
                 Path dst = Paths.get(successDir);
-                Files.move(src, dst.resolve(src.getFileName()),
-                        StandardCopyOption.REPLACE_EXISTING);
+                Files.move(src, dst.resolve(src.getFileName()), 
+                           StandardCopyOption.REPLACE_EXISTING);
             }
         }
         else {
             if (null != failureDir) {
                 Path src = infile.toPath();
                 Path dst = Paths.get(failureDir);
-                Files.move(src, dst.resolve(src.getFileName()),
-                        StandardCopyOption.REPLACE_EXISTING);
+                Files.move(src, dst.resolve(src.getFileName()), 
+                           StandardCopyOption.REPLACE_EXISTING);
             }
         }
     }
@@ -272,7 +289,8 @@ class CqlDelimLoadTask implements Callable<Long> {
                         return -2;
                     }
                     numInserted += ret;
-                }else {
+                }
+                else {
                     if (null != logPrinter) {
                         logPrinter.println(String.format("Error parsing line %d in %s: %s", lineNumber, readerName, line));
                     }
@@ -293,6 +311,8 @@ class CqlDelimLoadTask implements Callable<Long> {
             }
         } // if (format.equalsIgnoreCase("delim"))
         else if (format.equalsIgnoreCase("json")) {
+            boolean firstBadJson = true;
+            String badJsonDelim = "[\n";
             List<String> columnBackbone = cdp.getColumnNames();
             int columnCount = columnBackbone.size();
             for (Object o : jsonArray) {
@@ -300,7 +320,7 @@ class CqlDelimLoadTask implements Callable<Long> {
                 String[] jsonElements = new String[columnCount];
                 jsonElements[0] = jsonRow.get(columnBackbone.get(0)).toString();
                 for (int i = 1; i < columnCount; i++) {
-                    if (jsonRow.get(columnBackbone.get(i)) != null) {
+                    if (null != jsonRow.get(columnBackbone.get(i))) {
                         jsonElements[i] = jsonRow.get(columnBackbone.get(i)).toString();
                     } else {
                         jsonElements[i] = null;
@@ -314,12 +334,17 @@ class CqlDelimLoadTask implements Callable<Long> {
                     }
                     numInserted += ret;
                 } else {
+                    String badString = jsonRow.toJSONString();
                     if (null != logPrinter) {
-                        logPrinter.println(String.format("Error parsing line %d in %s: %s", lineNumber, readerName, line));
+                        logPrinter.println(String.format("Error parsing JSON item %d in %s: %s", lineNumber, readerName, badString));
                     }
-                    System.err.println(String.format("Error parsing line %d in %s: %s", lineNumber, readerName, line));
+                    System.err.println(String.format("Error parsing JSON item %d in %s: %s", lineNumber, readerName, badString));
                     if (null != badParsePrinter) {
-                        badParsePrinter.println(line);
+                        badParsePrinter.println(badJsonDelim + badString);
+                        if (firstBadJson) {
+                            firstBadJson = false;
+                            badJsonDelim = ",\n";
+                        }
                     }
                     numErrors++;
                     if (maxErrors <= numErrors) {
@@ -333,6 +358,7 @@ class CqlDelimLoadTask implements Callable<Long> {
                 }
             }
         }// if (format.equalsIgnoreCase("json"))
+
         // Send last partially filled batch
         if ((batchSize > 1) && (batch.size() > 0)) {
             ResultSetFuture resultSetFuture = session.executeAsync(batch);

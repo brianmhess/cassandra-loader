@@ -25,51 +25,51 @@ public class RateLimitedSession extends EnhancedSession {
     RateLimiter rateLimiter;
     private Class<?> batchClass;
     public RateLimitedSession(Session inSession, RateLimiter inRateLimiter) {
-	super(inSession);
-	rateLimiter = inRateLimiter;
-	BatchStatement batch = new BatchStatement();
-	batchClass = batch.getClass();
+        super(inSession);
+        rateLimiter = inRateLimiter;
+        BatchStatement batch = new BatchStatement();
+        batchClass = batch.getClass();
     }
 
     public long numAcquires() {
-	return rateLimiter.numAcquires();
+        return rateLimiter.numAcquires();
     }
 
     public double getRate() {
-	return rateLimiter.getRate();
+        return rateLimiter.getRate();
     }
 
     public ResultSet execute(Statement statement) {
-	rateLimiter.acquire();
-	return super.execute(statement);
+        rateLimiter.acquire();
+        return super.execute(statement);
     }
 
     public ResultSet execute(String query) {
-	rateLimiter.acquire();
-	return super.execute(query);
+        rateLimiter.acquire();
+        return super.execute(query);
     }
 
     public ResultSet execute(String query, Object... values) {
-	rateLimiter.acquire();
-	return super.execute(query, values);
+        rateLimiter.acquire();
+        return super.execute(query, values);
     }
 
     public ResultSetFuture executeAsync(Statement statement) {
-	if (statement.getClass() == batchClass)
-	    rateLimiter.acquire(((BatchStatement)statement).size());
-	else
-	    rateLimiter.acquire();
-	return super.executeAsync(statement);
+        if (statement.getClass() == batchClass)
+            rateLimiter.acquire(((BatchStatement)statement).size());
+        else
+            rateLimiter.acquire();
+        return super.executeAsync(statement);
     }
 
     public ResultSetFuture executeAsync(String query) {
-	rateLimiter.acquire();
-	return super.executeAsync(query);
+        rateLimiter.acquire();
+        return super.executeAsync(query);
     }
 
     public ResultSetFuture executeAsync(String query, Object... values) {
-	rateLimiter.acquire();
-	return super.executeAsync(query, values);
+        rateLimiter.acquire();
+        return super.executeAsync(query, values);
     }
 
 }

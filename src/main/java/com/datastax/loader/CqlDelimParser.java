@@ -65,21 +65,21 @@ public class CqlDelimParser {
     private String tablename;
     private DelimParser delimParser;
 
-    public CqlDelimParser(String inCqlSchema, String inDelimiter,
-            String inNullString, String inDateFormatString,
-            BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
-            String skipList, Session session, boolean bLoader)
+    public CqlDelimParser(String inCqlSchema, String inDelimiter, 
+                          String inNullString, String inDateFormatString, 
+                          BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
+                          String skipList, Session session, boolean bLoader) 
         throws ParseException {
         // Optionally provide things for the line parser - date format, boolean format, locale
         initPmap(inDateFormatString, inBoolStyle, inLocale, bLoader);
         processCqlSchema(inCqlSchema, session);
         createDelimParser(inDelimiter, inNullString, skipList);
-    }
+    }   
 
     public CqlDelimParser(String inKeyspace, String inTable, String inDelimiter,
-            String inNullString, String inDateFormatString,
-            BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
-            String skipList, Session session, boolean bLoader)
+                          String inNullString, String inDateFormatString, 
+                          BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
+                          String skipList, Session session, boolean bLoader) 
         throws ParseException {
         // Optionally provide things for the line parser - date format, boolean format, locale
         keyspace = inKeyspace;
@@ -97,8 +97,8 @@ public class CqlDelimParser {
     }
 
     // intialize the Parsers and the parser map
-    private void initPmap(String dateFormatString, BooleanParser.BoolStyle inBoolStyle,
-            Locale inLocale, boolean bLoader) {
+    private void initPmap(String dateFormatString, BooleanParser.BoolStyle inBoolStyle, 
+                          Locale inLocale, boolean bLoader) {
         pmap = new HashMap<DataType.Name, Parser>();
         Parser integerParser = new IntegerParser(inLocale, bLoader);
         Parser longParser = new LongParser(inLocale, bLoader);
@@ -177,8 +177,8 @@ public class CqlDelimParser {
                     DataType.Name listType = dt.getTypeArguments().get(0).getName();
                     Parser listParser = pmap.get(listType);
                     if (null == listParser) {
-                        throw new ParseException("List data type not recognized ("
-                                + listType + ")", i);
+                        throw new ParseException("List data type not recognized (" 
+                                                 + listType + ")", i);
                     }
                     sb.parser = new ListParser(listParser, ',', '[', ']');
                 }
@@ -186,8 +186,8 @@ public class CqlDelimParser {
                     DataType.Name setType = dt.getTypeArguments().get(0).getName();
                     Parser setParser = pmap.get(setType);
                     if (null == setParser) {
-                        throw new ParseException("Set data type not recognized ("
-                                + setType + ")", i);
+                        throw new ParseException("Set data type not recognized (" 
+                                                 + setType + ")", i);
                     }
                     sb.parser = new SetParser(setParser, ',', '{', '}');
                 }
@@ -195,20 +195,20 @@ public class CqlDelimParser {
                     DataType.Name keyType = dt.getTypeArguments().get(0).getName();
                     Parser keyParser = pmap.get(keyType);
                     if (null == keyParser) {
-                        throw new ParseException("Map key data type not recognized ("
-                                + keyType + ")", i);
+                        throw new ParseException("Map key data type not recognized (" 
+                                                 + keyType + ")", i);
                     }
                     DataType.Name valueType = dt.getTypeArguments().get(1).getName();
                     Parser valueParser = pmap.get(valueType);
                     if (null == valueParser) {
-                        throw new ParseException("Map value data type not recognized ("
-                                + valueType + ")", i);
+                        throw new ParseException("Map value data type not recognized (" 
+                                                 + valueType + ")", i);
                     }
                     sb.parser = new MapParser(keyParser, valueParser, ',', '{', '}', ':');
                 }
                 else {
-                    throw new ParseException("Collection data type not recognized ("
-                            + sb.datatype + ")", i);
+                    throw new ParseException("Collection data type not recognized (" 
+                                             + sb.datatype + ")", i);
                 }
             }
             else {
@@ -223,8 +223,8 @@ public class CqlDelimParser {
     }
 
     // Creates the DelimParser that will parse the line
-    private void createDelimParser(String delimiter, String nullString,
-            String skipList) throws NumberFormatException {
+    private void createDelimParser(String delimiter, String nullString, 
+                                   String skipList) throws NumberFormatException {
         delimParser = new DelimParser(delimiter, nullString);
         for (int i = 0; i < sbl.size(); i++)
             delimParser.add(sbl.get(i).parser);

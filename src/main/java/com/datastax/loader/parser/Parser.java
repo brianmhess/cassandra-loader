@@ -15,10 +15,10 @@
  */
 package com.datastax.loader.parser;
 
-import java.lang.IndexOutOfBoundsException;
 import java.text.ParseException;
 import java.io.StringReader;
 import java.io.IOException;
+
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
@@ -26,8 +26,8 @@ import com.datastax.driver.core.exceptions.InvalidTypeException;
 public interface Parser {
     public Object parse(String toparse) throws ParseException;
     public Object parse(IndexedLine il, String nullString, Character delim, 
-			Character escape, Character quote, boolean last)
-	throws IOException, ParseException;
+                        Character escape, Character quote, boolean last)
+        throws IOException, ParseException;
     public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException;
     public String format(Object o);
 }

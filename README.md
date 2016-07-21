@@ -17,12 +17,12 @@ loading of various types of delimited files, including
 ### Downloading
 
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.18/cassandra-loader
+https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.21/cassandra-loader
 
 Get it with wget:
 
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.18/cassandra-loader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.21/cassandra-loader
 ```
 
 ### Building
@@ -80,7 +80,10 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
  `-configFile`    | Filename           | none                       | Filename of configuration options 
  `-f`             | Filename           | &lt;REQUIRED&gt;                 | Filename to load - required.
  `-host`          | IP Address         | &lt;REQUIRED&gt;                 | Cassandra connection point - required.
- `-schema`        | CQL schema         | &lt;REQUIRED&gt;                 | Schema of input data - required In the format "keySpace.table(col1,col2,...)" and in the order that the data will be in the file.
+ `-format`        | Input format       | delim                            | Format of the data.  Options are "delim" or "json".
+ `-schema`        | CQL schema         |                                  | Schema of input data - required for delim In the format "keySpace.table(col1,col2,...)" and in the order that the data will be in the file.
+ `-keyspace`      | Keyspace name      |                            | Name of keyspace to load in to - required for json
+ `-table`         | Table name         |                            | Name of table to load in to - required for json
  `-port`          | Port Number        | 9042                       | Cassandra native protocol port number
  `-user`          | Username           | none                       | Cassandra username
  `-pw`            | Password           | none                       | Cassandra password
@@ -88,7 +91,7 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
  `-ssl-truststore-pwd`  | Truststore Password | none                | Password to SSL truststore
  `-ssl-keystore-path`   | Keystore Path       | none                | Path to SSL keystore
  `-ssl-keystore-path`   | Keystore Password   | none                | Password to SSL keystore
- '-consistencyLevel | Consistency Level | ONE                       | CQL Consistency Level
+ `-consistencyLevel`    | Consistency Level   | ONE                 | CQL Consistency Level
  `-numThreads`    | Number of threads  | Number of CPUs             | Number of threads to use (one per file)
  `-numFutures`    | Number of Futures  | 1000                       | Number of Java driver futures in flight.
  `-numRetries`    | Number of retries  | 1                          | Number of times to retry the INSERT before declaring defeat.
@@ -183,6 +186,7 @@ If you do not set the successDir then files that successfully loaded will remain
 ## Usage Statement:
 
 ```
+version: 0.0.21
 Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]
 OPTIONS:
   -configFile <filename>         File with configuration options
@@ -201,7 +205,8 @@ OPTIONS:
   -ssl-truststore-pw <pwd>       Password for SSL truststore [none]
   -ssl-keystore-path <path>      Path to SSL keystore [none]
   -ssl-keystore-pw <pwd>         Password for SSL keystore [none]
-  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]
+  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]
+  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]
   -batchSize <batchSize>         Number of INSERTs to batch together [1]
   -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','
   -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]
@@ -214,6 +219,7 @@ OPTIONS:
   -rateFile <filename>           Where to print the rate statistics
   -successDir <dir>              Directory where to move successfully loaded files
   -failureDir <dir>              Directory where to move files that did not successfully load
+  -nullsUnset [false|true]         Treat nulls as unset [faslse]
 
 
 Examples:
@@ -292,7 +298,7 @@ cassandra-unloader -f stdout -host host1 -schema "ks.table(a,b,c)" | cassandra-l
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.19/cassandra-unloader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.21/cassandra-unloader
 ```
 
 To build, run:
@@ -311,7 +317,7 @@ cassandra-unloader
 ###Usage statement:
 
 ```
-version: 0.0.19
+version: 0.0.21
 Usage: -f <outputStem> -host <ipaddress> -schema <schema> [OPTIONS]
 OPTIONS:
   -configFile <filename>         File with configuration options

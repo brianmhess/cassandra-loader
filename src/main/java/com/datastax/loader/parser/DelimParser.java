@@ -118,8 +118,8 @@ public class DelimParser {
         for (int i = 0; i < parsersSize; i++) {
             try {
                 if ((null == row[i]) ||
-                        ((null != nullString) &&
-                         (nullString.equalsIgnoreCase(row[i]))))
+                    ((null != nullString) &&
+                     (nullString.equalsIgnoreCase(row[i]))))
                     toAdd = null;
                 else
                     toAdd = parsers.get(i).parse(row[i]);
@@ -145,9 +145,9 @@ public class DelimParser {
         IndexedLine sr = new IndexedLine(line);
         for (int i = 0; i < parsersSize; i++) {
             try {
-                Object toAdd = parsers.get(i).parse(sr, nullString, delim,
-                        escape, quote,
-                        (parsersSize-1 == i));
+                Object toAdd = parsers.get(i).parse(sr, nullString, delim, 
+                                                    escape, quote, 
+                                                    (parsersSize-1 == i));
                 if (!skip.get(i))
                     elements.add(toAdd);
             }
