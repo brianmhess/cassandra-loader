@@ -251,6 +251,18 @@ public class CqlDelimParser {
         return delimParser.parse(line);
     }
 
+    public List<Object> parse(Object line) {
+        if (line.getClass().toString().equals("class java.lang.String;")) {
+            return delimParser.parse((String)line);
+        }
+        else if (line.getClass().toString().equals("class [Ljava.lang.String;")){
+            return delimParser.parse((String[])line);
+        }
+        else System.err.append("Invalid class, can' parse it");
+        System.exit(0);
+        return null;
+    }
+
     public List<Object> parse(String[] row) {
         return delimParser.parse(row);
     }

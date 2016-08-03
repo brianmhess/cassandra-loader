@@ -260,7 +260,7 @@ class CqlDelimLoadTask implements Callable<Long> {
     }
 
     private long execute() throws IOException {
-        String line = null;
+        Object line = null;
         int lineNumber = 0;
         long numInserted = 0;
         int numErrors = 0;
@@ -269,7 +269,11 @@ class CqlDelimLoadTask implements Callable<Long> {
         List<Object> elements = null;
 
         System.err.println("*** Processing " + readerName);
-        if (format.equalsIgnoreCase("delim")) {
+        if (format.equalsIgnoreCase("delim") || format.equalsIgnoreCase("jsonline")) {
+            List<String> columnBackbone = cdp.getColumnNames();
+            int columnCount = columnBackbone.size();
+            JSONObject jsonRow=null;
+            String[] jsonElements = new String[columnCount];
             while ((line = reader.readLine()) != null) {
                 lineNumber++;
                 if (skipRows > 0) {
@@ -279,11 +283,28 @@ class CqlDelimLoadTask implements Callable<Long> {
                 if (maxRows-- < 0)
                     break;
 
-                if (0 == line.trim().length())
+                if (0 == ((String)line).trim().length())
                     continue;
+                if (format.equalsIgnoreCase("jsonline")){
+                    jsonRow = cdp.parseJsonLine((String)line);
+                    jsonElements[0] = jsonRow.get(columnBackbone.get(0)).toString();
+                    int count = 1;
+                    for (int i = 1; i < columnCount; i++) {
+                        if (null != jsonRow.get(columnBackbone.get(i))) {
+                            jsonElements[i] = jsonRow.get(columnBackbone.get(i)).toString();
+                            count++;
+                        } else {
+                            jsonElements[i] = null;
+                        }
+                    }
+                    if (count < jsonRow.size()){
+                        System.out.println("Column does not exist in data model please verify your columns: "+ jsonRow.toString() );
+                    }
+                    line = jsonElements;
+                }
 
                 if (null != (elements = cdp.parse(line))) {
-                    int ret = sendInsert(elements, line);
+                    int ret = sendInsert(elements, line.toString());
                     if (-2 == ret) {
                         cleanup(false);
                         return -2;
@@ -327,7 +348,7 @@ class CqlDelimLoadTask implements Callable<Long> {
                     }
                 }
                 if (null != (elements = cdp.parse(jsonElements))) {
-                    int ret = sendInsert(elements, line);
+                    int ret = sendInsert(elements, (String)line);
                     if (-2 == ret) {
                         cleanup(false);
                         return -2;
@@ -358,50 +379,10 @@ class CqlDelimLoadTask implements Callable<Long> {
                 }
             }
         }// if (format.equalsIgnoreCase("jsonarray"))
-        else if (format.equalsIgnoreCase("jsonline")) {
-            List<String> columnBackbone = cdp.getColumnNames();
-            int columnCount = columnBackbone.size();
-            while ((line = reader.readLine()) != null) {
-                JSONObject jsonRow = cdp.parseJsonLine(line);
-                String[] jsonElements = new String[columnCount];
-                jsonElements[0] = jsonRow.get(columnBackbone.get(0)).toString();
-                for (int i = 1; i < columnCount; i++) {
-                    if (null != jsonRow.get(columnBackbone.get(i))) {
-                        jsonElements[i] = jsonRow.get(columnBackbone.get(i)).toString();
-                    } else {
-                        jsonElements[i] = null;
-                    }
-                }
-                if (null != (elements = cdp.parse(jsonElements))) {
-                    int ret = sendInsert(elements, line);
-                    if (-2 == ret) {
-                        cleanup(false);
-                        return -2;
-                    }
-                    numInserted += ret;
-                } else {
-                    String badString = jsonRow.toJSONString();
-                    if (null != logPrinter) {
-                        logPrinter.println(String.format("Error parsing JSON item %d in %s: %s", lineNumber, readerName, badString));
-                    }
-                    System.err.println(String.format("Error parsing JSON item %d in %s: %s", lineNumber, readerName, badString));
-                    numErrors++;
-                    if (maxErrors <= numErrors) {
-                        if (null != logPrinter) {
-                            logPrinter.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
-                        }
-                        System.err.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
-                        cleanup(false);
-                        return -1;
-                    }
-                }
-            }
-        }// if (format.equalsIgnoreCase("jsonline"))
-
         // Send last partially filled batch
         if ((batchSize > 1) && (batch.size() > 0)) {
             ResultSetFuture resultSetFuture = session.executeAsync(batch);
-            if (!fm.add(resultSetFuture, line)) {
+            if (!fm.add(resultSetFuture, (String)line)) {
                 cleanup(false);
                 return -2;
             }
