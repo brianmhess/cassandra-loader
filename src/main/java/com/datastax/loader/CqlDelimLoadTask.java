@@ -298,7 +298,7 @@ class CqlDelimLoadTask implements Callable<Long> {
                         }
                     }
                     if (count < jsonRow.size()){
-                        System.out.println("Column does not exist in data model please verify your columns: "+ jsonRow.toString() );
+                        System.err.println("Column does not exist in data model please verify your columns: "+ jsonRow.toString() );
                     }
                     line = jsonElements;
                 }

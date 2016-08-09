@@ -151,7 +151,7 @@ public class CqlDelimParser {
         for (int i = 0; i < inList.size(); i++) {
             String col = inList.get(i);
             SchemaBits sb = new SchemaBits();
-            DataType dt = tm.getColumn(col).getType();
+            DataType dt = tm.getColumn("\""+col+"\"").getType();
             sb.name = col;
             sb.datatype = dt.getName();
             if (dt.isCollection()) {
@@ -219,10 +219,10 @@ public class CqlDelimParser {
 
     // Convenience method to return the INSERT statement for a PreparedStatement.
     public String generateInsert() {
-        String insert = "INSERT INTO " + keyspace + "." + tablename + "(" + sbl.get(0).name;
+        String insert = "INSERT INTO " + keyspace + "." + tablename + "(\"" + sbl.get(0).name + "\"";
         String qmarks = "?";
         for (int i = 1; i < sbl.size(); i++) {
-            insert = insert + ", " + sbl.get(i).name;
+            insert = insert + ", \"" + sbl.get(i).name + "\"";
             qmarks = qmarks + ", ?";
         }
         insert = insert + ") VALUES (" + qmarks + ")";
