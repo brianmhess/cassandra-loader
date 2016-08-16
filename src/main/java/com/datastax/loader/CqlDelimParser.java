@@ -20,6 +20,7 @@ import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 import com.datastax.loader.parser.BigDecimalParser;
 import com.datastax.loader.parser.BigIntegerParser;
@@ -45,27 +46,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+  
 public class CqlDelimParser {
     private Map<DataType.Name, Parser> pmap;
     private List<SchemaBits> sbl;
-
-    public List<String> getColumnNames() {
-        return columnNames;
-    }
-
-    private void setColumnNames(List<String> columnNames) {
-        this.columnNames = columnNames;
-    }
-
     private List<String> columnNames;
     private String keyspace;
     private String tablename;
     private DelimParser delimParser;
+    private JSONParser jsonParser;
 
-    public CqlDelimParser(String inCqlSchema, String inDelimiter, 
+    public CqlDelimParser(String inCqlSchema, String inDelimiter, int inCharsPerColumn,
                           String inNullString, String inDateFormatString, 
                           BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
                           String skipList, Session session, boolean bLoader) 
@@ -73,10 +70,11 @@ public class CqlDelimParser {
         // Optionally provide things for the line parser - date format, boolean format, locale
         initPmap(inDateFormatString, inBoolStyle, inLocale, bLoader);
         processCqlSchema(inCqlSchema, session);
-        createDelimParser(inDelimiter, inNullString, skipList);
+        createDelimParser(inDelimiter, inCharsPerColumn, inNullString, skipList);
     }   
 
     public CqlDelimParser(String inKeyspace, String inTable, String inDelimiter,
+                          int inCharsPerColumn,
                           String inNullString, String inDateFormatString, 
                           BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
                           String skipList, Session session, boolean bLoader) 
@@ -86,7 +84,15 @@ public class CqlDelimParser {
         tablename = inTable;
         initPmap(inDateFormatString, inBoolStyle, inLocale, bLoader);
         processCqlSchema(session);
-        createDelimParser(inDelimiter, inNullString, skipList);
+        createDelimParser(inDelimiter, inCharsPerColumn, inNullString, skipList);
+    }
+
+    public List<String> getColumnNames() {
+        return columnNames;
+    }
+
+    private void setColumnNames(List<String> columnNames) {
+        this.columnNames = columnNames;
     }
 
     // used internally to store schema information
@@ -151,8 +157,16 @@ public class CqlDelimParser {
 
 
     private List<SchemaBits> schemaBits(String in, Session session) throws ParseException {
-        TableMetadata tm = session.getCluster().getMetadata()
-            .getKeyspace(keyspace).getTable(tablename);
+        KeyspaceMetadata km = session.getCluster().getMetadata().getKeyspace(keyspace);
+        if (null == km) {
+            System.err.println("Keyspace " + keyspace + " not found.");
+            System.exit(-1);
+        }
+        TableMetadata tm = km.getTable(tablename);
+        if (null == tm) {
+            System.err.println("Table " + tablename + " not found.");
+            System.exit(-1);
+        }
         List<String> inList = new ArrayList<String>();
         if (null != in) {
             String[] tlist = in.split(",");
@@ -169,7 +183,12 @@ public class CqlDelimParser {
         for (int i = 0; i < inList.size(); i++) {
             String col = inList.get(i);
             SchemaBits sb = new SchemaBits();
-            DataType dt = tm.getColumn(col).getType();
+            ColumnMetadata cm = tm.getColumn(col);
+            if (null == cm) {
+                System.err.println("Column " + col + " of table " + keyspace + "." + tablename + " not found");
+                System.exit(-1);
+            }
+            DataType dt = cm.getType();
             sb.name = col;
             sb.datatype = dt.getName();
             if (dt.isCollection()) {
@@ -223,9 +242,10 @@ public class CqlDelimParser {
     }
 
     // Creates the DelimParser that will parse the line
-    private void createDelimParser(String delimiter, String nullString, 
+    private void createDelimParser(String delimiter, int charsPerColumn,
+                                   String nullString, 
                                    String skipList) throws NumberFormatException {
-        delimParser = new DelimParser(delimiter, nullString);
+        delimParser = new DelimParser(delimiter, charsPerColumn, nullString);
         for (int i = 0; i < sbl.size(); i++)
             delimParser.add(sbl.get(i).parser);
         if (null != skipList) {
@@ -233,6 +253,7 @@ public class CqlDelimParser {
                 delimParser.addSkip(Integer.parseInt(s.trim()));
             }
         }
+        jsonParser = new JSONParser();
     }
 
     // Convenience method to return the INSERT statement for a PreparedStatement.
@@ -273,8 +294,44 @@ public class CqlDelimParser {
         return delimParser.parse(row);
     }
 
+    @SuppressWarnings("unchecked")
+    public List<Object> parseJson(String line) {
+        JSONObject jsonObject = null;
+        try {
+            jsonObject = (JSONObject)jsonParser.parse(line);
+        } catch (org.json.simple.parser.ParseException e) {
+            System.err.println(String.format("Invalid format in input %d: %s",line, e.getMessage()));
+            return null;
+        }
+        String[] row = new String[columnNames.size()];
+        Set<String> fields = (Set<String>)jsonObject.keySet();
+        for (int i = 0; i < columnNames.size(); i++) {
+            String s = columnNames.get(i);
+            Object o = jsonObject.get(s);
+            if (null != o)
+                row[i] = o.toString();
+            else row[i] = null;
+            fields.remove(s);
+        }
+        if (0 != fields.size()) {
+            for (String f : fields) {
+                System.err.println("Unknown JSON field " + f);
+            }
+            return null;
+        }
+        return parse(row);
+    }
+
     public String format(Row row) throws IndexOutOfBoundsException, InvalidTypeException {
         return delimParser.format(row);
     }
+
+    public String formatJson(Row row) throws IndexOutOfBoundsException, InvalidTypeException {
+        String[] stringVals = delimParser.stringVals(row);
+        // Use stringVals and columnNames to create JSON
+        
+        return "not yet supported";
+    }
+
 }
 

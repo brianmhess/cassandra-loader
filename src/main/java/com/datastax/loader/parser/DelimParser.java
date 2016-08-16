@@ -30,6 +30,7 @@ public class DelimParser {
     private int parsersSize;
     private List<Object> elements;
     private String delimiter;
+    private int charsPerColumn;
     private String nullString;
     private char delim;
     private char quote;
@@ -40,16 +41,18 @@ public class DelimParser {
 
     public static String DEFAULT_DELIMITER = ",";
     public static String DEFAULT_NULLSTRING = "";
+    public static int DEFAULT_CHARSPERCOLUMN = 4096;
 
     public DelimParser() {
         this(DEFAULT_DELIMITER);
     }
 
     public DelimParser(String inDelimiter) {
-        this(inDelimiter, DEFAULT_NULLSTRING);
+        this(inDelimiter, DEFAULT_CHARSPERCOLUMN, DEFAULT_NULLSTRING);
     }
 
-    public DelimParser(String inDelimiter, String inNullString) {
+    public DelimParser(String inDelimiter, int inCharsPerColumn,
+                       String inNullString) {
         parsers = new ArrayList<Parser>();
         elements = new ArrayList<Object>();
         skip = new ArrayList<Boolean>();
@@ -62,6 +65,7 @@ public class DelimParser {
             nullString = DEFAULT_NULLSTRING;
         else
             nullString = inNullString;
+        charsPerColumn = inCharsPerColumn;
         delim = ("\\t".equals(delimiter)) ?  '\t' : delimiter.charAt(0);
         quote = '\"';
         escape = '\\';
@@ -69,6 +73,7 @@ public class DelimParser {
         CsvParserSettings settings = new CsvParserSettings();
         settings.getFormat().setLineSeparator("\n");
         settings.getFormat().setDelimiter(delim);
+        settings.setMaxCharsPerColumn(charsPerColumn);
         settings.getFormat().setQuote(quote);
         settings.getFormat().setQuoteEscape(escape);
 
@@ -173,18 +178,22 @@ public class DelimParser {
     }
 
     public String format(Row row) throws IndexOutOfBoundsException, InvalidTypeException {
-        String s;
         StringBuilder retVal = new StringBuilder();
-        s = parsers.get(0).format(row, 0);
-        if (null == s)
-            s = nullString;
-        retVal.append(s);
+        String[] stringVals = stringVals(row);
+        retVal.append(stringVals[0]);
         for (int i = 1; i < parsersSize; i++) {
-            s = parsers.get(i).format(row, i);
-            if (null == s)
-                s = nullString;
-            retVal.append(delimiter).append(s);
+            retVal.append(delimiter).append(stringVals[i]);
         }
         return retVal.toString();
+    }
+
+    public String[] stringVals(Row row) throws IndexOutOfBoundsException, InvalidTypeException {
+        String[] stringVals = new String[parsers.size()];
+        for (int i = 0; i < parsersSize; i++) {
+            stringVals[i] = parsers.get(i).format(row, i);
+            if (null == stringVals[i])
+                stringVals[i] = nullString;
+        }
+        return stringVals;
     }
 }

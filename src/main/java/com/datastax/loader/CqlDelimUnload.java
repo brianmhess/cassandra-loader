@@ -92,6 +92,7 @@ public class CqlDelimUnload {
 
     private String cqlSchema = null;
     private String filename = null;
+    private String format = "delim";
 
     private Locale locale = null;
     private BooleanParser.BoolStyle boolStyle = null;
@@ -127,6 +128,12 @@ public class CqlDelimUnload {
     }
     
     private boolean validateArgs() {
+        if (!format.equalsIgnoreCase("delim")
+            && !format.equalsIgnoreCase("jsonline")
+            && !format.equalsIgnoreCase("jsonline")) {
+            System.err.println("Invalid format (" + format + ")");
+            return false;
+        }
         if (numThreads < 1) {
             System.err.println("Number of threads must be non-negative");
             return false;
@@ -271,6 +278,7 @@ public class CqlDelimUnload {
         if (null != (tkey = amap.remove("-beginToken")))    beginToken = tkey;
         if (null != (tkey = amap.remove("-endToken")))      endToken = tkey;
         if (null != (tkey = amap.remove("-where")))         where = tkey;
+        if (null != (tkey = amap.remove("-format")))        format = tkey;
         
         if (!amap.isEmpty()) {
             for (String k : amap.keySet())
@@ -528,7 +536,7 @@ public class CqlDelimUnload {
         }
 
         private boolean setup() throws IOException, ParseException {
-            cdp = new CqlDelimParser(cqlSchema, delimiter, nullString, 
+            cdp = new CqlDelimParser(cqlSchema, delimiter, 4096, nullString, 
                                      dateFormatString, 
                                      boolStyle, locale, null, session, false);
             String select = cdp.generateSelect();
@@ -567,10 +575,25 @@ public class CqlDelimUnload {
             BoundStatement bound = statement.bind();
             ResultSet rs = session.execute(bound);
             numRead = 0;
+            String s = null;
+            String jsonArrayChar = "[\n";
             for (Row row : rs) {
-                writer.println(cdp.format(row));
+                if (format.equalsIgnoreCase("jsonarray")) {
+                    writer.print(jsonArrayChar);
+                    jsonArrayChar = ",";
+                }
+                if (format.equalsIgnoreCase("delim")) {
+                    s = cdp.format(row);
+                }
+                else if (format.equalsIgnoreCase("jsonline")
+                         || format.equalsIgnoreCase("jsonarray")) {
+                    s = cdp.formatJson(row);
+                }
+                writer.println(s);
                 numRead++;
             }
+            if (format.equalsIgnoreCase("jsonarray"))
+                writer.println("]");
             return numRead;
         }
     }

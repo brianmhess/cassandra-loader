@@ -97,6 +97,7 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
  `-numRetries`    | Number of retries  | 1                          | Number of times to retry the INSERT before declaring defeat.
  `-queryTimeout`  | Timeout in seconds | 2                          | Amount of time to wait for a query to finish before timing out.
  `-delim`         | Delimiter          | ,                          | Delimiter to use
+ `-charsPerColumn | Characters per column | 4096                    | Maximum characters per column
  `-nullString`    | Null String        | &lt;empty string&gt;             | String to represent NULL data
  `-boolStyle`     | Boolean Style      | TRUE_FALSE                 | String for boolean values.  Options are "1_0", "Y_N", "T_F", "YES_NO", "TRUE_FALSE".
  `-decimalDelim`  | Decimal delimiter  | .                          | Delimiter for decimal values.  Options are "." or ","
@@ -187,39 +188,46 @@ If you do not set the successDir then files that successfully loaded will remain
 
 ```
 version: 0.0.21
-Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]
+Usage: -f <filename> -host <ipaddress> [OPTIONS]
 OPTIONS:
-  -configFile <filename>         File with configuration options
-  -delim <delimiter>             Delimiter to use [,]
-  -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]
-  -nullString <nullString>       String that signifies NULL [none]
-  -skipRows <skipRows>           Number of rows to skip [0]
-  -skipCols <columnsToSkip>      Comma-separated list of columsn to skip in the input file
-  -maxRows <maxRows>             Maximum number of rows to read (-1 means all) [-1]
-  -maxErrors <maxErrors>         Maximum parse errors to endure [10]
-  -badDir <badDirectory>         Directory for where to place badly parsed rows. [none]
-  -port <portNumber>             CQL Port Number [9042]
-  -user <username>               Cassandra username [none]
-  -pw <password>                 Password for user [none]
-  -ssl-truststore-path <path>    Path to SSL truststore [none]
-  -ssl-truststore-pw <pwd>       Password for SSL truststore [none]
-  -ssl-keystore-path <path>      Path to SSL keystore [none]
-  -ssl-keystore-pw <pwd>         Password for SSL keystore [none]
-  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]
-  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]
-  -batchSize <batchSize>         Number of INSERTs to batch together [1]
-  -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','
-  -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]
-  -numThreads <numThreads>       Number of concurrent threads (files) to load [num cores]
-  -queryTimeout <# seconds>      Query timeout (in seconds) [2]
-  -numRetries <numRetries>       Number of times to retry the INSERT [1]
-  -maxInsertErrors <# errors>    Maximum INSERT errors to endure [10]
-  -rate <rows-per-second>        Maximum insert rate [50000]
-  -progressRate <num txns>       How often to report the insert rate [100000]
-  -rateFile <filename>           Where to print the rate statistics
-  -successDir <dir>              Directory where to move successfully loaded files
-  -failureDir <dir>              Directory where to move files that did not successfully load
-  -nullsUnset [false|true]         Treat nulls as unset [faslse]
+  -schema <schema>                   Table schema (when using delim)
+  -table <tableName>                 Table name (when using json)
+  -keyspace <keyspaceName>           Keyspace name (when using json)
+  -configFile <filename>             File with configuration options
+  -delim <delimiter>                 Delimiter to use [,]
+  -charsPerColumn <chars>            Max number of chars per column [4096]
+  -dateFormat <dateFormatString>     Date format [default for Locale.ENGLISH]
+  -nullString <nullString>           String that signifies NULL [none]
+  -skipRows <skipRows>               Number of rows to skip [0]
+  -skipCols <columnsToSkip>          Comma-separated list of columsn to skip in the input file
+  -maxRows <maxRows>                 Maximum number of rows to read (-1 means all) [-1]
+  -maxErrors <maxErrors>             Maximum parse errors to endure [10]
+  -badDir <badDirectory>             Directory for where to place badly parsed rows. [none]
+  -port <portNumber>                 CQL Port Number [9042]
+  -user <username>                   Cassandra username [none]
+  -pw <password>                     Password for user [none]
+  -ssl-truststore-path <path>        Path to SSL truststore [none]
+  -ssl-truststore-pw <pwd>           Password for SSL truststore [none]
+  -ssl-keystore-path <path>          Path to SSL keystore [none]
+  -ssl-keystore-pw <pwd>             Password for SSL keystore [none]
+  -consistencyLevel <CL>             Consistency level [LOCAL_ONE]
+  -numFutures <numFutures>           Number of CQL futures to keep in flight [1000]
+  -batchSize <batchSize>             Number of INSERTs to batch together [1]
+  -decimalDelim <decimalDelim>       Decimal delimiter [.] Other option is ','
+  -boolStyle <boolStyleString>       Style for booleans [TRUE_FALSE]
+  -numThreads <numThreads>           Number of concurrent threads (files) to load [num cores]
+  -queryTimeout <# seconds>          Query timeout (in seconds) [2]
+  -numRetries <numRetries>           Number of times to retry the INSERT [1]
+  -maxInsertErrors <# errors>        Maximum INSERT errors to endure [10]
+  -rate <rows-per-second>            Maximum insert rate [50000]
+  -progressRate <num txns>           How often to report the insert rate [100000]
+  -rateFile <filename>               Where to print the rate statistics
+  -successDir <dir>                  Directory where to move successfully loaded files
+  -failureDir <dir>                  Directory where to move files that did not successfully load
+  -nullsUnset [false|true]           Treat nulls as unset [faslse]
+  -format [delim|jsonline|jsonarray] Format of data: delimited or JSON [delim]
+  -table <tableName>                 Table name (when using JSON)
+  -keyspace <keyspaceName>           Keyspace name (when using JSON)
 
 
 Examples:

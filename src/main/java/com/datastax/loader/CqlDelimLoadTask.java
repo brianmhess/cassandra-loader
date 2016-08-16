@@ -82,6 +82,7 @@ class CqlDelimLoadTask implements Callable<Long> {
     private String dateFormatString = null;
     private String nullString = null;
     private String delimiter = null;
+    private int charsPerColumn = 4096;
     private TimeUnit unit = TimeUnit.SECONDS;
     private long queryTimeout = 2;
     private int numRetries = 1;
@@ -94,6 +95,7 @@ class CqlDelimLoadTask implements Callable<Long> {
     private JSONArray jsonArray;
 
     public CqlDelimLoadTask(String inCqlSchema, String inDelimiter, 
+                            int inCharsPerColumn,
                             String inNullString, String inDateFormatString,
                             BooleanParser.BoolStyle inBoolStyle, 
                             Locale inLocale, 
@@ -109,6 +111,7 @@ class CqlDelimLoadTask implements Callable<Long> {
         super();
         cqlSchema = inCqlSchema;
         delimiter = inDelimiter;
+        charsPerColumn = inCharsPerColumn;
         nullString = inNullString;
         dateFormatString = inDateFormatString;
         boolStyle = inBoolStyle;
@@ -151,7 +154,7 @@ class CqlDelimLoadTask implements Callable<Long> {
         }
 
         //setup json reader
-        if(format.equalsIgnoreCase("json")){
+        if(format.equalsIgnoreCase("jsonarray")){
             JSONParser parser = new JSONParser();
             jsonArray= (JSONArray) parser.parse(reader);
         }
@@ -165,12 +168,15 @@ class CqlDelimLoadTask implements Callable<Long> {
         }
 
         if (format.equalsIgnoreCase("delim")) {
-            cdp = new CqlDelimParser(cqlSchema, delimiter, nullString,
+            cdp = new CqlDelimParser(cqlSchema, delimiter, charsPerColumn, 
+                                     nullString,
                                      dateFormatString, boolStyle, locale,
                                      skipCols, session, true);
         }
-        else if (format.equalsIgnoreCase("json")) {
-            cdp = new CqlDelimParser(keyspace, table, delimiter, nullString, 
+        else if (format.equalsIgnoreCase("jsonline")
+                 || format.equalsIgnoreCase("jsonarray")) {
+            cdp = new CqlDelimParser(keyspace, table, delimiter, charsPerColumn,
+                                     nullString, 
                                      dateFormatString, boolStyle, locale, 
                                      skipCols, session, true);
         }
@@ -185,7 +191,8 @@ class CqlDelimLoadTask implements Callable<Long> {
                                        maxInsertErrors, logPrinter, 
                                        badInsertPrinter);
         }
-        else if (format.equalsIgnoreCase("json")) {
+        else if (format.equalsIgnoreCase("jsonline")
+                 || format.equalsIgnoreCase("jsonarray")) {
             fm = new JsonPrintingFutureSet(numFutures, queryTimeout, 
                                        maxInsertErrors, logPrinter, 
                                        badInsertPrinter);
@@ -194,12 +201,12 @@ class CqlDelimLoadTask implements Callable<Long> {
         
     private void cleanup(boolean success) throws IOException {
         if (null != badParsePrinter) {
-            if (format.equalsIgnoreCase("json"))
+            if (format.equalsIgnoreCase("jsonarray"))
                 badParsePrinter.println("]");
             badParsePrinter.close();
         }
         if (null != badInsertPrinter) {
-            if (format.equalsIgnoreCase("json"))
+            if (format.equalsIgnoreCase("jsonarray"))
                 badInsertPrinter.println("]");
             badInsertPrinter.close();
         }
@@ -269,7 +276,8 @@ class CqlDelimLoadTask implements Callable<Long> {
         List<Object> elements = null;
 
         System.err.println("*** Processing " + readerName);
-        if (format.equalsIgnoreCase("delim")) {
+        if (format.equalsIgnoreCase("delim")
+            || format.equalsIgnoreCase("jsonline")) {
             while ((line = reader.readLine()) != null) {
                 lineNumber++;
                 if (skipRows > 0) {
@@ -282,7 +290,12 @@ class CqlDelimLoadTask implements Callable<Long> {
                 if (0 == line.trim().length())
                     continue;
 
-                if (null != (elements = cdp.parse(line))) {
+                elements = null;
+                if (format.equalsIgnoreCase("delim"))
+                    elements = cdp.parse(line);
+                else if (format.equalsIgnoreCase("jsonline"))
+                    elements = cdp.parseJson(line);
+                if (null != elements) {
                     int ret = sendInsert(elements, line);
                     if (-2 == ret) {
                         cleanup(false);
@@ -310,7 +323,7 @@ class CqlDelimLoadTask implements Callable<Long> {
                 }
             }
         } // if (format.equalsIgnoreCase("delim"))
-        else if (format.equalsIgnoreCase("json")) {
+        else if (format.equalsIgnoreCase("jsonarray")) {
             boolean firstBadJson = true;
             String badJsonDelim = "[\n";
             List<String> columnBackbone = cdp.getColumnNames();
