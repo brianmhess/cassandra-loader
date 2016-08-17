@@ -183,7 +183,7 @@ public class CqlDelimParser {
         for (int i = 0; i < inList.size(); i++) {
             String col = inList.get(i);
             SchemaBits sb = new SchemaBits();
-            ColumnMetadata cm = tm.getColumn(col);
+            ColumnMetadata cm = tm.getColumn("\""+col+"\"");
             if (null == cm) {
                 System.err.println("Column " + col + " of table " + keyspace + "." + tablename + " not found");
                 System.exit(-1);
@@ -258,10 +258,10 @@ public class CqlDelimParser {
 
     // Convenience method to return the INSERT statement for a PreparedStatement.
     public String generateInsert() {
-        String insert = "INSERT INTO " + keyspace + "." + tablename + "(" + sbl.get(0).name;
+        String insert = "INSERT INTO " + keyspace + "." + tablename + "(\"" + sbl.get(0).name + "\"";
         String qmarks = "?";
         for (int i = 1; i < sbl.size(); i++) {
-            insert = insert + ", " + sbl.get(i).name;
+            insert = insert + ", \"" + sbl.get(i).name + "\"";
             qmarks = qmarks + ", ?";
         }
         insert = insert + ") VALUES (" + qmarks + ")";
