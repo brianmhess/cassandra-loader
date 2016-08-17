@@ -15,71 +15,20 @@
  */
 package com.datastax.loader;
 
+import com.datastax.driver.core.*;
+import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
+import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.loader.parser.BooleanParser;
-import com.datastax.loader.futures.FutureManager;
-import com.datastax.loader.futures.PrintingFutureSet;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Deque;
-import java.util.ArrayDeque;
-import java.util.Comparator;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.io.File;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.InputStreamReader;
-import java.io.IOException;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.FileInputStream;
-import java.io.BufferedOutputStream;
-import java.io.PrintStream;
-import java.io.FileNotFoundException;
-import java.text.ParseException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.security.KeyStore;
-import java.security.SecureRandom;
-import java.security.KeyStoreException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
-
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Metrics;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.ProtocolVersion;
-import com.datastax.driver.core.PoolingOptions;
-import com.datastax.driver.core.ProtocolOptions;
-import com.datastax.driver.core.HostDistance;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.SSLOptions;
-import com.datastax.driver.core.JdkSSLOptions;
-import com.datastax.driver.core.policies.TokenAwarePolicy;
-import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
-
-import com.codahale.metrics.Timer;
+import java.io.*;
+import java.security.*;
+import java.security.cert.CertificateException;
+import java.text.ParseException;
+import java.util.*;
+import java.util.concurrent.*;
 
 public class CqlDelimLoad {
     private String version = "0.0.21";
@@ -137,44 +86,41 @@ public class CqlDelimLoad {
         StringBuilder usage = new StringBuilder("version: ").append(version).append("\n");
         usage.append("Usage: -f <filename> -host <ipaddress> [OPTIONS]\n");
         usage.append("OPTIONS:\n");
-        usage.append("  -schema <schema>                   Table schema (when using delim)\n");
-        usage.append("  -table <tableName>                 Table name (when using json)\n");
-        usage.append("  -keyspace <keyspaceName>           Keyspace name (when using json)\n");
-        usage.append("  -configFile <filename>             File with configuration options\n");
-        usage.append("  -delim <delimiter>                 Delimiter to use [,]\n");
-        usage.append("  -charsPerColumn <chars>            Max number of chars per column [4096]\n");
-        usage.append("  -dateFormat <dateFormatString>     Date format [default for Locale.ENGLISH]\n");
-        usage.append("  -nullString <nullString>           String that signifies NULL [none]\n");
-        usage.append("  -skipRows <skipRows>               Number of rows to skip [0]\n");
-        usage.append("  -skipCols <columnsToSkip>          Comma-separated list of columsn to skip in the input file\n");
-        usage.append("  -maxRows <maxRows>                 Maximum number of rows to read (-1 means all) [-1]\n");
-        usage.append("  -maxErrors <maxErrors>             Maximum parse errors to endure [10]\n");
-        usage.append("  -badDir <badDirectory>             Directory for where to place badly parsed rows. [none]\n");
-        usage.append("  -port <portNumber>                 CQL Port Number [9042]\n");
-        usage.append("  -user <username>                   Cassandra username [none]\n");
-        usage.append("  -pw <password>                     Password for user [none]\n");
-        usage.append("  -ssl-truststore-path <path>        Path to SSL truststore [none]\n");
-        usage.append("  -ssl-truststore-pw <pwd>           Password for SSL truststore [none]\n");
-        usage.append("  -ssl-keystore-path <path>          Path to SSL keystore [none]\n");
-        usage.append("  -ssl-keystore-pw <pwd>             Password for SSL keystore [none]\n");
-        usage.append("  -consistencyLevel <CL>             Consistency level [LOCAL_ONE]\n");
-        usage.append("  -numFutures <numFutures>           Number of CQL futures to keep in flight [1000]\n");
-        usage.append("  -batchSize <batchSize>             Number of INSERTs to batch together [1]\n");
-        usage.append("  -decimalDelim <decimalDelim>       Decimal delimiter [.] Other option is ','\n");
-        usage.append("  -boolStyle <boolStyleString>       Style for booleans [TRUE_FALSE]\n");
-        usage.append("  -numThreads <numThreads>           Number of concurrent threads (files) to load [num cores]\n");
-        usage.append("  -queryTimeout <# seconds>          Query timeout (in seconds) [2]\n");
-        usage.append("  -numRetries <numRetries>           Number of times to retry the INSERT [1]\n");
-        usage.append("  -maxInsertErrors <# errors>        Maximum INSERT errors to endure [10]\n");
-        usage.append("  -rate <rows-per-second>            Maximum insert rate [50000]\n");
-        usage.append("  -progressRate <num txns>           How often to report the insert rate [100000]\n");
-        usage.append("  -rateFile <filename>               Where to print the rate statistics\n");
-        usage.append("  -successDir <dir>                  Directory where to move successfully loaded files\n");
-        usage.append("  -failureDir <dir>                  Directory where to move files that did not successfully load\n");
-        usage.append("  -nullsUnset [false|true]           Treat nulls as unset [faslse]\n");
-        usage.append("  -format [delim|jsonline|jsonarray] Format of data: delimited or JSON [delim]\n");
-        usage.append("  -table <tableName>                 Table name (when using JSON)\n");
-        usage.append("  -keyspace <keyspaceName>           Keyspace name (when using JSON)\n");
+        usage.append("  -format [delim|jsonarray|jsonline]  Format of data: delimited, jsonarray (array of json objects) or jsonline (json object per line) [delim]\n");
+        usage.append("  -schema <schema>               Table schema (when using delim)\n");
+        usage.append("  -table <tableName>             Table name (when using json)\n");
+        usage.append("  -keyspace <keyspaceName>       Keyspace name (when using json)\n");
+        usage.append("  -configFile <filename>         File with configuration options\n");
+        usage.append("  -delim <delimiter>             Delimiter to use [,]\n");
+        usage.append("  -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]\n");
+        usage.append("  -nullString <nullString>       String that signifies NULL [none]\n");
+        usage.append("  -skipRows <skipRows>           Number of rows to skip [0]\n");
+        usage.append("  -skipCols <columnsToSkip>      Comma-separated list of columsn to skip in the input file\n");
+        usage.append("  -maxRows <maxRows>             Maximum number of rows to read (-1 means all) [-1]\n");
+        usage.append("  -maxErrors <maxErrors>         Maximum parse errors to endure [10]\n");
+        usage.append("  -badDir <badDirectory>         Directory for where to place badly parsed rows. [none]\n");
+        usage.append("  -port <portNumber>             CQL Port Number [9042]\n");
+        usage.append("  -user <username>               Cassandra username [none]\n");
+        usage.append("  -pw <password>                 Password for user [none]\n");
+        usage.append("  -ssl-truststore-path <path>    Path to SSL truststore [none]\n");
+        usage.append("  -ssl-truststore-pw <pwd>       Password for SSL truststore [none]\n");
+        usage.append("  -ssl-keystore-path <path>      Path to SSL keystore [none]\n");
+        usage.append("  -ssl-keystore-pw <pwd>         Password for SSL keystore [none]\n");
+        usage.append("  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]\n");
+        usage.append("  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]\n");
+        usage.append("  -batchSize <batchSize>         Number of INSERTs to batch together [1]\n");
+        usage.append("  -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','\n");
+        usage.append("  -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]\n");
+        usage.append("  -numThreads <numThreads>       Number of concurrent threads (files) to load [num cores]\n");
+        usage.append("  -queryTimeout <# seconds>      Query timeout (in seconds) [2]\n");
+        usage.append("  -numRetries <numRetries>       Number of times to retry the INSERT [1]\n");
+        usage.append("  -maxInsertErrors <# errors>    Maximum INSERT errors to endure [10]\n");
+        usage.append("  -rate <rows-per-second>        Maximum insert rate [50000]\n");
+        usage.append("  -progressRate <num txns>       How often to report the insert rate [100000]\n");
+        usage.append("  -rateFile <filename>           Where to print the rate statistics\n");
+        usage.append("  -successDir <dir>              Directory where to move successfully loaded files\n");
+        usage.append("  -failureDir <dir>              Directory where to move files that did not successfully load\n");
+        usage.append("  -nullsUnset [false|true]       Treat nulls as unset [faslse]\n");
 
         usage.append("\n\nExamples:\n");
         usage.append("cassandra-loader -f /path/to/file.csv -host localhost -schema \"test.test3(a, b, c)\"\n");
@@ -194,8 +140,7 @@ public class CqlDelimLoad {
             if (null != table)
                 System.err.println("Format is " + format + ", ignoring table");
         }
-        else if (format.equalsIgnoreCase("jsonline") 
-                 || format.equalsIgnoreCase("jsonarray")) {
+        else if (format.equalsIgnoreCase("jsonarray") || format.equalsIgnoreCase("jsonline")) {
             if (null == keyspace) {
                 System.err.println("If you specify format " + format + " you must provide a keyspace");
                 return false;
@@ -205,7 +150,7 @@ public class CqlDelimLoad {
                 return false;
             }
             if (null != cqlSchema)
-                System.err.println("Format is " + format + ", ignoring schema");
+                System.err.println("In format="+format+", ignoring schema");
         }
         else {
             System.err.println("Unknown format option");

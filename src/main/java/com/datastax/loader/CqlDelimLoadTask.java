@@ -173,10 +173,8 @@ class CqlDelimLoadTask implements Callable<Long> {
                                      dateFormatString, boolStyle, locale,
                                      skipCols, session, true);
         }
-        else if (format.equalsIgnoreCase("jsonline")
-                 || format.equalsIgnoreCase("jsonarray")) {
-            cdp = new CqlDelimParser(keyspace, table, delimiter, charsPerColumn,
-                                     nullString, 
+        else if (format.equalsIgnoreCase("jsonarray") || format.equalsIgnoreCase("jsonline")) {
+            cdp = new CqlDelimParser(keyspace, table, delimiter, nullString, 
                                      dateFormatString, boolStyle, locale, 
                                      skipCols, session, true);
         }
@@ -191,8 +189,7 @@ class CqlDelimLoadTask implements Callable<Long> {
                                        maxInsertErrors, logPrinter, 
                                        badInsertPrinter);
         }
-        else if (format.equalsIgnoreCase("jsonline")
-                 || format.equalsIgnoreCase("jsonarray")) {
+        else if (format.equalsIgnoreCase("jsonarray")|| format.equalsIgnoreCase("jsonline")) {
             fm = new JsonPrintingFutureSet(numFutures, queryTimeout, 
                                        maxInsertErrors, logPrinter, 
                                        badInsertPrinter);
@@ -267,7 +264,7 @@ class CqlDelimLoadTask implements Callable<Long> {
     }
 
     private long execute() throws IOException {
-        String line = null;
+        Object line = null;
         int lineNumber = 0;
         long numInserted = 0;
         int numErrors = 0;
@@ -287,16 +284,28 @@ class CqlDelimLoadTask implements Callable<Long> {
                 if (maxRows-- < 0)
                     break;
 
-                if (0 == line.trim().length())
+                if (0 == ((String)line).trim().length())
                     continue;
+                if (format.equalsIgnoreCase("jsonline")){
+                    jsonRow = cdp.parseJsonLine((String)line);
+                    jsonElements[0] = jsonRow.get(columnBackbone.get(0)).toString();
+                    int count = 1;
+                    for (int i = 1; i < columnCount; i++) {
+                        if (null != jsonRow.get(columnBackbone.get(i))) {
+                            jsonElements[i] = jsonRow.get(columnBackbone.get(i)).toString();
+                            count++;
+                        } else {
+                            jsonElements[i] = null;
+                        }
+                    }
+                    if (count < jsonRow.size()){
+                        System.err.println("Column does not exist in data model please verify your columns: "+ jsonRow.toString() );
+                    }
+                    line = jsonElements;
+                }
 
-                elements = null;
-                if (format.equalsIgnoreCase("delim"))
-                    elements = cdp.parse(line);
-                else if (format.equalsIgnoreCase("jsonline"))
-                    elements = cdp.parseJson(line);
-                if (null != elements) {
-                    int ret = sendInsert(elements, line);
+                if (null != (elements = cdp.parse(line))) {
+                    int ret = sendInsert(elements, line.toString());
                     if (-2 == ret) {
                         cleanup(false);
                         return -2;
@@ -340,7 +349,7 @@ class CqlDelimLoadTask implements Callable<Long> {
                     }
                 }
                 if (null != (elements = cdp.parse(jsonElements))) {
-                    int ret = sendInsert(elements, line);
+                    int ret = sendInsert(elements, (String)line);
                     if (-2 == ret) {
                         cleanup(false);
                         return -2;
@@ -370,12 +379,11 @@ class CqlDelimLoadTask implements Callable<Long> {
                     }
                 }
             }
-        }// if (format.equalsIgnoreCase("json"))
-
+        }// if (format.equalsIgnoreCase("jsonarray"))
         // Send last partially filled batch
         if ((batchSize > 1) && (batch.size() > 0)) {
             ResultSetFuture resultSetFuture = session.executeAsync(batch);
-            if (!fm.add(resultSetFuture, line)) {
+            if (!fm.add(resultSetFuture, (String)line)) {
                 cleanup(false);
                 return -2;
             }

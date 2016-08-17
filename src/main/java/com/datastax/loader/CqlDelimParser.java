@@ -22,23 +22,9 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
-import com.datastax.loader.parser.BigDecimalParser;
-import com.datastax.loader.parser.BigIntegerParser;
-import com.datastax.loader.parser.BooleanParser;
-import com.datastax.loader.parser.ByteBufferParser;
-import com.datastax.loader.parser.DateParser;
-import com.datastax.loader.parser.DelimParser;
-import com.datastax.loader.parser.DoubleParser;
-import com.datastax.loader.parser.FloatParser;
-import com.datastax.loader.parser.InetAddressParser;
-import com.datastax.loader.parser.IntegerParser;
-import com.datastax.loader.parser.ListParser;
-import com.datastax.loader.parser.LongParser;
-import com.datastax.loader.parser.MapParser;
-import com.datastax.loader.parser.Parser;
-import com.datastax.loader.parser.SetParser;
-import com.datastax.loader.parser.StringParser;
-import com.datastax.loader.parser.UUIDParser;
+import com.datastax.loader.parser.*;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -174,6 +160,10 @@ public class CqlDelimParser {
                 inList.add(tlist[i].trim());
         }
         else {
+            if (tm== null){
+                System.err.println("Your table does not exist, please create it.");
+                System.exit(0);
+            }
             for (ColumnMetadata cm : tm.getColumns())
                 inList.add(cm.getName());
         }
@@ -258,10 +248,10 @@ public class CqlDelimParser {
 
     // Convenience method to return the INSERT statement for a PreparedStatement.
     public String generateInsert() {
-        String insert = "INSERT INTO " + keyspace + "." + tablename + "(" + sbl.get(0).name;
+        String insert = "INSERT INTO " + keyspace + "." + tablename + "(\"" + sbl.get(0).name + "\"";
         String qmarks = "?";
         for (int i = 1; i < sbl.size(); i++) {
-            insert = insert + ", " + sbl.get(i).name;
+            insert = insert + ", \"" + sbl.get(i).name + "\"";
             qmarks = qmarks + ", ?";
         }
         insert = insert + ") VALUES (" + qmarks + ")";
@@ -288,6 +278,18 @@ public class CqlDelimParser {
     // Pass through to parse the line - the DelimParser we created will be used.
     public List<Object> parse(String line) {
         return delimParser.parse(line);
+    }
+
+    public List<Object> parse(Object line) {
+        if (line.getClass().toString().equals("class java.lang.String;")) {
+            return delimParser.parse((String)line);
+        }
+        else if (line.getClass().toString().equals("class [Ljava.lang.String;")){
+            return delimParser.parse((String[])line);
+        }
+        else System.err.append("Invalid class, can' parse it");
+        System.exit(0);
+        return null;
     }
 
     public List<Object> parse(String[] row) {

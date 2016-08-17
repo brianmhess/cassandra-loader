@@ -80,7 +80,7 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
  `-configFile`    | Filename           | none                       | Filename of configuration options 
  `-f`             | Filename           | &lt;REQUIRED&gt;                 | Filename to load - required.
  `-host`          | IP Address         | &lt;REQUIRED&gt;                 | Cassandra connection point - required.
- `-format`        | Input format       | delim                            | Format of the data.  Options are "delim" or "json".
+ `-format`        | Input format       | delim                            | Format of the data.  Options are "delim", "jsonarray",  or "jsonline".
  `-schema`        | CQL schema         |                                  | Schema of input data - required for delim In the format "keySpace.table(col1,col2,...)" and in the order that the data will be in the file.
  `-keyspace`      | Keyspace name      |                            | Name of keyspace to load in to - required for json
  `-table`         | Table name         |                            | Name of table to load in to - required for json
