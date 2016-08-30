@@ -15,71 +15,20 @@
  */
 package com.datastax.loader;
 
+import com.datastax.driver.core.*;
+import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
+import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.loader.parser.BooleanParser;
-import com.datastax.loader.futures.FutureManager;
-import com.datastax.loader.futures.PrintingFutureSet;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Deque;
-import java.util.ArrayDeque;
-import java.util.Comparator;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.io.File;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.InputStreamReader;
-import java.io.IOException;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.FileInputStream;
-import java.io.BufferedOutputStream;
-import java.io.PrintStream;
-import java.io.FileNotFoundException;
-import java.text.ParseException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.security.KeyStore;
-import java.security.SecureRandom;
-import java.security.KeyStoreException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
-
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Metrics;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.ProtocolVersion;
-import com.datastax.driver.core.PoolingOptions;
-import com.datastax.driver.core.ProtocolOptions;
-import com.datastax.driver.core.HostDistance;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.SSLOptions;
-import com.datastax.driver.core.JdkSSLOptions;
-import com.datastax.driver.core.policies.TokenAwarePolicy;
-import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
-
-import com.codahale.metrics.Timer;
+import java.io.*;
+import java.security.*;
+import java.security.cert.CertificateException;
+import java.text.ParseException;
+import java.util.*;
+import java.util.concurrent.*;
 
 public class CqlDelimLoad {
     private String version = "0.0.21";
@@ -490,27 +439,39 @@ public class CqlDelimLoad {
         throws IOException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException,
                CertificateException, UnrecoverableKeyException {
         // Connect to Cassandra
-        PoolingOptions pOpts = new PoolingOptions();
-        pOpts.setMaxConnectionsPerHost(HostDistance.LOCAL, 8);
-        pOpts.setCoreConnectionsPerHost(HostDistance.LOCAL, 8);
-        Cluster.Builder clusterBuilder = Cluster.builder()
-            .addContactPoint(host)
-            .withPort(port)
-            //.withCompression(ProtocolOptions.Compression.LZ4)
-            .withPoolingOptions(pOpts)
-            .withLoadBalancingPolicy(new TokenAwarePolicy( DCAwareRoundRobinPolicy.builder().build()))
-            ;
+        Session tsession = null;
+        try {
+            PoolingOptions pOpts = new PoolingOptions();
+            pOpts.setMaxConnectionsPerHost(HostDistance.LOCAL, 8);
+            pOpts.setCoreConnectionsPerHost(HostDistance.LOCAL, 8);
+            Cluster.Builder clusterBuilder = Cluster.builder()
+                    .addContactPoint(host)
+                    .withPort(port)
+                    //.withCompression(ProtocolOptions.Compression.LZ4)
+                    .withPoolingOptions(pOpts)
+                    .withLoadBalancingPolicy(new TokenAwarePolicy(DCAwareRoundRobinPolicy.builder().build()));
 
-        if (null != username)
-            clusterBuilder = clusterBuilder.withCredentials(username, password);
-        if (null != truststorePath)
-            clusterBuilder = clusterBuilder.withSSL(createSSLOptions());
+            if (null != username)
+                clusterBuilder = clusterBuilder.withCredentials(username, password);
+            if (null != truststorePath)
+                clusterBuilder = clusterBuilder.withSSL(createSSLOptions());
 
-        cluster = clusterBuilder.build();
-        if (null == cluster) {
-            throw new IOException("Could not create cluster");
+            cluster = clusterBuilder.build();
+            if (null == cluster) {
+                throw new IOException("Could not create cluster");
+            }
+            tsession = cluster.connect();
         }
-        Session tsession = cluster.connect();
+        catch (IllegalArgumentException e){
+            System.err.println("Could not connect to the cluster, check your hosts");
+            //e.printStackTrace();
+            System.exit(0);
+        }
+        catch (Exception e){
+            System.err.println(e.getStackTrace());
+            e.printStackTrace();
+            System.exit(0);
+        }
 
         if ((0 > cluster.getConfiguration().getProtocolOptions()
              .getProtocolVersion().compareTo(ProtocolVersion.V4))
