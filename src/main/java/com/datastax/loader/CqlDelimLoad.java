@@ -80,6 +80,7 @@ import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
 import com.codahale.metrics.Timer;
+import org.apache.commons.lang3.StringEscapeUtils;
 
 public class CqlDelimLoad {
     private String version = "0.0.21";
@@ -456,7 +457,19 @@ public class CqlDelimLoad {
         if (0 < inNumFutures)
             numFutures = inNumFutures / numThreads;
 
+        if (null != keyspace)
+            keyspace = quote(keyspace);
+        if (null != table)
+            table = quote(table);
+
         return validateArgs();
+    }
+
+    private String quote(String instr) {
+        String ret = instr;
+        if ((ret.startsWith("\"")) && (ret.endsWith("\"")))
+            ret = ret.substring(1, ret.length() - 1);
+        return "\"" + ret + "\"";
     }
 
     private SSLOptions createSSLOptions() 

@@ -175,7 +175,7 @@ public class CqlDelimParser {
         }
         else {
             for (ColumnMetadata cm : tm.getColumns())
-                inList.add(cm.getName());
+                inList.add("\""+cm.getName()+"\"");
         }
         //keep the list of columns from metadata to use as column backbone for JSON
         setColumnNames(inList);
