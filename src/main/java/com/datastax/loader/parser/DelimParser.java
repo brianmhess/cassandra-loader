@@ -80,6 +80,7 @@ public class DelimParser {
 	settings.getFormat().setDelimiter(delim);
 	settings.getFormat().setQuote(quote);
 	settings.getFormat().setQuoteEscape(escape);
+	settings.getFormat().setComment('\0');
 	
 	csvp = new CsvParser(settings);
     }
