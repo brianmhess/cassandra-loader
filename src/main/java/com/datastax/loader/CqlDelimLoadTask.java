@@ -19,6 +19,7 @@ import com.datastax.loader.parser.BooleanParser;
 import com.datastax.loader.futures.FutureManager;
 import com.datastax.loader.futures.PrintingFutureSet;
 
+import java.io.*;
 import java.lang.System;
 import java.lang.String;
 import java.lang.StringBuilder;
@@ -35,14 +36,6 @@ import java.util.ArrayDeque;
 import java.util.Comparator;
 import java.util.Arrays;
 import java.util.Locale;
-import java.io.File;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.InputStreamReader;
-import java.io.IOException;
-import java.io.FileOutputStream;
-import java.io.BufferedOutputStream;
-import java.io.PrintStream;
 import java.text.ParseException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -54,6 +47,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.zip.GZIPInputStream;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
@@ -155,7 +149,13 @@ class CqlDelimLoadTask implements Callable<Long> {
 	    readerName = "stdin";
 	}
 	else {
-	    reader = new BufferedReader(new FileReader(infile));
+		InputStream inputStream;
+		if (infile.getName().endsWith(".gz")) {
+			inputStream = new GZIPInputStream(new FileInputStream(infile));
+		} else {
+			inputStream = new FileInputStream(infile);
+		}
+	    reader = new BufferedReader(new InputStreamReader(inputStream));
 	    readerName = infile.getName();
 	}
 	    
