@@ -25,7 +25,7 @@ import java.text.ParseException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-  
+
 public class CqlDelimParser {
     private Map<DataType.Name, Parser> pmap;
     private List<SchemaBits> sbl;
@@ -44,7 +44,7 @@ public class CqlDelimParser {
         initPmap(inDateFormatString, inBoolStyle, inLocale, bLoader);
         processCqlSchema(inCqlSchema, session);
         createDelimParser(inDelimiter, inCharsPerColumn, inNullString, skipList);
-    }   
+    }
 
     public CqlDelimParser(String inKeyspace, String inTable, String inDelimiter,
                           int inCharsPerColumn,
@@ -152,7 +152,7 @@ public class CqlDelimParser {
         }
         else {
             for (ColumnMetadata cm : tm.getColumns())
-                inList.add(cm.getName());
+                inList.add("\""+cm.getName()+"\"");
         }
         //keep the list of columns from metadata to use as column backbone for JSON
         setColumnNames(inList);
@@ -307,7 +307,6 @@ public class CqlDelimParser {
     public String formatJson(Row row) throws IndexOutOfBoundsException, InvalidTypeException {
         String[] stringVals = delimParser.stringVals(row);
         // Use stringVals and columnNames to create JSON
-        
         return "not yet supported";
     }
 

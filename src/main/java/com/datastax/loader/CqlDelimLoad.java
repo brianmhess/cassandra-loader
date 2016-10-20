@@ -62,7 +62,6 @@ public class CqlDelimLoad {
     private long maxErrors = 10;
     private long skipRows = 0;
     private String skipCols = null;
-    
     private long maxRows = -1;
     private String badDir = ".";
     private String filename = null;
@@ -131,7 +130,7 @@ public class CqlDelimLoad {
         usage.append("cassandra-loader -f stdin -host localhost -schema \"test.test3(a, b, c)\" -user myuser -pw mypassword\n");
         return usage.toString();
     }
-    
+
     private boolean validateArgs() {
         if (format.equalsIgnoreCase("delim")) {
             if (null == cqlSchema) {
@@ -311,7 +310,7 @@ public class CqlDelimLoad {
         }
         return true;
     }
-    
+
     private boolean parseArgs(String[] args) throws IOException, FileNotFoundException {
         String tkey;
         if (args.length == 0) {
@@ -395,7 +394,7 @@ public class CqlDelimLoad {
             maxErrors = Long.MAX_VALUE;
         if (-1 == maxInsertErrors)
             maxInsertErrors = Long.MAX_VALUE;
-        
+
         if (!amap.isEmpty()) {
             for (String k : amap.keySet())
                 System.err.println("Unrecognized option: " + k);
@@ -405,7 +404,19 @@ public class CqlDelimLoad {
         if (0 < inNumFutures)
             numFutures = inNumFutures / numThreads;
 
+        if (null != keyspace)
+            keyspace = quote(keyspace);
+        if (null != table)
+            table = quote(table);
+
         return validateArgs();
+    }
+
+    private String quote(String instr) {
+        String ret = instr;
+        if ((ret.startsWith("\"")) && (ret.endsWith("\"")))
+            ret = ret.substring(1, ret.length() - 1);
+        return "\"" + ret + "\"";
     }
 
     private SSLOptions createSSLOptions() 
@@ -417,7 +428,7 @@ public class CqlDelimLoad {
                 truststorePwd.toCharArray());
         tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(tks);
-    
+
         KeyManagerFactory kmf = null;
         if (null != keystorePath) {
             KeyStore kks = KeyStore.getInstance("JKS");
@@ -507,7 +518,6 @@ public class CqlDelimLoad {
         if (null != cluster)
             cluster.close();
     }
-    
     public boolean run(String[] args) 
         throws IOException, ParseException, InterruptedException, ExecutionException, KeyStoreException,
                NoSuchAlgorithmException, KeyManagementException, CertificateException, 
@@ -521,7 +531,7 @@ public class CqlDelimLoad {
         // Setup
         if (false == setup())
             return false;
-        
+
         // open file
         Deque<File> fileList = new ArrayDeque<File>();
         File infile = null;

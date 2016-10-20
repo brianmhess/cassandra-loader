@@ -82,8 +82,8 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
  `-host`          | IP Address         | &lt;REQUIRED&gt;                 | Cassandra connection point - required.
  `-format`        | Input format       | delim                            | Format of the data.  Options are "delim" or "json".
  `-schema`        | CQL schema         |                                  | Schema of input data - required for delim In the format "keySpace.table(col1,col2,...)" and in the order that the data will be in the file.
- `-keyspace`      | Keyspace name      |                            | Name of keyspace to load in to - required for json
- `-table`         | Table name         |                            | Name of table to load in to - required for json
+ `-keyspace`      | Keyspace name      |                            | Name of keyspace (case sensitive) to load in to - required for json
+ `-table`         | Table name         |                            | Name of table (case sensitive) to load in to - required for json
  `-port`          | Port Number        | 9042                       | Cassandra native protocol port number
  `-user`          | Username           | none                       | Cassandra username
  `-pw`            | Password           | none                       | Cassandra password
@@ -183,6 +183,7 @@ The default nullString is the empty string.  If you want empty strings to be sav
 
 If you do not set the successDir then files that successfully loaded will remain in their input directory.  The same is true for failed files if you do not set the failureDir.  You cannot set either if the input file is "stdin".
 
+When using `jsonline`, all JSON field names are case-sensitive.  When using `jsonline` or `jsonarray`, the `-keyspace` and `-table` arguments are case-sensitive.
 
 ## Usage Statement:
 

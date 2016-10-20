@@ -1,10 +1,9 @@
-- Changed JVM settings to 1GB heap
-- Added support for jsonline (one JSON per line)
-- Changed 'json' to 'jsonarray'
-- New -charsPerColumn for the Univocity parser (default is 4096)
-
 ## 0.0.21
-Added JSON parsing input format for cassandra-loader
+- Added support for jsonarray (one JSON array per file)
+- Added support for jsonline (one JSON per line)
+- Changed JVM settings to 1GB heap
+- Added -charsPerColumn (default to 4096) to enable Univocity optimizations
+- Removed explicit queries to metadata tables and use driver API calls
 
 ## 0.0.19
 - Converted to parse with Univocity CSV parser
