@@ -15,15 +15,12 @@
  */
 package com.datastax.loader.parser;
 
-import java.lang.String;
-import java.lang.Character;
-import java.lang.StringBuilder;
-import java.lang.IndexOutOfBoundsException;
 import java.util.List;
 import java.util.ArrayList;
 import java.io.StringReader;
 import java.io.IOException;
 import java.text.ParseException;
+
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
@@ -43,68 +40,63 @@ public class ListParser extends AbstractParser {
     private CsvParser csvp = null;
     
     public ListParser(Parser inParser, char inCollectionDelim, 
-		      char inCollectionBegin, char inCollectionEnd) {
-	parser = inParser;
-	collectionDelim = inCollectionDelim;
-	collectionBegin = inCollectionBegin;
-	collectionEnd = inCollectionEnd;
-	elements = new ArrayList<Object>();
+                      char inCollectionBegin, char inCollectionEnd) {
+        parser = inParser;
+        collectionDelim = inCollectionDelim;
+        collectionBegin = inCollectionBegin;
+        collectionEnd = inCollectionEnd;
+        elements = new ArrayList<Object>();
 
-	CsvParserSettings settings = new CsvParserSettings();
-	settings.getFormat().setLineSeparator("\n");
-	settings.getFormat().setDelimiter(collectionDelim);
-	settings.getFormat().setQuote(collectionQuote);
-	settings.getFormat().setQuoteEscape(collectionEscape);
-	
-	csvp = new CsvParser(settings);
+        CsvParserSettings settings = new CsvParserSettings();
+        settings.getFormat().setLineSeparator("\n");
+        settings.getFormat().setDelimiter(collectionDelim);
+        settings.getFormat().setQuote(collectionQuote);
+        settings.getFormat().setQuoteEscape(collectionEscape);
+        
+        csvp = new CsvParser(settings);
     }
 
     public Object parse(String toparse) throws ParseException {
-	if (null == toparse)
-	    return null;
-	toparse = unquote(toparse);
-	if (!toparse.startsWith(Character.toString(collectionBegin)))
-	    throw new ParseException("Must begin with " + collectionBegin 
-				     + "\n", 0);
-	if (!toparse.endsWith(Character.toString(collectionEnd)))
-	    throw new ParseException("Must end with " + collectionEnd 
-				     + "\n", 0);
-	toparse = toparse.substring(1, toparse.length() - 1);
-	String[] row = csvp.parseLine(toparse);
-	elements.clear();
-	try {
-	    for (int i = 0; i < row.length; i++) {
-		if (null == row[i])
-		    throw new ParseException("Sets may not have NULLs\n", 0);
-		Object o = parser.parse(row[i]);
-		if (null == o)
-		    throw new ParseException("Lists may not have NULLs", 0);
-		elements.add(o);
-	    }
-	}
-	catch (Exception e) {
-	    throw new ParseException("Trouble parsing : " + e.getMessage(), 0);
-	}
-	return elements;
+        if (null == toparse)
+            return null;
+        toparse = unquote(toparse);
+        if (!toparse.startsWith(Character.toString(collectionBegin)))
+            throw new ParseException("Must begin with " + collectionBegin 
+                                     + "\n", 0);
+        if (!toparse.endsWith(Character.toString(collectionEnd)))
+            throw new ParseException("Must end with " + collectionEnd 
+                                     + "\n", 0);
+        toparse = toparse.substring(1, toparse.length() - 1);
+        String[] row = csvp.parseLine(toparse);
+        elements.clear();
+        try {
+            for (int i = 0; i < row.length; i++) 
+                elements.add(parser.parse(row[i]));
+        }
+        catch (Exception e) {
+            System.err.println("Trouble parsing : " + e.getMessage());
+            return null;
+        }
+        return elements;
     }
 
     //public String format(Row row, int index) {
-    //	if (row.isNull(index))
-    //	    return null;
-    //	List<Object> list = row.getList(index, Object.class);
+    //  if (row.isNull(index))
+    //      return null;
+    //  List<Object> list = row.getList(index, Object.class);
     @SuppressWarnings("unchecked")
     public String format(Object o) {
-	List<Object> list = (List<Object>)o;
-	StringBuilder sb = new StringBuilder();
-	sb.append(collectionBegin);
-	if (list.size() > 0) {
-	    for (int i = 0; i < list.size() - 1; i++) {
-		sb.append(parser.format(list.get(i)));
-		sb.append(collectionDelim);
-	    }
-	    sb.append(parser.format(list.get(list.size() - 1)));
-	}
-	sb.append(collectionEnd);
-	return quote(sb.toString());
+        List<Object> list = (List<Object>)o;
+        StringBuilder sb = new StringBuilder();
+        sb.append(collectionBegin);
+        if (list.size() > 0) {
+            for (int i = 0; i < list.size() - 1; i++) {
+                sb.append(parser.format(list.get(i)));
+                sb.append(collectionDelim);
+            }
+            sb.append(parser.format(list.get(list.size() - 1)));
+        }
+        sb.append(collectionEnd);
+        return quote(sb.toString());
     }
 }

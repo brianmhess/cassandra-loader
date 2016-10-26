@@ -15,31 +15,28 @@
  */
 package com.datastax.loader.parser;
 
-import java.lang.String;
-import java.lang.Integer;
-import java.lang.Number;
 import java.util.Locale;
 import java.text.ParseException;
-import java.lang.IndexOutOfBoundsException;
+
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // Integer parser - use the Number parser
 public class IntegerParser extends NumberParser {
     public IntegerParser() {
-	super();
+        super();
     }
     
     public IntegerParser(Locale inLocale) {
-	super(inLocale);
+        super(inLocale);
     }
     
     public IntegerParser(Locale inLocale, Boolean grouping) {
-	super(inLocale, grouping);
+        super(inLocale, grouping);
     }
     
     public Integer parse(String toparse) throws ParseException {
-	Number val = super.parse(toparse);
-	return (null == val) ? null : val.intValue();
+        Number val = super.parse(toparse);
+        return (null == val) ? null : val.intValue();
     }
 }

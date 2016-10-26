@@ -15,31 +15,28 @@
  */
 package com.datastax.loader.parser;
 
-import java.lang.String;
-import java.lang.Long;
-import java.lang.Number;
 import java.util.Locale;
 import java.text.ParseException;
-import java.lang.IndexOutOfBoundsException;
+
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // Long parser - use the Number parser
 public class LongParser extends NumberParser {
     public LongParser() {
-	super();
+        super();
     }
     
     public LongParser(Locale inLocale) {
-	super(inLocale);
+        super(inLocale);
     }
     
     public LongParser(Locale inLocale, Boolean grouping) {
-	super(inLocale, grouping);
+        super(inLocale, grouping);
     }
     
     public Long parse(String toparse) throws ParseException {
-	Number val = super.parse(toparse);
-	return (null == val) ? null : val.longValue();
+        Number val = super.parse(toparse);
+        return (null == val) ? null : val.longValue();
     }
 }

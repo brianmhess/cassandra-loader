@@ -15,16 +15,13 @@
  */
 package com.datastax.loader.parser;
 
-import java.lang.String;
-import java.lang.Character;
-import java.lang.StringBuilder;
-import java.lang.IndexOutOfBoundsException;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.io.StringReader;
 import java.io.IOException;
 import java.text.ParseException;
+
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
@@ -44,49 +41,43 @@ public class SetParser extends AbstractParser {
     private CsvParser csvp = null;
 
     public SetParser(Parser inParser, char inCollectionDelim, 
-		     char inCollectionBegin, char inCollectionEnd) {
-	parser = inParser;
-	collectionDelim = inCollectionDelim;
-	collectionBegin = inCollectionBegin;
-	collectionEnd = inCollectionEnd;
-	elements = new HashSet<Object>();
+                     char inCollectionBegin, char inCollectionEnd) {
+        parser = inParser;
+        collectionDelim = inCollectionDelim;
+        collectionBegin = inCollectionBegin;
+        collectionEnd = inCollectionEnd;
+        elements = new HashSet<Object>();
 
-	CsvParserSettings settings = new CsvParserSettings();
-	settings.getFormat().setLineSeparator("\n");
-	settings.getFormat().setDelimiter(collectionDelim);
-	settings.getFormat().setQuote(collectionQuote);
-	settings.getFormat().setQuoteEscape(collectionEscape);
-	
-	csvp = new CsvParser(settings);
+        CsvParserSettings settings = new CsvParserSettings();
+        settings.getFormat().setLineSeparator("\n");
+        settings.getFormat().setDelimiter(collectionDelim);
+        settings.getFormat().setQuote(collectionQuote);
+        settings.getFormat().setQuoteEscape(collectionEscape);
+        
+        csvp = new CsvParser(settings);
     }
     public Object parse(String toparse) throws ParseException {
-	if (null == toparse)
-	    return null;
-	toparse = unquote(toparse);
-	if (!toparse.startsWith(Character.toString(collectionBegin)))
-	    throw new ParseException("Must begin with " + collectionBegin 
-				     + "\n", 0);
-	if (!toparse.endsWith(Character.toString(collectionEnd)))
-	    throw new ParseException("Must end with " + collectionEnd 
-				     + "\n", 0);
-	toparse = toparse.substring(1, toparse.length() - 1);
-	String[] row = csvp.parseLine(toparse);
-	elements.clear();
-	try {
-	    for (int i = 0; i < row.length; i++) {
-		if (null == row[i])
-		    throw new ParseException("Sets may not have NULLs\n", 0);
-		Object o = parser.parse(row[i]);
-		if (null == o)
-		    throw new ParseException("Sets may not have NULLs\n", 0);
-
-		elements.add(o);
-	    }
-	}
-	catch (Exception e) {
-	    throw new ParseException("Trouble parsing : " + e.getMessage(), 0);
-	}
-	return elements;
+        if (null == toparse)
+            return null;
+        toparse = unquote(toparse);
+        if (!toparse.startsWith(Character.toString(collectionBegin)))
+            throw new ParseException("Must begin with " + collectionBegin 
+                                     + "\n", 0);
+        if (!toparse.endsWith(Character.toString(collectionEnd)))
+            throw new ParseException("Must end with " + collectionEnd 
+                                     + "\n", 0);
+        toparse = toparse.substring(1, toparse.length() - 1);
+        String[] row = csvp.parseLine(toparse);
+        elements.clear();
+        try {
+            for (int i = 0; i < row.length; i++) 
+                elements.add(parser.parse(row[i]));
+        }
+        catch (Exception e) {
+            System.err.println("Trouble parsing : " + e.getMessage());
+            return null;
+        }
+        return elements;
     }
 
     //public String format(Row row, int index) {
@@ -95,15 +86,15 @@ public class SetParser extends AbstractParser {
     //  Set<Object> set = row.getSet(index, Object.class);
     @SuppressWarnings("unchecked")
     public String format(Object o) {
-	Set<Object> set = (Set<Object>)o;
-	Iterator<Object> iter = set.iterator();
+        Set<Object> set = (Set<Object>)o;
+        Iterator<Object> iter = set.iterator();
         StringBuilder sb = new StringBuilder();
-	sb.append(collectionBegin);
-	if (iter.hasNext())
-	    sb.append(parser.format(iter.next()));
-	while (iter.hasNext()) {
-	    sb.append(collectionDelim);
-	    sb.append(parser.format(iter.next()));
+        sb.append(collectionBegin);
+        if (iter.hasNext())
+            sb.append(parser.format(iter.next()));
+        while (iter.hasNext()) {
+            sb.append(collectionDelim);
+            sb.append(parser.format(iter.next()));
         }
         sb.append(collectionEnd);
 

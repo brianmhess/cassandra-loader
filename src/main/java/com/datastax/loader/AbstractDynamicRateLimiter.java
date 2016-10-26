@@ -26,75 +26,75 @@ public abstract class AbstractDynamicRateLimiter extends RateLimiter {
     protected boolean invertLogic;
 
     public AbstractDynamicRateLimiter(double inRate, long inHowOften,
-				      double inMaxStat, double inMinStat,
-				      double inDownFraction, 
-				      double inUpFraction, 
-				      boolean inInvertLogic) {
-	this(inRate, Long.MAX_VALUE, inHowOften, inMaxStat, inMinStat,
-	     inDownFraction, inUpFraction, inInvertLogic);
+                                      double inMaxStat, double inMinStat,
+                                      double inDownFraction, 
+                                      double inUpFraction, 
+                                      boolean inInvertLogic) {
+        this(inRate, Long.MAX_VALUE, inHowOften, inMaxStat, inMinStat,
+             inDownFraction, inUpFraction, inInvertLogic);
     }
 
     public AbstractDynamicRateLimiter(double inRate, long inUpdateRate,
-				      long inHowOften, double inMaxStat, 
-				      double inMinStat, double inDownFraction, 
-				      double inUpFraction, 
-				      boolean inInvertLogic) {
-	super(inRate);
-	howOften = inHowOften;
-	maxStat = inMaxStat;
-	minStat = inMinStat;
-	downFraction = inDownFraction;
-	upFraction = inUpFraction;
-	invertLogic = inInvertLogic;
+                                      long inHowOften, double inMaxStat, 
+                                      double inMinStat, double inDownFraction, 
+                                      double inUpFraction, 
+                                      boolean inInvertLogic) {
+        super(inRate);
+        howOften = inHowOften;
+        maxStat = inMaxStat;
+        minStat = inMinStat;
+        downFraction = inDownFraction;
+        upFraction = inUpFraction;
+        invertLogic = inInvertLogic;
     }
 
     public void acquire() {
-	this.acquire(1);
+        this.acquire(1);
     }
 
     public synchronized void acquire(int permits) {
-	long currTime = System.currentTimeMillis();
-	if (currTime - lastCheck > howOften) {
-	    adjustRate();
-	    lastCheck = currTime;
-	}
-	super.acquire(permits);
+        long currTime = System.currentTimeMillis();
+        if (currTime - lastCheck > howOften) {
+            adjustRate();
+            lastCheck = currTime;
+        }
+        super.acquire(permits);
     }
 
     protected synchronized void adjustRate() {
-	double currStat = getCurrStat();
-	if (statTooHigh(currStat)) {
-	    if (invertLogic)
-		adjustRateUp();
-	    else
-		adjustRateDown();
-	    System.err.println("Adjusting rate down : " + currStat + " > " + maxStat + "   " + super.getRate());
-	}
-	else if (statTooLow(currStat)) {
-	    if (invertLogic)
-		adjustRateDown();
-	    else
-		adjustRateUp();
-	    System.err.println("Adjusting rate up : " + currStat + " > " + maxStat + "   " + super.getRate());
-	}
+        double currStat = getCurrStat();
+        if (statTooHigh(currStat)) {
+            if (invertLogic)
+                adjustRateUp();
+            else
+                adjustRateDown();
+            System.err.println("Adjusting rate down : " + currStat + " > " + maxStat + "   " + super.getRate());
+        }
+        else if (statTooLow(currStat)) {
+            if (invertLogic)
+                adjustRateDown();
+            else
+                adjustRateUp();
+            System.err.println("Adjusting rate up : " + currStat + " > " + maxStat + "   " + super.getRate());
+        }
     }
 
     protected synchronized boolean statTooHigh(double currStat) {
-	return currStat > maxStat;
+        return currStat > maxStat;
     }
 
     protected synchronized boolean statTooLow(double currStat) {
-	return currStat < minStat;
+        return currStat < minStat;
     }
 
     protected synchronized void adjustRateDown() {
-	double currRate = super.getRate();
-	super.setRate(currRate - (currRate * downFraction));
+        double currRate = super.getRate();
+        super.setRate(currRate - (currRate * downFraction));
     }
 
     protected synchronized void adjustRateUp() {
-	double currRate = super.getRate();
-	super.setRate(currRate + (currRate * upFraction));
+        double currRate = super.getRate();
+        super.setRate(currRate + (currRate * upFraction));
     }
 
     protected abstract double getCurrStat();

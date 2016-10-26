@@ -10,9 +10,9 @@ public abstract class AbstractFutureManager implements FutureManager {
     protected TimeUnit unit = TimeUnit.SECONDS;
 
     public AbstractFutureManager(int inSize, long inQueryTimeout, long inMaxInsertErrors) {
-	size = inSize;
-	queryTimeout = inQueryTimeout;
-	maxInsertErrors = inMaxInsertErrors;
+        size = inSize;
+        queryTimeout = inQueryTimeout;
+        maxInsertErrors = inMaxInsertErrors;
     }
 
     public abstract boolean add(ResultSetFuture future, String line);

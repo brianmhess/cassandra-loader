@@ -22,55 +22,55 @@ public class IndexedLine {
     private char[] buffer;
 
     public IndexedLine(char[] inBuffer) {
-	buffer = inBuffer;
-	index = 0;
+        buffer = inBuffer;
+        index = 0;
     }
 
     public IndexedLine(String instr) {
-	this(instr.toCharArray());
+        this(instr.toCharArray());
     }
 
     public char getNext() throws ParseException {
-	if (buffer.length == index)
-	    throw new ParseException("ran out of buffer (" + index + " / " + buffer.length + ")", 0);
-	char c = buffer[index];
-	index++;
-	return c;
+        if (buffer.length == index)
+            throw new ParseException("ran out of buffer (" + index + " / " + buffer.length + ")", 0);
+        char c = buffer[index];
+        index++;
+        return c;
     }
 
     public boolean hasNext() {
-	return buffer.length > index;
+        return buffer.length > index;
     }
 
     public boolean setIndex(int idx) throws ParseException {
-	if (buffer.length - 1 < idx)
-	    throw new ParseException("index out of range", 0);
-	index = idx;
-	return true;
+        if (buffer.length - 1 < idx)
+            throw new ParseException("index out of range", 0);
+        index = idx;
+        return true;
     }
 
     public char get(int idx) throws ParseException {
-	if (buffer.length - 1 < idx)
-	    throw new ParseException("index out of range", 0);
-	return buffer[idx];
+        if (buffer.length - 1 < idx)
+            throw new ParseException("index out of range", 0);
+        return buffer[idx];
     }
 
     public boolean backup() {
-	if (0 == index)
-	    return false;
-	index--;
-	return true;
+        if (0 == index)
+            return false;
+        index--;
+        return true;
     }
 
     public int length() {
-	return buffer.length;
+        return buffer.length;
     }
 
     public int numRemaining() {
-	return buffer.length - index;
+        return buffer.length - index;
     }
 
     public String remaining() {
-	return new String(buffer, index, numRemaining());
+        return new String(buffer, index, numRemaining());
     }
 }

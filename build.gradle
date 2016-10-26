@@ -1,7 +1,7 @@
 apply plugin: 'java'
 apply plugin: 'application'
 
-def versionNum = '0.0.20'
+def versionNum = '0.0.21'
 
 allprojects {
     tasks.withType(JavaCompile) {
@@ -35,6 +35,7 @@ dependencies {
     compile 'ch.qos.logback:logback-classic:1.1.3'
     compile 'com.univocity:univocity-parsers:2.1.1'
     compile 'org.apache.commons:commons-lang3:3.0'
+    compile group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1'
 }
 
 task uberloader(type: Jar) {
