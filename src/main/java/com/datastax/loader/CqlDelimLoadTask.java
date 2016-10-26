@@ -33,7 +33,8 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileReader;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
@@ -46,6 +47,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.ZipException;
 
 class CqlDelimLoadTask implements Callable<Long> {
     private String BADPARSE = ".BADPARSE";
@@ -150,7 +153,15 @@ class CqlDelimLoadTask implements Callable<Long> {
             readerName = "stdin";
         }
         else {
-            reader = new BufferedReader(new FileReader(infile));
+            FileInputStream fis = new FileInputStream(infile);
+            InputStream is = fis;
+            try {
+                is = new GZIPInputStream(fis);
+            }
+            catch (ZipException e) {
+                is = fis;
+            }
+            reader = new BufferedReader(new InputStreamReader(is));
             readerName = infile.getName();
         }
 
