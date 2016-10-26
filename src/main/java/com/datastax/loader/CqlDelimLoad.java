@@ -503,27 +503,40 @@ public class CqlDelimLoad {
         throws IOException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException,
                CertificateException, UnrecoverableKeyException {
         // Connect to Cassandra
-        PoolingOptions pOpts = new PoolingOptions();
-        pOpts.setMaxConnectionsPerHost(HostDistance.LOCAL, 8);
-        pOpts.setCoreConnectionsPerHost(HostDistance.LOCAL, 8);
-        Cluster.Builder clusterBuilder = Cluster.builder()
-            .addContactPoint(host)
-            .withPort(port)
-            //.withCompression(ProtocolOptions.Compression.LZ4)
-            .withPoolingOptions(pOpts)
-            .withLoadBalancingPolicy(new TokenAwarePolicy( DCAwareRoundRobinPolicy.builder().build()))
-            ;
+        Session tsession = null;
+        try {
+            PoolingOptions pOpts = new PoolingOptions();
+            pOpts.setMaxConnectionsPerHost(HostDistance.LOCAL, 8);
+            pOpts.setCoreConnectionsPerHost(HostDistance.LOCAL, 8);
+            Cluster.Builder clusterBuilder = Cluster.builder()
+                .addContactPoint(host)
+                .withPort(port)
+                //.withCompression(ProtocolOptions.Compression.LZ4)
+                .withPoolingOptions(pOpts)
+                .withLoadBalancingPolicy(new TokenAwarePolicy( DCAwareRoundRobinPolicy.builder().build()))
+                ;
 
-        if (null != username)
-            clusterBuilder = clusterBuilder.withCredentials(username, password);
-        if (null != truststorePath)
-            clusterBuilder = clusterBuilder.withSSL(createSSLOptions());
+            if (null != username)
+                clusterBuilder = clusterBuilder.withCredentials(username, password);
+            if (null != truststorePath)
+                clusterBuilder = clusterBuilder.withSSL(createSSLOptions());
 
-        cluster = clusterBuilder.build();
-        if (null == cluster) {
-            throw new IOException("Could not create cluster");
+            cluster = clusterBuilder.build();
+            if (null == cluster) {
+                throw new IOException("Could not create cluster");
+            }
+            tsession = cluster.connect();
         }
-        Session tsession = cluster.connect();
+        catch (IllegalArgumentException e){
+            System.err.println("Could not connect to the cluster, check your hosts");
+            //e.printStackTrace();
+            return false;
+        }
+        catch (Exception e){
+            System.err.println(e.getStackTrace());
+            e.printStackTrace();
+            return false;
+        }
 
         if ((0 > cluster.getConfiguration().getProtocolOptions()
              .getProtocolVersion().compareTo(ProtocolVersion.V4))
