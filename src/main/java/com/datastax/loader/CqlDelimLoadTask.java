@@ -55,6 +55,7 @@ class CqlDelimLoadTask implements Callable<Long> {
     private String insert;
     private PreparedStatement statement;
     private BatchStatement batch;
+    private StringBuilder batchString;
     private FutureManager fm;
     private ConsistencyLevel consistencyLevel;
     private CqlDelimParser cdp;
@@ -186,6 +187,7 @@ class CqlDelimLoadTask implements Callable<Long> {
         statement.setRetryPolicy(new LoaderRetryPolicy(numRetries));
         statement.setConsistencyLevel(consistencyLevel);
         batch = new BatchStatement(BatchStatement.Type.UNLOGGED);
+        batchString = new StringBuilder();
         if (format.equalsIgnoreCase("delim")) {
             fm = new PrintingFutureSet(numFutures, queryTimeout, 
                                        maxInsertErrors, logPrinter, 
@@ -251,15 +253,17 @@ class CqlDelimLoadTask implements Callable<Long> {
         }
         else {
             batch.add(bind);
+            batchString.append("\n").append(line);
             if (batchSize == batch.size()) {
                 resultSetFuture = session.executeAsync(batch);
-                if (!fm.add(resultSetFuture, line)) {
+                if (!fm.add(resultSetFuture, batchString.toString())) {
                     System.err.println("There was an error.  Please check the log file for more information (" + logFname + ")");
                     //cleanup(false);
                     return -2;
                 }
                 int numInserted = batch.size();
                 batch.clear();
+                batchString.setLength(0);
                 retval = numInserted;
             }
         }
