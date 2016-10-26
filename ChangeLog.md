@@ -1,3 +1,6 @@
+## Next
+- Added support for gzipped input files
+
 ## 0.0.21
 - Added support for jsonarray (one JSON array per file)
 - Added support for jsonline (one JSON per line)
