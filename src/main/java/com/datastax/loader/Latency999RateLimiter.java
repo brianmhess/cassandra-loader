@@ -21,25 +21,25 @@ public class Latency999RateLimiter extends AbstractDynamicRateLimiter {
     private Cluster cluster;
 
     public Latency999RateLimiter(double inRate, long inHowOften,
-				 double inMaxStat, double inMinStat,
-				 double inDownFraction, 
-				 double inUpFraction, Cluster inCluster,
-				 boolean inInvertLogic) {
-	this(inRate, Long.MAX_VALUE, inHowOften, inMaxStat, inMinStat,
-	     inDownFraction, inUpFraction, inCluster, inInvertLogic);
+                                 double inMaxStat, double inMinStat,
+                                 double inDownFraction, 
+                                 double inUpFraction, Cluster inCluster,
+                                 boolean inInvertLogic) {
+        this(inRate, Long.MAX_VALUE, inHowOften, inMaxStat, inMinStat,
+             inDownFraction, inUpFraction, inCluster, inInvertLogic);
     }
 
     public Latency999RateLimiter(double inRate, long inUpdateRate,
-				 long inHowOften, double inMaxStat, 
-				 double inMinStat, double inDownFraction, 
-				 double inUpFraction, Cluster inCluster,
-				 boolean inInvertLogic) {
-	super(inRate, inUpdateRate, inHowOften, inMaxStat, inMinStat, 
-	      inDownFraction, inUpFraction, inInvertLogic);
-	cluster = inCluster;
+                                 long inHowOften, double inMaxStat, 
+                                 double inMinStat, double inDownFraction, 
+                                 double inUpFraction, Cluster inCluster,
+                                 boolean inInvertLogic) {
+        super(inRate, inUpdateRate, inHowOften, inMaxStat, inMinStat, 
+              inDownFraction, inUpFraction, inInvertLogic);
+        cluster = inCluster;
     }
 
     protected synchronized double getCurrStat() {
-	return cluster.getMetrics().getRequestsTimer().getSnapshot().get999thPercentile();
+        return cluster.getMetrics().getRequestsTimer().getSnapshot().get999thPercentile();
     }
 }

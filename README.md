@@ -17,12 +17,12 @@ loading of various types of delimited files, including
 ### Downloading
 
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.20/cassandra-loader
+https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.21/cassandra-loader
 
 Get it with wget:
 
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.20/cassandra-loader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.21/cassandra-loader
 ```
 
 ### Building
@@ -80,7 +80,10 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
  `-configFile`    | Filename           | none                       | Filename of configuration options 
  `-f`             | Filename           | &lt;REQUIRED&gt;                 | Filename to load - required.
  `-host`          | IP Address         | &lt;REQUIRED&gt;                 | Cassandra connection point - required.
- `-schema`        | CQL schema         | &lt;REQUIRED&gt;                 | Schema of input data - required In the format "keySpace.table(col1,col2,...)" and in the order that the data will be in the file.
+ `-format`        | Input format       | delim                            | Format of the data.  Options are "delim" or "json".
+ `-schema`        | CQL schema         |                                  | Schema of input data - required for delim In the format "keySpace.table(col1,col2,...)" and in the order that the data will be in the file.
+ `-keyspace`      | Keyspace name      |                            | Name of keyspace (case sensitive) to load in to - required for json
+ `-table`         | Table name         |                            | Name of table (case sensitive) to load in to - required for json
  `-port`          | Port Number        | 9042                       | Cassandra native protocol port number
  `-user`          | Username           | none                       | Cassandra username
  `-pw`            | Password           | none                       | Cassandra password
@@ -88,12 +91,13 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
  `-ssl-truststore-pwd`  | Truststore Password | none                | Password to SSL truststore
  `-ssl-keystore-path`   | Keystore Path       | none                | Path to SSL keystore
  `-ssl-keystore-path`   | Keystore Password   | none                | Password to SSL keystore
- '-consistencyLevel | Consistency Level | ONE                       | CQL Consistency Level
+ `-consistencyLevel`    | Consistency Level   | ONE                 | CQL Consistency Level
  `-numThreads`    | Number of threads  | Number of CPUs             | Number of threads to use (one per file)
  `-numFutures`    | Number of Futures  | 1000                       | Number of Java driver futures in flight.
  `-numRetries`    | Number of retries  | 1                          | Number of times to retry the INSERT before declaring defeat.
  `-queryTimeout`  | Timeout in seconds | 2                          | Amount of time to wait for a query to finish before timing out.
  `-delim`         | Delimiter          | ,                          | Delimiter to use
+ `-charsPerColumn`| Characters per column | 4096                    | Maximum characters per column
  `-nullString`    | Null String        | &lt;empty string&gt;             | String to represent NULL data
  `-boolStyle`     | Boolean Style      | TRUE_FALSE                 | String for boolean values.  Options are "1_0", "Y_N", "T_F", "YES_NO", "TRUE_FALSE".
  `-decimalDelim`  | Decimal delimiter  | .                          | Delimiter for decimal values.  Options are "." or ","
@@ -179,44 +183,52 @@ The default nullString is the empty string.  If you want empty strings to be sav
 
 If you do not set the successDir then files that successfully loaded will remain in their input directory.  The same is true for failed files if you do not set the failureDir.  You cannot set either if the input file is "stdin".
 
+When using `jsonline`, all JSON field names are case-sensitive.  When using `jsonline` or `jsonarray`, the `-keyspace` and `-table` arguments are case-sensitive.
 
 ## Usage Statement:
 
 ```
-version: 0.0.20
-Usage: -f <filename> -host <ipaddress> -schema <schema> [OPTIONS]
+version: 0.0.21
+Usage: -f <filename> -host <ipaddress> [OPTIONS]
 OPTIONS:
-  -configFile <filename>         File with configuration options
-  -delim <delimiter>             Delimiter to use [,]
-  -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]
-  -nullString <nullString>       String that signifies NULL [none]
-  -skipRows <skipRows>           Number of rows to skip [0]
-  -skipCols <columnsToSkip>      Comma-separated list of columsn to skip in the input file
-  -maxRows <maxRows>             Maximum number of rows to read (-1 means all) [-1]
-  -maxErrors <maxErrors>         Maximum parse errors to endure [10]
-  -badDir <badDirectory>         Directory for where to place badly parsed rows. [none]
-  -port <portNumber>             CQL Port Number [9042]
-  -user <username>               Cassandra username [none]
-  -pw <password>                 Password for user [none]
-  -ssl-truststore-path <path>    Path to SSL truststore [none]
-  -ssl-truststore-pwd <pwd>       Password for SSL truststore [none]
-  -ssl-keystore-path <path>      Path to SSL keystore [none]
-  -ssl-keystore-pwd <pwd>         Password for SSL keystore [none]
-  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]
-  -numFutures <numFutures>       Number of CQL futures to keep in flight [1000]
-  -batchSize <batchSize>         Number of INSERTs to batch together [1]
-  -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','
-  -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]
-  -numThreads <numThreads>       Number of concurrent threads (files) to load [num cores]
-  -queryTimeout <# seconds>      Query timeout (in seconds) [2]
-  -numRetries <numRetries>       Number of times to retry the INSERT [1]
-  -maxInsertErrors <# errors>    Maximum INSERT errors to endure [10]
-  -rate <rows-per-second>        Maximum insert rate [50000]
-  -progressRate <num txns>       How often to report the insert rate [100000]
-  -rateFile <filename>           Where to print the rate statistics
-  -successDir <dir>              Directory where to move successfully loaded files
-  -failureDir <dir>              Directory where to move files that did not successfully load
-  -nullsUnset [false|true]         Treat nulls as unset [faslse]
+  -schema <schema>                   Table schema (when using delim)
+  -table <tableName>                 Table name (when using json)
+  -keyspace <keyspaceName>           Keyspace name (when using json)
+  -configFile <filename>             File with configuration options
+  -delim <delimiter>                 Delimiter to use [,]
+  -charsPerColumn <chars>            Max number of chars per column [4096]
+  -dateFormat <dateFormatString>     Date format [default for Locale.ENGLISH]
+  -nullString <nullString>           String that signifies NULL [none]
+  -skipRows <skipRows>               Number of rows to skip [0]
+  -skipCols <columnsToSkip>          Comma-separated list of columsn to skip in the input file
+  -maxRows <maxRows>                 Maximum number of rows to read (-1 means all) [-1]
+  -maxErrors <maxErrors>             Maximum parse errors to endure [10]
+  -badDir <badDirectory>             Directory for where to place badly parsed rows. [none]
+  -port <portNumber>                 CQL Port Number [9042]
+  -user <username>                   Cassandra username [none]
+  -pw <password>                     Password for user [none]
+  -ssl-truststore-path <path>        Path to SSL truststore [none]
+  -ssl-truststore-pw <pwd>           Password for SSL truststore [none]
+  -ssl-keystore-path <path>          Path to SSL keystore [none]
+  -ssl-keystore-pw <pwd>             Password for SSL keystore [none]
+  -consistencyLevel <CL>             Consistency level [LOCAL_ONE]
+  -numFutures <numFutures>           Number of CQL futures to keep in flight [1000]
+  -batchSize <batchSize>             Number of INSERTs to batch together [1]
+  -decimalDelim <decimalDelim>       Decimal delimiter [.] Other option is ','
+  -boolStyle <boolStyleString>       Style for booleans [TRUE_FALSE]
+  -numThreads <numThreads>           Number of concurrent threads (files) to load [num cores]
+  -queryTimeout <# seconds>          Query timeout (in seconds) [2]
+  -numRetries <numRetries>           Number of times to retry the INSERT [1]
+  -maxInsertErrors <# errors>        Maximum INSERT errors to endure [10]
+  -rate <rows-per-second>            Maximum insert rate [50000]
+  -progressRate <num txns>           How often to report the insert rate [100000]
+  -rateFile <filename>               Where to print the rate statistics
+  -successDir <dir>                  Directory where to move successfully loaded files
+  -failureDir <dir>                  Directory where to move files that did not successfully load
+  -nullsUnset [false|true]           Treat nulls as unset [faslse]
+  -format [delim|jsonline|jsonarray] Format of data: delimited or JSON [delim]
+  -table <tableName>                 Table name (when using JSON)
+  -keyspace <keyspaceName>           Keyspace name (when using JSON)
 
 
 Examples:
@@ -295,7 +307,7 @@ cassandra-unloader -f stdout -host host1 -schema "ks.table(a,b,c)" | cassandra-l
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.20/cassandra-unloader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.21/cassandra-unloader
 ```
 
 To build, run:
@@ -314,27 +326,28 @@ cassandra-unloader
 ###Usage statement:
 
 ```
-version: 0.0.20
+version: 0.0.21
 Usage: -f <outputStem> -host <ipaddress> -schema <schema> [OPTIONS]
 OPTIONS:
-  -configFile <filename>         File with configuration options
-  -delim <delimiter>             Delimiter to use [,]
-  -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]
-  -nullString <nullString>       String that signifies NULL [none]
-  -port <portNumber>             CQL Port Number [9042]
-  -user <username>               Cassandra username [none]
-  -pw <password>                 Password for user [none]
-  -ssl-truststore-path <path>    Path to SSL truststore [none]
-  -ssl-truststore-pwd <pwd>       Password for SSL truststore [none]
-  -ssl-keystore-path <path>      Path to SSL keystore [none]
-  -ssl-keystore-pwd <pwd>         Password for SSL keystore [none]
-  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]
-  -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','
-  -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]
-  -numThreads <numThreads>       Number of concurrent threads to unload [5]
-  -beginToken <tokenString>      Begin token [none]
-  -endToken <tokenString>        End token [none]
-  -where <predicate>             WHERE clause [none]
+  -configFile <filename>             File with configuration options
+  -format [delim|jsonline|jsonarray] Format of data: delimited or JSON [delim]
+  -delim <delimiter>                 Delimiter to use [,]
+  -dateFormat <dateFormatString>     Date format [default for Locale.ENGLISH]
+  -nullString <nullString>           String that signifies NULL [none]
+  -port <portNumber>                 CQL Port Number [9042]
+  -user <username>                   Cassandra username [none]
+  -pw <password>                     Password for user [none]
+  -ssl-truststore-path <path>        Path to SSL truststore [none]
+  -ssl-truststore-pw <pwd>           Password for SSL truststore [none]
+  -ssl-keystore-path <path>          Path to SSL keystore [none]
+  -ssl-keystore-pw <pwd>             Password for SSL keystore [none]
+  -consistencyLevel <CL>             Consistency level [LOCAL_ONE]
+  -decimalDelim <decimalDelim>       Decimal delimiter [.] Other option is ','
+  -boolStyle <boolStyleString>       Style for booleans [TRUE_FALSE]
+  -numThreads <numThreads>           Number of concurrent threads to unload [5]
+  -beginToken <tokenString>          Begin token [none]
+  -endToken <tokenString>            End token [none]
+  -where <predicate>                 WHERE clause [none]
 ```
 
 A few simple examples using the `-where` are as follows:

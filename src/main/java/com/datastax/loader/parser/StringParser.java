@@ -15,22 +15,20 @@
  */
 package com.datastax.loader.parser;
 
-import java.lang.String;
-import java.lang.StringBuilder;
-import java.lang.IndexOutOfBoundsException;
 import java.io.StringReader;
 import java.io.IOException;
+
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // String parser - simple
 public class StringParser extends AbstractParser {
     public String parse(String toparse) {
-	return unquote(toparse);
+        return unquote(toparse);
     }
 
     public String format(Object o) {
-	String iv = (String)o;
-	return quote(iv);
+        String iv = (String)o;
+        return quote(iv);
     }
 }

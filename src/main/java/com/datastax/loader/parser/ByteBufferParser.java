@@ -15,9 +15,7 @@
  */
 package com.datastax.loader.parser;
 
-import java.lang.String;
 import java.nio.ByteBuffer;
-import java.lang.IndexOutOfBoundsException;
 import javax.xml.bind.DatatypeConverter;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
@@ -25,14 +23,14 @@ import com.datastax.driver.core.exceptions.InvalidTypeException;
 // ByteBuffer parser
 public class ByteBufferParser extends AbstractParser {
     public ByteBuffer parse(String toparse) {
-	if (null == toparse)
-	    return null;
-	byte[] barry = DatatypeConverter.parseBase64Binary(toparse);
-	return ByteBuffer.wrap(barry);
+        if (null == toparse)
+            return null;
+        byte[] barry = DatatypeConverter.parseBase64Binary(toparse);
+        return ByteBuffer.wrap(barry);
     }
 
     public String format(Object o) {
-	ByteBuffer v = (ByteBuffer)o;
-	return DatatypeConverter.printBase64Binary(v.array());
+        ByteBuffer v = (ByteBuffer)o;
+        return DatatypeConverter.printBase64Binary(v.array());
     }
 }

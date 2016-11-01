@@ -1,3 +1,13 @@
+## Next
+- Added support for gzipped input files
+
+## 0.0.21
+- Added support for jsonarray (one JSON array per file)
+- Added support for jsonline (one JSON per line)
+- Changed JVM settings to 1GB heap
+- Added -charsPerColumn (default to 4096) to enable Univocity optimizations
+- Removed explicit queries to metadata tables and use driver API calls
+
 ## 0.0.20
 - Fixed delimiter in MapParser
 - Catch NULLs in Map/Set/List parsing and throw in BADPARSE
