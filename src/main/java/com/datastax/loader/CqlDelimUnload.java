@@ -106,31 +106,32 @@ public class CqlDelimUnload {
         StringBuilder usage = new StringBuilder("version: ").append(version).append("\n");
         usage.append("Usage: -f <outputStem> -host <ipaddress> -schema <schema> [OPTIONS]\n");
         usage.append("OPTIONS:\n");
-        usage.append("  -configFile <filename>         File with configuration options\n");
-        usage.append("  -delim <delimiter>             Delimiter to use [,]\n");
-        usage.append("  -dateFormat <dateFormatString> Date format [default for Locale.ENGLISH]\n");
-        usage.append("  -nullString <nullString>       String that signifies NULL [none]\n");
-        usage.append("  -port <portNumber>             CQL Port Number [9042]\n");
-        usage.append("  -user <username>               Cassandra username [none]\n");
-        usage.append("  -pw <password>                 Password for user [none]\n");
-        usage.append("  -ssl-truststore-path <path>    Path to SSL truststore [none]\n");
-        usage.append("  -ssl-truststore-pw <pwd>       Password for SSL truststore [none]\n");
-        usage.append("  -ssl-keystore-path <path>      Path to SSL keystore [none]\n");
-        usage.append("  -ssl-keystore-pw <pwd>         Password for SSL keystore [none]\n");
-        usage.append("  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]\n");
-        usage.append("  -decimalDelim <decimalDelim>   Decimal delimiter [.] Other option is ','\n");
-        usage.append("  -boolStyle <boolStyleString>   Style for booleans [TRUE_FALSE]\n");
-        usage.append("  -numThreads <numThreads>       Number of concurrent threads to unload [5]\n");
-        usage.append("  -beginToken <tokenString>      Begin token [none]\n");
-        usage.append("  -endToken <tokenString>        End token [none]\n");
-        usage.append("  -where <predicate>             WHERE clause [none]\n");
+        usage.append("  -configFile <filename>             File with configuration options\n");
+        usage.append("  -format [delim|jsonline|jsonarray] Format of data: delimited or JSON [delim]\n");
+        usage.append("  -delim <delimiter>                 Delimiter to use [,]\n");
+        usage.append("  -dateFormat <dateFormatString>     Date format [default for Locale.ENGLISH]\n");
+        usage.append("  -nullString <nullString>           String that signifies NULL [none]\n");
+        usage.append("  -port <portNumber>                 CQL Port Number [9042]\n");
+        usage.append("  -user <username>                   Cassandra username [none]\n");
+        usage.append("  -pw <password>                     Password for user [none]\n");
+        usage.append("  -ssl-truststore-path <path>        Path to SSL truststore [none]\n");
+        usage.append("  -ssl-truststore-pw <pwd>           Password for SSL truststore [none]\n");
+        usage.append("  -ssl-keystore-path <path>          Path to SSL keystore [none]\n");
+        usage.append("  -ssl-keystore-pw <pwd>             Password for SSL keystore [none]\n");
+        usage.append("  -consistencyLevel <CL>             Consistency level [LOCAL_ONE]\n");
+        usage.append("  -decimalDelim <decimalDelim>       Decimal delimiter [.] Other option is ','\n");
+        usage.append("  -boolStyle <boolStyleString>       Style for booleans [TRUE_FALSE]\n");
+        usage.append("  -numThreads <numThreads>           Number of concurrent threads to unload [5]\n");
+        usage.append("  -beginToken <tokenString>          Begin token [none]\n");
+        usage.append("  -endToken <tokenString>            End token [none]\n");
+        usage.append("  -where <predicate>                 WHERE clause [none]\n");
         return usage.toString();
     }
     
     private boolean validateArgs() {
         if (!format.equalsIgnoreCase("delim")
             && !format.equalsIgnoreCase("jsonline")
-            && !format.equalsIgnoreCase("jsonline")) {
+            && !format.equalsIgnoreCase("jsonarray")) {
             System.err.println("Invalid format (" + format + ")");
             return false;
         }
@@ -384,7 +385,8 @@ public class CqlDelimUnload {
                                                       pstream, 
                                                       beginToken,
                                                       endToken, session,
-                                                      consistencyLevel, where);
+                                                      consistencyLevel, where,
+                                                      format);
             Future<Long> res = executor.submit(worker);
             total = res.get();
             executor.shutdown();
@@ -434,7 +436,7 @@ public class CqlDelimUnload {
                                                           tBeginString,
                                                           tEndString, session,
                                                           consistencyLevel,
-                                                          where);
+                                                          where, format);
                 results.add(executor.submit(worker));
             }
             executor.shutdown();
@@ -469,6 +471,7 @@ public class CqlDelimUnload {
         private CqlDelimParser cdp;
 
         private String cqlSchema;
+        private String format = "delim";
         private Locale locale = null;
         private BooleanParser.BoolStyle boolStyle = null;
         private String nullString = null;
@@ -489,7 +492,7 @@ public class CqlDelimUnload {
                              PrintStream inWriter,
                              String inBeginToken, String inEndToken,
                              Session inSession, ConsistencyLevel inConsistencyLevel,
-                             String inWhere) {
+                             String inWhere, String inFormat) {
             super();
             cqlSchema = inCqlSchema;
             delimiter = inDelimiter;
@@ -503,6 +506,7 @@ public class CqlDelimUnload {
             writer = inWriter;
             consistencyLevel = inConsistencyLevel;
             where = inWhere;
+            format = inFormat;
         }
 
         public Long call() throws IOException, ParseException {

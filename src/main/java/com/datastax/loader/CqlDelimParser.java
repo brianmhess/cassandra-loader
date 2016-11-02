@@ -306,8 +306,10 @@ public class CqlDelimParser {
 
     public String formatJson(Row row) throws IndexOutOfBoundsException, InvalidTypeException {
         String[] stringVals = delimParser.stringVals(row);
-        // Use stringVals and columnNames to create JSON
-        return "not yet supported";
+        Map<String,String> pairs = new HashMap<String,String>();
+        for (int i = 0; i < sbl.size(); i++)
+            pairs.put(sbl.get(i).name, stringVals[i]);
+        return JSONObject.toJSONString(pairs);
     }
 
 }
