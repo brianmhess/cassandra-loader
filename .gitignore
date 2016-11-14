@@ -3,4 +3,6 @@ build/
 *~
 *.jar
 cassandra-loader
-
+*.BADINSERT
+*.BADPARSE
+*.LOG

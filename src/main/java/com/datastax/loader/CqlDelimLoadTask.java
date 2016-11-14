@@ -153,13 +153,12 @@ class CqlDelimLoadTask implements Callable<Long> {
             readerName = "stdin";
         }
         else {
-            FileInputStream fis = new FileInputStream(infile);
-            InputStream is = fis;
+            InputStream is =  null;
             try {
-                is = new GZIPInputStream(fis);
+                is = new GZIPInputStream(new FileInputStream(infile));
             }
             catch (ZipException e) {
-                is = fis;
+                is = new FileInputStream(infile);
             }
             reader = new BufferedReader(new InputStreamReader(is));
             readerName = infile.getName();
