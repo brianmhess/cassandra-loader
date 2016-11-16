@@ -56,10 +56,13 @@ public class MapParser extends AbstractParser {
         elements = new HashMap<Object,Object>();
 
         CsvParserSettings settings = new CsvParserSettings();
-        settings.getFormat().setLineSeparator("" + mapDelim);
-        settings.getFormat().setDelimiter(collectionDelim);
+        settings.getFormat().setLineSeparator("" + collectionDelim);
+        settings.getFormat().setDelimiter(mapDelim);
         settings.getFormat().setQuote(collectionQuote);
         settings.getFormat().setQuoteEscape(collectionEscape);
+        settings.getFormat().setCharToEscapeQuoteEscaping(collectionEscape);
+        settings.setKeepQuotes(true);
+        settings.setKeepEscapeSequences(true);
         
         csvp = new CsvParser(settings);
     }
@@ -87,6 +90,7 @@ public class MapParser extends AbstractParser {
         }
         catch (Exception e) {
             System.err.println("Trouble parsing : " + e.getMessage());
+            e.printStackTrace();
             return null;
         }
         return elements;

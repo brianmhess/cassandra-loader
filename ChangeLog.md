@@ -1,5 +1,6 @@
-## Next
+## 0.0.22
 - Added support for gzipped input files
+- Fixed issue with quoted values (and in collections)
 
 ## 0.0.21
 - Added support for jsonarray (one JSON array per file)

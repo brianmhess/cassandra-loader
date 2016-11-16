@@ -76,6 +76,9 @@ public class DelimParser {
         settings.setMaxCharsPerColumn(charsPerColumn);
         settings.getFormat().setQuote(quote);
         settings.getFormat().setQuoteEscape(escape);
+        settings.getFormat().setCharToEscapeQuoteEscaping(escape);
+        settings.setKeepQuotes(true);
+        settings.setKeepEscapeSequences(true);
 
         csvp = new CsvParser(settings);
     }

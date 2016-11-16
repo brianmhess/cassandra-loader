@@ -135,6 +135,7 @@ public class CqlDelimParser {
         pmap.put(DataType.Name.UUID, uuidParser);
         pmap.put(DataType.Name.VARCHAR, stringParser);
         pmap.put(DataType.Name.VARINT, bigIntegerParser);
+
     }
 
     // Validate the CQL schema, extract the keyspace and tablename, and process the rest of the schema

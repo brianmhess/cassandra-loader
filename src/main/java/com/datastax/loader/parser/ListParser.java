@@ -52,6 +52,9 @@ public class ListParser extends AbstractParser {
         settings.getFormat().setDelimiter(collectionDelim);
         settings.getFormat().setQuote(collectionQuote);
         settings.getFormat().setQuoteEscape(collectionEscape);
+        settings.getFormat().setCharToEscapeQuoteEscaping(collectionEscape);
+        settings.setKeepQuotes(true);
+        settings.setKeepEscapeSequences(true);
         
         csvp = new CsvParser(settings);
     }

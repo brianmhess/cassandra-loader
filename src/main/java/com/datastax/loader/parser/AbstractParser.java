@@ -120,6 +120,16 @@ public abstract class AbstractParser implements Parser {
         return instr;
     }
 
+    public String unstripQuote(String instr) {
+        return "\"" + instr + "\"";
+    }
+
+    public String stripQuote(String instr) {
+        if ((instr.startsWith("\"")) && (instr.endsWith("\"")))
+            return instr.substring(1, instr.length() - 1);
+        return instr;
+    }
+
     public String escape(String instr) {
         return StringEscapeUtils.escapeJava(instr);
     }
