@@ -85,6 +85,7 @@ class CqlDelimLoadTask implements Callable<Long> {
     private BooleanParser.BoolStyle boolStyle = null;
     private String dateFormatString = null;
     private String nullString = null;
+    private String commentString = null;
     private String delimiter = null;
     private int charsPerColumn = 4096;
     private TimeUnit unit = TimeUnit.SECONDS;
@@ -100,7 +101,7 @@ class CqlDelimLoadTask implements Callable<Long> {
 
     public CqlDelimLoadTask(String inCqlSchema, String inDelimiter, 
                             int inCharsPerColumn,
-                            String inNullString, String inDateFormatString,
+                            String inNullString, String inCommentString, String inDateFormatString,
                             BooleanParser.BoolStyle inBoolStyle, 
                             Locale inLocale, 
                             long inMaxErrors, long inSkipRows, 
@@ -117,6 +118,7 @@ class CqlDelimLoadTask implements Callable<Long> {
         delimiter = inDelimiter;
         charsPerColumn = inCharsPerColumn;
         nullString = inNullString;
+        commentString = inCommentString;
         dateFormatString = inDateFormatString;
         boolStyle = inBoolStyle;
         locale = inLocale;
@@ -181,14 +183,14 @@ class CqlDelimLoadTask implements Callable<Long> {
 
         if (format.equalsIgnoreCase("delim")) {
             cdp = new CqlDelimParser(cqlSchema, delimiter, charsPerColumn, 
-                                     nullString,
+                                     nullString, commentString,
                                      dateFormatString, boolStyle, locale,
                                      skipCols, session, true);
         }
         else if (format.equalsIgnoreCase("jsonline")
                  || format.equalsIgnoreCase("jsonarray")) {
             cdp = new CqlDelimParser(keyspace, table, delimiter, charsPerColumn,
-                                     nullString, 
+                                     nullString, commentString,
                                      dateFormatString, boolStyle, locale, 
                                      skipCols, session, true);
         }

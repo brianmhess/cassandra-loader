@@ -52,7 +52,7 @@ import java.util.regex.Pattern;
 
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-  
+
 public class CqlDelimParser {
     private Map<DataType.Name, Parser> pmap;
     private List<SchemaBits> sbl;
@@ -63,19 +63,19 @@ public class CqlDelimParser {
     private JSONParser jsonParser;
 
     public CqlDelimParser(String inCqlSchema, String inDelimiter, int inCharsPerColumn,
-                          String inNullString, String inDateFormatString, 
+                          String inNullString, String inCommentString, String inDateFormatString,
                           BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
                           String skipList, Session session, boolean bLoader) 
         throws ParseException {
         // Optionally provide things for the line parser - date format, boolean format, locale
         initPmap(inDateFormatString, inBoolStyle, inLocale, bLoader);
         processCqlSchema(inCqlSchema, session);
-        createDelimParser(inDelimiter, inCharsPerColumn, inNullString, skipList);
+        createDelimParser(inDelimiter, inCharsPerColumn, inNullString, inCommentString, skipList);
     }   
 
     public CqlDelimParser(String inKeyspace, String inTable, String inDelimiter,
                           int inCharsPerColumn,
-                          String inNullString, String inDateFormatString, 
+                          String inNullString, String inCommentString, String inDateFormatString,
                           BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
                           String skipList, Session session, boolean bLoader) 
         throws ParseException {
@@ -84,7 +84,7 @@ public class CqlDelimParser {
         tablename = inTable;
         initPmap(inDateFormatString, inBoolStyle, inLocale, bLoader);
         processCqlSchema(session);
-        createDelimParser(inDelimiter, inCharsPerColumn, inNullString, skipList);
+        createDelimParser(inDelimiter, inCharsPerColumn, inNullString, inCommentString,  skipList);
     }
 
     public List<String> getColumnNames() {
@@ -243,9 +243,9 @@ public class CqlDelimParser {
 
     // Creates the DelimParser that will parse the line
     private void createDelimParser(String delimiter, int charsPerColumn,
-                                   String nullString, 
+                                   String nullString, String commentString,
                                    String skipList) throws NumberFormatException {
-        delimParser = new DelimParser(delimiter, charsPerColumn, nullString);
+        delimParser = new DelimParser(delimiter, charsPerColumn, nullString, commentString);
         for (int i = 0; i < sbl.size(); i++)
             delimParser.add(sbl.get(i).parser);
         if (null != skipList) {
