@@ -17,12 +17,12 @@ loading of various types of delimited files, including
 ### Downloading
 
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.22/cassandra-loader
+https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.23/cassandra-loader
 
 Get it with wget:
 
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.22/cassandra-loader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.23/cassandra-loader
 ```
 
 ### Building
@@ -188,7 +188,7 @@ When using `jsonline`, all JSON field names are case-sensitive.  When using `jso
 ## Usage Statement:
 
 ```
-version: 0.0.22
+version: 0.0.23
 Usage: -f <filename> -host <ipaddress> [OPTIONS]
 OPTIONS:
   -schema <schema>                   Table schema (when using delim)
@@ -307,7 +307,7 @@ cassandra-unloader -f stdout -host host1 -schema "ks.table(a,b,c)" | cassandra-l
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.22/cassandra-unloader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.23/cassandra-unloader
 ```
 
 To build, run:
@@ -326,7 +326,7 @@ cassandra-unloader
 ###Usage statement:
 
 ```
-version: 0.0.22
+version: 0.0.23
 Usage: -f <outputStem> -host <ipaddress> -schema <schema> [OPTIONS]
 OPTIONS:
   -configFile <filename>             File with configuration options

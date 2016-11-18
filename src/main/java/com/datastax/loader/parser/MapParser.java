@@ -57,6 +57,7 @@ public class MapParser extends AbstractParser {
 
         CsvParserSettings settings = new CsvParserSettings();
         settings.getFormat().setLineSeparator("" + collectionDelim);
+        settings.getFormat().setNormalizedNewline(collectionDelim);
         settings.getFormat().setDelimiter(mapDelim);
         settings.getFormat().setQuote(collectionQuote);
         settings.getFormat().setQuoteEscape(collectionEscape);

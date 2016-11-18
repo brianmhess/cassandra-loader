@@ -1,3 +1,6 @@
+## 0.0.23
+- Fixed case of commas in Map keys
+
 ## 0.0.22
 - Added support for gzipped input files
 - Fixed issue with quoted values (and in collections)

@@ -74,7 +74,7 @@ import com.datastax.driver.core.exceptions.QueryValidationException;
 
 
 public class CqlDelimUnload {
-    private String version = "0.0.22";
+    private String version = "0.0.23";
     private String host = null;
     private int port = 9042;
     private String username = null;
