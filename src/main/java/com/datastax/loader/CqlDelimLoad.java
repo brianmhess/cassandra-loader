@@ -298,19 +298,19 @@ public class CqlDelimLoad {
             return false;
         }
         if ((null == truststorePath) && (null != truststorePwd)) {
-            System.err.println("If you supply the ssl-truststore-pwd, you must supply the ssl-truststore-path");
+            System.err.println("If you supply the ssl-truststore-pw, you must supply the ssl-truststore-path");
             return false;
         }
         if ((null != truststorePath) && (null == truststorePwd)) {
-            System.err.println("If you supply the ssl-truststore-path, you must supply the ssl-truststore-pwd");
+            System.err.println("If you supply the ssl-truststore-path, you must supply the ssl-truststore-pw");
             return false;
         }
         if ((null == keystorePath) && (null != keystorePwd)) {
-            System.err.println("If you supply the ssl-keystore-pwd, you must supply the ssl-keystore-path");
+            System.err.println("If you supply the ssl-keystore-pw, you must supply the ssl-keystore-path");
             return false;
         }
         if ((null != keystorePath) && (null == keystorePwd)) {
-            System.err.println("If you supply the ssl-keystore-path, you must supply the ssl-keystore-pwd");
+            System.err.println("If you supply the ssl-keystore-path, you must supply the ssl-keystore-pw");
             return false;
         }
         File tfile = null;
@@ -404,9 +404,9 @@ public class CqlDelimLoad {
         if (null != (tkey = amap.remove("-user")))          username = tkey;
         if (null != (tkey = amap.remove("-pw")))            password = tkey;
         if (null != (tkey = amap.remove("-ssl-truststore-path"))) truststorePath = tkey;
-        if (null != (tkey = amap.remove("-ssl-truststore-pwd")))  truststorePwd = tkey;
+        if (null != (tkey = amap.remove("-ssl-truststore-pw")))  truststorePwd = tkey;
         if (null != (tkey = amap.remove("-ssl-keystore-path")))   keystorePath = tkey;
-        if (null != (tkey = amap.remove("-ssl-keystore-pwd")))    keystorePwd = tkey;
+        if (null != (tkey = amap.remove("-ssl-keystore-pw")))    keystorePwd = tkey;
         if (null != (tkey = amap.remove("-consistencyLevel"))) consistencyLevel = ConsistencyLevel.valueOf(tkey);
         if (null != (tkey = amap.remove("-numFutures")))    inNumFutures = Integer.parseInt(tkey);
         if (null != (tkey = amap.remove("-batchSize")))     batchSize = Integer.parseInt(tkey);
