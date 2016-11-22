@@ -35,7 +35,6 @@ public class ListParser extends AbstractParser {
     private char collectionQuote = '\"';
     private char collectionEscape = '\\';
     private String collectionNullString = "null";
-    private List<Object> elements;
     
     private CsvParser csvp = null;
     
@@ -45,7 +44,6 @@ public class ListParser extends AbstractParser {
         collectionDelim = inCollectionDelim;
         collectionBegin = inCollectionBegin;
         collectionEnd = inCollectionEnd;
-        elements = new ArrayList<Object>();
 
         CsvParserSettings settings = new CsvParserSettings();
         settings.getFormat().setLineSeparator("\n");
@@ -62,6 +60,7 @@ public class ListParser extends AbstractParser {
     public Object parse(String toparse) throws ParseException {
         if (null == toparse)
             return null;
+        List<Object> elements = new ArrayList<Object>();
         toparse = unquote(toparse);
         if (!toparse.startsWith(Character.toString(collectionBegin)))
             throw new ParseException("Must begin with " + collectionBegin 

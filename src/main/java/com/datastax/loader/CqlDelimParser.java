@@ -21,6 +21,7 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.UserType;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 import com.datastax.loader.parser.BigDecimalParser;
 import com.datastax.loader.parser.BigIntegerParser;
@@ -39,6 +40,7 @@ import com.datastax.loader.parser.Parser;
 import com.datastax.loader.parser.SetParser;
 import com.datastax.loader.parser.StringParser;
 import com.datastax.loader.parser.UUIDParser;
+import com.datastax.loader.parser.UdtParser;
 
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -156,6 +158,68 @@ public class CqlDelimParser {
         sbl = schemaBits(null, session);
     }
 
+    private Parser getParser(DataType dt) throws ParseException {
+        Parser parser = null;
+        DataType.Name typename = dt.getName();
+        if (dt.isCollection()) {
+            if (typename == DataType.Name.LIST) {
+                Parser listParser = getParser(dt.getTypeArguments().get(0));
+                if (null == listParser) {
+                    throw new ParseException("List data type not recognized (" 
+                                             + dt.getTypeArguments().get(0) 
+                                             + ")", 0);
+                }
+                parser = new ListParser(listParser, ',', '[', ']');
+            }
+            else if (typename == DataType.Name.SET) {
+                Parser setParser = getParser(dt.getTypeArguments().get(0));
+                if (null == setParser) {
+                    throw new ParseException("Set data type not recognized (" 
+                                             + dt.getTypeArguments().get(0) 
+                                             + ")", 0);
+                }
+                parser = new SetParser(setParser, ',', '{', '}');
+            }
+            else if (typename == DataType.Name.MAP) {
+                Parser keyParser = getParser(dt.getTypeArguments().get(0));
+                if (null == keyParser) {
+                    throw new ParseException("Map key data type not recognized (" 
+                                             + dt.getTypeArguments().get(0) 
+                                             + ")", 0);
+                }
+                Parser valueParser = getParser(dt.getTypeArguments().get(1));
+                if (null == valueParser) {
+                    throw new ParseException("Map value data type not recognized (" 
+                                             + dt.getTypeArguments().get(1) 
+                                             + ")", 0);
+                }
+                parser = new MapParser(keyParser, valueParser, ',', '{', '}', ':');
+            }
+            else {
+                throw new ParseException("Collection data type not recognized (" 
+                                         + typename + ")", 0);
+            }
+        }
+        else if (typename == DataType.Name.UDT) {
+            parser = getUdtParser((UserType)dt);
+        }
+        else {
+            parser = pmap.get(dt.getName());
+            if (null == parser) {
+                throw new ParseException("Column data type not recognized (" + dt.getName() + ")", 0);
+            }
+        }
+        return parser;
+    }
+
+    private Parser getUdtParser(UserType ut) throws ParseException {
+        Map<String,Parser> udtypemap = new HashMap<String,Parser>();
+        for (String name : ut.getFieldNames()) {
+            DataType dt = ut.getFieldType(name);
+            udtypemap.put(name,getParser(dt));
+        }
+        return new UdtParser(udtypemap, ut);
+    }
 
     private List<SchemaBits> schemaBits(String in, Session session) throws ParseException {
         KeyspaceMetadata km = session.getCluster().getMetadata().getKeyspace(keyspace);
@@ -192,51 +256,7 @@ public class CqlDelimParser {
             DataType dt = cm.getType();
             sb.name = col;
             sb.datatype = dt.getName();
-            if (dt.isCollection()) {
-                if (sb.datatype == DataType.Name.LIST) {
-                    DataType.Name listType = dt.getTypeArguments().get(0).getName();
-                    Parser listParser = pmap.get(listType);
-                    if (null == listParser) {
-                        throw new ParseException("List data type not recognized (" 
-                                                 + listType + ")", i);
-                    }
-                    sb.parser = new ListParser(listParser, ',', '[', ']');
-                }
-                else if (sb.datatype == DataType.Name.SET) {
-                    DataType.Name setType = dt.getTypeArguments().get(0).getName();
-                    Parser setParser = pmap.get(setType);
-                    if (null == setParser) {
-                        throw new ParseException("Set data type not recognized (" 
-                                                 + setType + ")", i);
-                    }
-                    sb.parser = new SetParser(setParser, ',', '{', '}');
-                }
-                else if (sb.datatype == DataType.Name.MAP) {
-                    DataType.Name keyType = dt.getTypeArguments().get(0).getName();
-                    Parser keyParser = pmap.get(keyType);
-                    if (null == keyParser) {
-                        throw new ParseException("Map key data type not recognized (" 
-                                                 + keyType + ")", i);
-                    }
-                    DataType.Name valueType = dt.getTypeArguments().get(1).getName();
-                    Parser valueParser = pmap.get(valueType);
-                    if (null == valueParser) {
-                        throw new ParseException("Map value data type not recognized (" 
-                                                 + valueType + ")", i);
-                    }
-                    sb.parser = new MapParser(keyParser, valueParser, ',', '{', '}', ':');
-                }
-                else {
-                    throw new ParseException("Collection data type not recognized (" 
-                                             + sb.datatype + ")", i);
-                }
-            }
-            else {
-                sb.parser = pmap.get(sb.datatype);
-                if (null == sb.parser) {
-                    throw new ParseException("Column data type not recognized (" + sb.datatype + ")", i);
-                }
-            }
+            sb.parser = getParser(dt);
             sbl.add(sb);
         }
         return sbl;

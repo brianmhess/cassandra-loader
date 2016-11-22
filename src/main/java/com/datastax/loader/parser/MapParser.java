@@ -40,7 +40,6 @@ public class MapParser extends AbstractParser {
     private char collectionEscape = '\\';
     private char mapDelim;
     private String collectionNullString = null;
-    private Map<Object,Object> elements;
     
     private CsvParser csvp = null;
 
@@ -53,7 +52,6 @@ public class MapParser extends AbstractParser {
         collectionBegin = inCollectionBegin;
         collectionEnd = inCollectionEnd;
         mapDelim = inMapDelim;
-        elements = new HashMap<Object,Object>();
 
         CsvParserSettings settings = new CsvParserSettings();
         settings.getFormat().setLineSeparator("" + collectionDelim);
@@ -70,6 +68,7 @@ public class MapParser extends AbstractParser {
     public Object parse(String toparse) throws ParseException {
         if (null == toparse)
             return null;
+        Map<Object,Object> elements = new HashMap<Object,Object>();
         toparse = unquote(toparse);
         if (!toparse.startsWith(Character.toString(collectionBegin)))
             throw new ParseException("Must begin with " + collectionBegin 

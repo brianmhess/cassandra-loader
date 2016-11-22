@@ -36,7 +36,6 @@ public class SetParser extends AbstractParser {
     private char collectionQuote = '\"';
     private char collectionEscape = '\\';
     private String collectionNullString = "null";
-    private Set<Object> elements;
     
     private CsvParser csvp = null;
 
@@ -46,7 +45,6 @@ public class SetParser extends AbstractParser {
         collectionDelim = inCollectionDelim;
         collectionBegin = inCollectionBegin;
         collectionEnd = inCollectionEnd;
-        elements = new HashSet<Object>();
 
         CsvParserSettings settings = new CsvParserSettings();
         settings.getFormat().setLineSeparator("\n");
@@ -62,6 +60,7 @@ public class SetParser extends AbstractParser {
     public Object parse(String toparse) throws ParseException {
         if (null == toparse)
             return null;
+        Set<Object> elements = new HashSet<Object>();
         toparse = unquote(toparse);
         if (!toparse.startsWith(Character.toString(collectionBegin)))
             throw new ParseException("Must begin with " + collectionBegin 
@@ -73,8 +72,9 @@ public class SetParser extends AbstractParser {
         String[] row = csvp.parseLine(toparse);
         elements.clear();
         try {
-            for (int i = 0; i < row.length; i++) 
+            for (int i = 0; i < row.length; i++) {
                 elements.add(parser.parse(row[i]));
+            }
         }
         catch (Exception e) {
             System.err.println("Trouble parsing : " + e.getMessage());
