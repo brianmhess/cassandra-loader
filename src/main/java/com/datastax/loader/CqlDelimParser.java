@@ -233,17 +233,20 @@ public class CqlDelimParser {
             System.exit(-1);
         }
         List<String> inList = new ArrayList<String>();
+        columnNames = new ArrayList<String>();
         if (null != in) {
             String[] tlist = in.split(",");
-            for (int i = 0; i < tlist.length; i++)
+            for (int i = 0; i < tlist.length; i++) {
                 inList.add(tlist[i].trim());
+                columnNames.add(tlist[i].trim());
+            }
         }
         else {
-            for (ColumnMetadata cm : tm.getColumns())
+            for (ColumnMetadata cm : tm.getColumns()) {
                 inList.add("\""+cm.getName()+"\"");
+                columnNames.add(cm.getName());
+            }
         }
-        //keep the list of columns from metadata to use as column backbone for JSON
-        setColumnNames(inList);
         List<SchemaBits> sbl = new ArrayList<SchemaBits>();
         for (int i = 0; i < inList.size(); i++) {
             String col = inList.get(i);
@@ -326,6 +329,8 @@ public class CqlDelimParser {
         }
         String[] row = new String[columnNames.size()];
         Set<String> fields = (Set<String>)jsonObject.keySet();
+        System.err.println("json fields: " + fields);
+        System.err.println("columNames:  " + columnNames);
         for (int i = 0; i < columnNames.size(); i++) {
             String s = columnNames.get(i);
             Object o = jsonObject.get(s);
