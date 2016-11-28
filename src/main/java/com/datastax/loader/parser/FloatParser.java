@@ -35,8 +35,8 @@ public class FloatParser extends NumberParser {
         super(inLocale, grouping);
     }
 
-    public Float parse(String toparse) throws ParseException {
-        Number val = super.parse(toparse);
+    public Float parseIt(String toparse) throws ParseException {
+        Number val = super.parseIt(toparse);
         return (null == val) ? null : val.floatValue();
     }
 }

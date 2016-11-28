@@ -34,7 +34,7 @@ public class DateParser extends AbstractParser {
             format = new SimpleDateFormat(inFormatString, Locale.ENGLISH);
     }
     
-    public Date parse(String toparse) throws ParseException {
+    public Date parseIt(String toparse) throws ParseException {
         if (null == toparse)
             return null;
         return format.parse(toparse);

@@ -46,7 +46,7 @@ public class NumberParser extends AbstractParser {
     }
     
     // Need this method for the subclasses
-    public Number parse(String toparse) throws ParseException {
+    public Number parseIt(String toparse) throws ParseException {
         if ((null == toparse) || (0 == toparse.length()))
             return null;
         return nf.parse(toparse);

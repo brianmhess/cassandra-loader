@@ -24,7 +24,7 @@ import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // InetAddress parser
 public class InetAddressParser extends AbstractParser {
-    public InetAddress parse(String toparse) throws ParseException {
+    public InetAddress parseIt(String toparse) throws ParseException {
         if (null == toparse)
             return null;
         InetAddress ret;

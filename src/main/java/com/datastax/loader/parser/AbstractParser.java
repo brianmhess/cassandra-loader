@@ -24,13 +24,18 @@ import com.datastax.driver.core.exceptions.InvalidTypeException;
 import org.apache.commons.lang3.StringEscapeUtils;
 
 public abstract class AbstractParser implements Parser {
-    public abstract Object parse(String toparse) throws ParseException;
+    public abstract Object parseIt(String toparse) throws ParseException;
     public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
         if (row.isNull(index))
             return null;
         return format(row.getObject(index));
     }
     public abstract String format(Object o);
+
+    public Object parse(String toparse) throws ParseException {
+        String toparseit = unquote(toparse);
+        return parseIt(toparseit);
+    }
 
     public Object parse(IndexedLine il, String nullString, Character delim, 
                         Character escape, Character quote, boolean last)

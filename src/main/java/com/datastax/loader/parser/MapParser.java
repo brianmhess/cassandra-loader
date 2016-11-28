@@ -67,10 +67,9 @@ public class MapParser extends AbstractParser {
         
         csvp = new CsvParser(settings);
     }
-    public Object parse(String toparse) throws ParseException {
+    public Object parseIt(String toparse) throws ParseException {
         if (null == toparse)
             return null;
-        toparse = unquote(toparse);
         if (!toparse.startsWith(Character.toString(collectionBegin)))
             throw new ParseException("Must begin with " + collectionBegin 
                                      + "\n", 0);

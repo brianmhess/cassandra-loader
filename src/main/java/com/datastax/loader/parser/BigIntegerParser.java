@@ -21,7 +21,7 @@ import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // BigInteger parser
 public class BigIntegerParser extends AbstractParser {
-    public BigInteger parse(String toparse) throws NumberFormatException {
+    public BigInteger parseIt(String toparse) throws NumberFormatException {
         if (null == toparse)
             return null;
         return new BigInteger(toparse);

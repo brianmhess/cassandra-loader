@@ -125,10 +125,10 @@ public class DelimParser {
         Object toAdd;
         for (int i = 0; i < parsersSize; i++) {
             try {
-                String toparse = AbstractParser.unquote(row[i]);
+                String toparse = row[i];
                 if ((null == toparse) ||
                     ((null != nullString) &&
-                     (nullString.equalsIgnoreCase(toparse))))
+                     (nullString.equalsIgnoreCase(AbstractParser.unquote(toparse)))))
                     toAdd = null;
                 else
                     toAdd = parsers.get(i).parse(toparse);

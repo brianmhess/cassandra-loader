@@ -35,8 +35,8 @@ public class LongParser extends NumberParser {
         super(inLocale, grouping);
     }
     
-    public Long parse(String toparse) throws ParseException {
-        Number val = super.parse(toparse);
+    public Long parseIt(String toparse) throws ParseException {
+        Number val = super.parseIt(toparse);
         return (null == val) ? null : val.longValue();
     }
 }

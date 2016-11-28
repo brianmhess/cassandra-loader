@@ -22,7 +22,7 @@ import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // ByteBuffer parser
 public class ByteBufferParser extends AbstractParser {
-    public ByteBuffer parse(String toparse) {
+    public ByteBuffer parseIt(String toparse) {
         if (null == toparse)
             return null;
         byte[] barry = DatatypeConverter.parseBase64Binary(toparse);
