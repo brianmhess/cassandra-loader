@@ -21,7 +21,7 @@ import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // BigDecimal parser
 public class BigDecimalParser extends AbstractParser {
-    public BigDecimal parse(String toparse) throws NumberFormatException {
+    public BigDecimal parseIt(String toparse) throws NumberFormatException {
         if (null == toparse)
             return null;
         return new BigDecimal(toparse);

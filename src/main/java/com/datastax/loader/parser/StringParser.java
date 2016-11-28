@@ -23,8 +23,8 @@ import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // String parser - simple
 public class StringParser extends AbstractParser {
-    public String parse(String toparse) {
-        return unquote(toparse);
+    public String parseIt(String toparse) {
+        return toparse;
     }
 
     public String format(Object o) {

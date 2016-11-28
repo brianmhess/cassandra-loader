@@ -35,8 +35,8 @@ public class IntegerParser extends NumberParser {
         super(inLocale, grouping);
     }
     
-    public Integer parse(String toparse) throws ParseException {
-        Number val = super.parse(toparse);
+    public Integer parseIt(String toparse) throws ParseException {
+        Number val = super.parseIt(toparse);
         return (null == val) ? null : val.intValue();
     }
 }

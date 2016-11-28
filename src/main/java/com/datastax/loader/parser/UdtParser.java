@@ -50,7 +50,7 @@ public class UdtParser extends AbstractParser {
         csvp = new CsvParser(settings);
     }
     
-    public Object parse(String toparse) throws ParseException {
+    public Object parseIt(String toparse) throws ParseException {
         UDTValue u = ut.newValue();
         if (null == toparse)
             return null;

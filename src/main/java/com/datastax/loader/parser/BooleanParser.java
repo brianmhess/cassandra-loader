@@ -93,7 +93,7 @@ public class BooleanParser extends AbstractParser {
         return ret;
     };
 
-    public Boolean parse(String toparse) throws ParseException {
+    public Boolean parseIt(String toparse) throws ParseException {
         if (null == toparse)
             return null;
         if (boolTrue.equalsIgnoreCase(toparse))

@@ -35,8 +35,8 @@ public class DoubleParser extends NumberParser {
         super(inLocale, grouping);
     }
     
-    public Double parse(String toparse) throws ParseException {
-        Number val = super.parse(toparse);
+    public Double parseIt(String toparse) throws ParseException {
+        Number val = super.parseIt(toparse);
         return (null == val) ? null : val.doubleValue();
     }
 }
