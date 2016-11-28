@@ -110,31 +110,43 @@ public abstract class AbstractParser implements Parser {
         return sb.toString();
     }
 
-    public String quote(String instr) {
+    public static String quote(String instr) {
+        if (null == instr)
+            return null;
         return "\"" + escape(instr) + "\"";
     }
 
-    public String unquote(String instr) {
+    public static String unquote(String instr) {
+        if (null == instr)
+            return null;
         if ((instr.startsWith("\"")) && (instr.endsWith("\"")))
             return unescape(instr.substring(1, instr.length() - 1));
         return instr;
     }
 
-    public String unstripQuote(String instr) {
+    public static String unstripQuote(String instr) {
+        if (null == instr)
+            return null;
         return "\"" + instr + "\"";
     }
 
-    public String stripQuote(String instr) {
+    public static String stripQuote(String instr) {
+        if (null == instr)
+            return null;
         if ((instr.startsWith("\"")) && (instr.endsWith("\"")))
             return instr.substring(1, instr.length() - 1);
         return instr;
     }
 
-    public String escape(String instr) {
+    public static String escape(String instr) {
+        if (null == instr)
+            return null;
         return StringEscapeUtils.escapeJava(instr);
     }
 
-    public String unescape(String instr) {
+    public static String unescape(String instr) {
+        if (null == instr)
+            return null;
         return StringEscapeUtils.unescapeJava(instr);
     }
 }
