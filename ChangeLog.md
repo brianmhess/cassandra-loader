@@ -1,6 +1,7 @@
 ## 0.0.23
 - Fixed case of commas in Map keys
 - Fixed keystore/truststore-pw typo (was pwd)
+- Fixed quoting of non-collections
 
 ## 0.0.22
 - Added support for gzipped input files
