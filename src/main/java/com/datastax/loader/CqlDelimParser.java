@@ -15,16 +15,40 @@
  */
 package com.datastax.loader;
 
-import com.datastax.driver.core.*;
+import com.datastax.driver.core.ColumnMetadata;
+import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
-import com.datastax.loader.parser.*;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-
+import com.datastax.loader.parser.BigDecimalParser;
+import com.datastax.loader.parser.BigIntegerParser;
+import com.datastax.loader.parser.BooleanParser;
+import com.datastax.loader.parser.ByteBufferParser;
+import com.datastax.loader.parser.DateParser;
+import com.datastax.loader.parser.DelimParser;
+import com.datastax.loader.parser.DoubleParser;
+import com.datastax.loader.parser.FloatParser;
+import com.datastax.loader.parser.InetAddressParser;
+import com.datastax.loader.parser.IntegerParser;
+import com.datastax.loader.parser.ListParser;
+import com.datastax.loader.parser.LongParser;
+import com.datastax.loader.parser.MapParser;
+import com.datastax.loader.parser.Parser;
+import com.datastax.loader.parser.SetParser;
+import com.datastax.loader.parser.StringParser;
+import com.datastax.loader.parser.UUIDParser;
 import java.text.ParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
 public class CqlDelimParser {
     private Map<DataType.Name, Parser> pmap;
@@ -48,9 +72,9 @@ public class CqlDelimParser {
 
     public CqlDelimParser(String inKeyspace, String inTable, String inDelimiter,
                           int inCharsPerColumn,
-                          String inNullString, String inDateFormatString, 
+                          String inNullString, String inDateFormatString,
                           BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
-                          String skipList, Session session, boolean bLoader) 
+                          String skipList, Session session, boolean bLoader)
         throws ParseException {
         // Optionally provide things for the line parser - date format, boolean format, locale
         keyspace = inKeyspace;
