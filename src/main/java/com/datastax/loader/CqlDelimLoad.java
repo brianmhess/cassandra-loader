@@ -80,6 +80,7 @@ public class CqlDelimLoad {
     private int numThreads = Runtime.getRuntime().availableProcessors();
     private int batchSize = 1;
     private boolean nullsUnset = false;
+    private boolean fuzzyMatch = false;
 
     private String usage() {
         StringBuilder usage = new StringBuilder("version: ").append(version).append("\n");
@@ -133,13 +134,16 @@ public class CqlDelimLoad {
 
     private boolean validateArgs() {
         if (format.equalsIgnoreCase("delim")) {
-            if (null == cqlSchema) {
-                System.err.println("If you specify format " + format + " you must provide a schema");
+            if (null == cqlSchema && skipRows > 0) {
+                System.err.println("No schema was specified but there is a header, attempting to fuzzy match against header");
+                fuzzyMatch=true;
+            } else if (null == cqlSchema){
+                System.err.println("If you specify format " + format + " but do not have a header (skipRows) you must provide a schema");
                 return false;
             }
-            if (null != keyspace)
+            else if (null != keyspace)
                 System.err.println("Format is " + format + ", ignoring keyspace");
-            if (null != table)
+            else if (null != table)
                 System.err.println("Format is " + format + ", ignoring table");
         }
         else if (format.equalsIgnoreCase("jsonline") 
@@ -579,7 +583,7 @@ public class CqlDelimLoad {
                                                          maxInsertErrors, 
                                                          successDir, failureDir,
                                                          nullsUnset, format,
-                                                         keyspace, table);
+                                                         keyspace, table, fuzzyMatch);
             Future<Long> res = executor.submit(worker);
             total = res.get();
             executor.shutdown();
@@ -604,7 +608,7 @@ public class CqlDelimLoad {
                                                              maxInsertErrors, 
                                                              successDir, failureDir,
                                                              nullsUnset, format,
-                                                             keyspace, table);
+                                                             keyspace, table, fuzzyMatch);
                 results.add(executor.submit(worker));
             }
             executor.shutdown();

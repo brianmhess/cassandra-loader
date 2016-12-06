@@ -94,6 +94,7 @@ class CqlDelimLoadTask implements Callable<Long> {
     private String keyspace = null;
     private String table = null;
     private JSONArray jsonArray;
+    private boolean fuzzyMatch;
 
     public CqlDelimLoadTask(String inCqlSchema, String inDelimiter, 
                             int inCharsPerColumn,
@@ -108,7 +109,7 @@ class CqlDelimLoadTask implements Callable<Long> {
                             int inQueryTimeout, long inMaxInsertErrors,
                             String inSuccessDir, String inFailureDir,
                             boolean inNullsUnset, String inFormat,
-                            String inKeyspace, String inTable) {
+                            String inKeyspace, String inTable, boolean inFuzzyMatch) {
         super();
         cqlSchema = inCqlSchema;
         delimiter = inDelimiter;
@@ -136,6 +137,7 @@ class CqlDelimLoadTask implements Callable<Long> {
         format = inFormat;
         keyspace = inKeyspace;
         table = inTable;
+        fuzzyMatch = inFuzzyMatch;
     }
 
     public Long call() throws IOException, ParseException, org.json.simple.parser.ParseException {
@@ -168,18 +170,29 @@ class CqlDelimLoadTask implements Callable<Long> {
             logPrinter = new PrintStream(new BufferedOutputStream(new FileOutputStream(logFname)));
         }
 
-        if (format.equalsIgnoreCase("delim")) {
+
+
+        if (keyspace == null) {
             cdp = new CqlDelimParser(cqlSchema, delimiter, charsPerColumn, 
                                      nullString,
                                      dateFormatString, boolStyle, locale,
                                      skipCols, session, true);
         }
-        else if (format.equalsIgnoreCase("jsonline")
-                 || format.equalsIgnoreCase("jsonarray")) {
+        else{
             cdp = new CqlDelimParser(keyspace, table, delimiter, charsPerColumn,
                                      nullString, 
                                      dateFormatString, boolStyle, locale, 
                                      skipCols, session, true);
+            if(fuzzyMatch){
+                //TODO: is this a good read ahead limit?
+                reader.mark(20000);
+                String cqlSchema = new CqlSchemaFuzzyMatcher().match(keyspace, table, reader, delimiter, cdp);
+                reader.reset();
+                cdp = new CqlDelimParser(cqlSchema, delimiter, charsPerColumn,
+                        nullString,
+                        dateFormatString, boolStyle, locale,
+                        skipCols, session, true);
+            }
         }
 
         insert = cdp.generateInsert();

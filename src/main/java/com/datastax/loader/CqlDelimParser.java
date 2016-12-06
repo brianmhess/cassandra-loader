@@ -131,9 +131,7 @@ public class CqlDelimParser {
 
     private List<SchemaBits> schemaBits(String in, Session session) throws ParseException {
         keyspace = keyspace.replace("\"","");
-        System.out.println(keyspace);
         KeyspaceMetadata km = session.getCluster().getMetadata().getKeyspace("\""+keyspace+"\"");
-        System.out.println(keyspace);
         if (null == km) {
             System.err.println("Keyspace " + keyspace + " not found.");
             System.exit(-1);

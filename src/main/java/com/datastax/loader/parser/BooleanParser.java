@@ -16,8 +16,6 @@
 package com.datastax.loader.parser;
 
 import java.text.ParseException;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // Boolean parser - handles any way that Booleans can be expressed in Java
 public class BooleanParser extends AbstractParser {
@@ -100,7 +98,7 @@ public class BooleanParser extends AbstractParser {
             return new Boolean("TRUE");
         if (boolFalse.equalsIgnoreCase(toparse))
             return new Boolean("FALSE");
-        throw new ParseException("Boolean was not TRUE (" + boolTrue + ") or FALSE (" + boolFalse + ")", 0);
+        throw new ParseException("Boolean was not TRUE (" + boolTrue + ") or FALSE (" + boolFalse + ")" + " it was "+ toparse, 0);
     }
 
     public String format(Object o) {
