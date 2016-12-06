@@ -15,72 +15,53 @@
  */
 package com.datastax.loader;
 
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.HostDistance;
+import com.datastax.driver.core.JdkSSLOptions;
+import com.datastax.driver.core.Metrics;
+import com.datastax.driver.core.PoolingOptions;
+import com.datastax.driver.core.ProtocolVersion;
+import com.datastax.driver.core.SSLOptions;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
+import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.loader.parser.BooleanParser;
-import com.datastax.loader.futures.FutureManager;
-import com.datastax.loader.futures.PrintingFutureSet;
-
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Deque;
-import java.util.ArrayDeque;
-import java.util.Comparator;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.io.File;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.InputStreamReader;
-import java.io.IOException;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.FileInputStream;
 import java.io.BufferedOutputStream;
-import java.io.PrintStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.text.ParseException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.security.KeyStore;
-import java.security.SecureRandom;
-import java.security.KeyStoreException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.text.ParseException;
+import java.util.ArrayDeque;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
-
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Metrics;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.ProtocolVersion;
-import com.datastax.driver.core.PoolingOptions;
-import com.datastax.driver.core.ProtocolOptions;
-import com.datastax.driver.core.HostDistance;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.SSLOptions;
-import com.datastax.driver.core.JdkSSLOptions;
-import com.datastax.driver.core.policies.TokenAwarePolicy;
-import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
-
-import com.codahale.metrics.Timer;
-import org.apache.commons.lang3.StringEscapeUtils;
 
 public class CqlDelimLoad {
     private String version = "0.0.21";
@@ -114,7 +95,6 @@ public class CqlDelimLoad {
     private long maxErrors = 10;
     private long skipRows = 0;
     private String skipCols = null;
-    
     private long maxRows = -1;
     private String badDir = ".";
     private String filename = null;
@@ -133,6 +113,7 @@ public class CqlDelimLoad {
     private int numThreads = Runtime.getRuntime().availableProcessors();
     private int batchSize = 1;
     private boolean nullsUnset = false;
+    private boolean fuzzyMatch = false;
 
     private String usage() {
         StringBuilder usage = new StringBuilder("version: ").append(version).append("\n");
@@ -183,16 +164,19 @@ public class CqlDelimLoad {
         usage.append("cassandra-loader -f stdin -host localhost -schema \"test.test3(a, b, c)\" -user myuser -pw mypassword\n");
         return usage.toString();
     }
-    
+
     private boolean validateArgs() {
         if (format.equalsIgnoreCase("delim")) {
-            if (null == cqlSchema) {
-                System.err.println("If you specify format " + format + " you must provide a schema");
+            if (null == cqlSchema && skipRows > 0) {
+                System.err.println("No schema was specified but there is a header, attempting to fuzzy match against header");
+                fuzzyMatch=true;
+            } else if (null == cqlSchema){
+                System.err.println("If you specify format " + format + " but do not have a header (skipRows) you must provide a schema");
                 return false;
             }
-            if (null != keyspace)
+            else if (null != keyspace)
                 System.err.println("Format is " + format + ", ignoring keyspace");
-            if (null != table)
+            else if (null != table)
                 System.err.println("Format is " + format + ", ignoring table");
         }
         else if (format.equalsIgnoreCase("jsonline") 
@@ -363,7 +347,7 @@ public class CqlDelimLoad {
         }
         return true;
     }
-    
+
     private boolean parseArgs(String[] args) throws IOException, FileNotFoundException {
         String tkey;
         if (args.length == 0) {
@@ -447,7 +431,7 @@ public class CqlDelimLoad {
             maxErrors = Long.MAX_VALUE;
         if (-1 == maxInsertErrors)
             maxInsertErrors = Long.MAX_VALUE;
-        
+
         if (!amap.isEmpty()) {
             for (String k : amap.keySet())
                 System.err.println("Unrecognized option: " + k);
@@ -472,7 +456,7 @@ public class CqlDelimLoad {
         return "\"" + ret + "\"";
     }
 
-    private SSLOptions createSSLOptions() 
+    private SSLOptions createSSLOptions()
         throws KeyStoreException, FileNotFoundException, IOException, NoSuchAlgorithmException, 
                KeyManagementException, CertificateException, UnrecoverableKeyException {
         TrustManagerFactory tmf = null;
@@ -481,7 +465,7 @@ public class CqlDelimLoad {
                 truststorePwd.toCharArray());
         tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(tks);
-    
+
         KeyManagerFactory kmf = null;
         if (null != keystorePath) {
             KeyStore kks = KeyStore.getInstance("JKS");
@@ -503,27 +487,39 @@ public class CqlDelimLoad {
         throws IOException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException,
                CertificateException, UnrecoverableKeyException {
         // Connect to Cassandra
-        PoolingOptions pOpts = new PoolingOptions();
-        pOpts.setMaxConnectionsPerHost(HostDistance.LOCAL, 8);
-        pOpts.setCoreConnectionsPerHost(HostDistance.LOCAL, 8);
-        Cluster.Builder clusterBuilder = Cluster.builder()
-            .addContactPoint(host)
-            .withPort(port)
-            //.withCompression(ProtocolOptions.Compression.LZ4)
-            .withPoolingOptions(pOpts)
-            .withLoadBalancingPolicy(new TokenAwarePolicy( DCAwareRoundRobinPolicy.builder().build()))
-            ;
+        Session tsession = null;
+        try {
+            PoolingOptions pOpts = new PoolingOptions();
+            pOpts.setMaxConnectionsPerHost(HostDistance.LOCAL, 8);
+            pOpts.setCoreConnectionsPerHost(HostDistance.LOCAL, 8);
+            Cluster.Builder clusterBuilder = Cluster.builder()
+                    .addContactPoint(host)
+                    .withPort(port)
+                    //.withCompression(ProtocolOptions.Compression.LZ4)
+                    .withPoolingOptions(pOpts)
+                    .withLoadBalancingPolicy(new TokenAwarePolicy(DCAwareRoundRobinPolicy.builder().build()));
 
-        if (null != username)
-            clusterBuilder = clusterBuilder.withCredentials(username, password);
-        if (null != truststorePath)
-            clusterBuilder = clusterBuilder.withSSL(createSSLOptions());
+            if (null != username)
+                clusterBuilder = clusterBuilder.withCredentials(username, password);
+            if (null != truststorePath)
+                clusterBuilder = clusterBuilder.withSSL(createSSLOptions());
 
-        cluster = clusterBuilder.build();
-        if (null == cluster) {
-            throw new IOException("Could not create cluster");
+            cluster = clusterBuilder.build();
+            if (null == cluster) {
+                throw new IOException("Could not create cluster");
+            }
+            tsession = cluster.connect();
         }
-        Session tsession = cluster.connect();
+        catch (IllegalArgumentException e){
+            System.err.println("Could not connect to the cluster, check your hosts");
+            //e.printStackTrace();
+            System.exit(0);
+        }
+        catch (Exception e){
+            System.err.println(e.getStackTrace());
+            e.printStackTrace();
+            System.exit(0);
+        }
 
         if ((0 > cluster.getConfiguration().getProtocolOptions()
              .getProtocolVersion().compareTo(ProtocolVersion.V4))
@@ -559,7 +555,6 @@ public class CqlDelimLoad {
         if (null != cluster)
             cluster.close();
     }
-    
     public boolean run(String[] args) 
         throws IOException, ParseException, InterruptedException, ExecutionException, KeyStoreException,
                NoSuchAlgorithmException, KeyManagementException, CertificateException, 
@@ -573,7 +568,7 @@ public class CqlDelimLoad {
         // Setup
         if (false == setup())
             return false;
-        
+
         // open file
         Deque<File> fileList = new ArrayDeque<File>();
         File infile = null;
@@ -621,7 +616,7 @@ public class CqlDelimLoad {
                                                          maxInsertErrors, 
                                                          successDir, failureDir,
                                                          nullsUnset, format,
-                                                         keyspace, table);
+                                                         keyspace, table, fuzzyMatch);
             Future<Long> res = executor.submit(worker);
             total = res.get();
             executor.shutdown();
@@ -646,7 +641,7 @@ public class CqlDelimLoad {
                                                              maxInsertErrors, 
                                                              successDir, failureDir,
                                                              nullsUnset, format,
-                                                             keyspace, table);
+                                                             keyspace, table, fuzzyMatch);
                 results.add(executor.submit(worker));
             }
             executor.shutdown();

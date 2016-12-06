@@ -22,13 +22,9 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.datastax.loader.futures.FutureManager;
-import com.datastax.loader.futures.PrintingFutureSet;
 import com.datastax.loader.futures.JsonPrintingFutureSet;
+import com.datastax.loader.futures.PrintingFutureSet;
 import com.datastax.loader.parser.BooleanParser;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
@@ -46,6 +42,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
 class CqlDelimLoadTask implements Callable<Long> {
     private String BADPARSE = ".BADPARSE";
@@ -94,6 +93,7 @@ class CqlDelimLoadTask implements Callable<Long> {
     private String keyspace = null;
     private String table = null;
     private JSONArray jsonArray;
+    private boolean fuzzyMatch;
 
     public CqlDelimLoadTask(String inCqlSchema, String inDelimiter, 
                             int inCharsPerColumn,
@@ -108,7 +108,7 @@ class CqlDelimLoadTask implements Callable<Long> {
                             int inQueryTimeout, long inMaxInsertErrors,
                             String inSuccessDir, String inFailureDir,
                             boolean inNullsUnset, String inFormat,
-                            String inKeyspace, String inTable) {
+                            String inKeyspace, String inTable, boolean inFuzzyMatch) {
         super();
         cqlSchema = inCqlSchema;
         delimiter = inDelimiter;
@@ -136,6 +136,7 @@ class CqlDelimLoadTask implements Callable<Long> {
         format = inFormat;
         keyspace = inKeyspace;
         table = inTable;
+        fuzzyMatch = inFuzzyMatch;
     }
 
     public Long call() throws IOException, ParseException, org.json.simple.parser.ParseException {
@@ -168,18 +169,29 @@ class CqlDelimLoadTask implements Callable<Long> {
             logPrinter = new PrintStream(new BufferedOutputStream(new FileOutputStream(logFname)));
         }
 
-        if (format.equalsIgnoreCase("delim")) {
+
+
+        if (keyspace == null) {
             cdp = new CqlDelimParser(cqlSchema, delimiter, charsPerColumn, 
                                      nullString,
                                      dateFormatString, boolStyle, locale,
                                      skipCols, session, true);
         }
-        else if (format.equalsIgnoreCase("jsonline")
-                 || format.equalsIgnoreCase("jsonarray")) {
+        else{
             cdp = new CqlDelimParser(keyspace, table, delimiter, charsPerColumn,
                                      nullString, 
                                      dateFormatString, boolStyle, locale, 
                                      skipCols, session, true);
+            if(fuzzyMatch){
+                //TODO: is this a good read ahead limit?
+                reader.mark(20000);
+                String cqlSchema = new CqlSchemaFuzzyMatcher().match(keyspace, table, reader, delimiter, cdp);
+                reader.reset();
+                cdp = new CqlDelimParser(cqlSchema, delimiter, charsPerColumn,
+                        nullString,
+                        dateFormatString, boolStyle, locale,
+                        skipCols, session, true);
+            }
         }
 
         insert = cdp.generateInsert();

@@ -17,10 +17,9 @@ package com.datastax.loader;
 
 import com.datastax.driver.core.ColumnMetadata;
 import com.datastax.driver.core.DataType;
-import com.datastax.driver.core.Row;
+import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TableMetadata;
-import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 import com.datastax.loader.parser.BigDecimalParser;
 import com.datastax.loader.parser.BigIntegerParser;
@@ -39,7 +38,6 @@ import com.datastax.loader.parser.Parser;
 import com.datastax.loader.parser.SetParser;
 import com.datastax.loader.parser.StringParser;
 import com.datastax.loader.parser.UUIDParser;
-
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,10 +47,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-  
+
 public class CqlDelimParser {
     private Map<DataType.Name, Parser> pmap;
     private List<SchemaBits> sbl;
@@ -71,13 +68,13 @@ public class CqlDelimParser {
         initPmap(inDateFormatString, inBoolStyle, inLocale, bLoader);
         processCqlSchema(inCqlSchema, session);
         createDelimParser(inDelimiter, inCharsPerColumn, inNullString, skipList);
-    }   
+    }
 
     public CqlDelimParser(String inKeyspace, String inTable, String inDelimiter,
                           int inCharsPerColumn,
-                          String inNullString, String inDateFormatString, 
+                          String inNullString, String inDateFormatString,
                           BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
-                          String skipList, Session session, boolean bLoader) 
+                          String skipList, Session session, boolean bLoader)
         throws ParseException {
         // Optionally provide things for the line parser - date format, boolean format, locale
         keyspace = inKeyspace;
@@ -157,12 +154,14 @@ public class CqlDelimParser {
 
 
     private List<SchemaBits> schemaBits(String in, Session session) throws ParseException {
-        KeyspaceMetadata km = session.getCluster().getMetadata().getKeyspace(keyspace);
+        keyspace = keyspace.replace("\"","");
+        KeyspaceMetadata km = session.getCluster().getMetadata().getKeyspace("\""+keyspace+"\"");
         if (null == km) {
             System.err.println("Keyspace " + keyspace + " not found.");
             System.exit(-1);
         }
-        TableMetadata tm = km.getTable(tablename);
+        tablename = tablename.replace("\"","");
+        TableMetadata tm = km.getTable("\"" + tablename + "\"");
         if (null == tm) {
             System.err.println("Table " + tablename + " not found.");
             System.exit(-1);
@@ -183,7 +182,8 @@ public class CqlDelimParser {
         for (int i = 0; i < inList.size(); i++) {
             String col = inList.get(i);
             SchemaBits sb = new SchemaBits();
-            ColumnMetadata cm = tm.getColumn(col);
+            col = col.replace("\"","");
+            ColumnMetadata cm = tm.getColumn("\""+col+"\"");
             if (null == cm) {
                 System.err.println("Column " + col + " of table " + keyspace + "." + tablename + " not found");
                 System.exit(-1);
@@ -258,10 +258,10 @@ public class CqlDelimParser {
 
     // Convenience method to return the INSERT statement for a PreparedStatement.
     public String generateInsert() {
-        String insert = "INSERT INTO " + keyspace + "." + tablename + "(" + sbl.get(0).name;
+        String insert = "INSERT INTO \"" + keyspace + "\".\"" + tablename + "\" (\"" + sbl.get(0).name + "\"";
         String qmarks = "?";
         for (int i = 1; i < sbl.size(); i++) {
-            insert = insert + ", " + sbl.get(i).name;
+            insert = insert + ", \"" + sbl.get(i).name + "\"";
             qmarks = qmarks + ", ?";
         }
         insert = insert + ") VALUES (" + qmarks + ")";
