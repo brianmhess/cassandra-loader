@@ -30,7 +30,7 @@ import com.datastax.driver.core.exceptions.InvalidTypeException;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 
-public class MapParser extends AbstractParser {
+public class MapParser extends AbstractParser<Map> {
     private Parser keyParser;
     private Parser valueParser;
     private char collectionDelim;
@@ -65,7 +65,7 @@ public class MapParser extends AbstractParser {
         
         csvp = new CsvParser(settings);
     }
-    public Object parseIt(String toparse) throws ParseException {
+    public Map parseIt(String toparse) throws ParseException {
         if (null == toparse)
             return null;
         Map<Object,Object> elements = new HashMap<Object,Object>();

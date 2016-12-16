@@ -28,7 +28,7 @@ import com.datastax.driver.core.exceptions.InvalidTypeException;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 
-public class UdtParser extends AbstractParser {
+public class UdtParser extends AbstractParser<UDTValue> {
     private Map<String,Parser> pmap = null;
     private UserType ut;
     private CsvParser csvp;
@@ -50,7 +50,8 @@ public class UdtParser extends AbstractParser {
         csvp = new CsvParser(settings);
     }
     
-    public Object parseIt(String toparse) throws ParseException {
+    @SuppressWarnings("unchecked")
+    public UDTValue parseIt(String toparse) throws ParseException {
         UDTValue u = ut.newValue();
         if (null == toparse)
             return null;
@@ -77,6 +78,7 @@ public class UdtParser extends AbstractParser {
                 Object o = p.parse(row[1]);
                 Class klass = o.getClass();
                 u.set(key, klass.cast(o), klass);
+                //u.set(key, p.parse(row[1]), p.parse(row[1]).getClass());
             }
         }
         catch (Exception e) {

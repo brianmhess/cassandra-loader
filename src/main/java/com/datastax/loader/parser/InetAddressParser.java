@@ -23,7 +23,7 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // InetAddress parser
-public class InetAddressParser extends AbstractParser {
+public class InetAddressParser extends AbstractParser<InetAddress> {
     public InetAddress parseIt(String toparse) throws ParseException {
         if (null == toparse)
             return null;

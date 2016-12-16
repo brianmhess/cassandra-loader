@@ -22,21 +22,26 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // Float parser - use the Number parser
-public class FloatParser extends NumberParser {
+public class FloatParser extends AbstractParser<Float> {
+    private NumberParser np;
     public FloatParser() {
-        super();
+        np = new NumberParser();
     }
     
     public FloatParser(Locale inLocale) {
-        super(inLocale);
+        np = new NumberParser(inLocale);
     }
     
     public FloatParser(Locale inLocale, Boolean grouping) {
-        super(inLocale, grouping);
+        np = new NumberParser(inLocale, grouping);
     }
 
     public Float parseIt(String toparse) throws ParseException {
-        Number val = super.parseIt(toparse);
+        Number val = np.parseIt(toparse);
         return (null == val) ? null : val.floatValue();
+    }
+
+    public String format(Object o) {
+        return np.format(o);
     }
 }

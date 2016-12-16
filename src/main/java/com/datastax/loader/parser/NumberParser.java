@@ -26,7 +26,7 @@ import com.datastax.driver.core.exceptions.InvalidTypeException;
 // General number parser
 // This is useful as it can take care of Locales for us
 // That means comma as a decimal separator, etc.
-public class NumberParser extends AbstractParser {
+public class NumberParser extends AbstractParser<Number> {
     protected NumberFormat nf;
     public NumberParser() {
         this(null);

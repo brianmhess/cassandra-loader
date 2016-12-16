@@ -27,7 +27,7 @@ import com.datastax.driver.core.exceptions.InvalidTypeException;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 
-public class ListParser extends AbstractParser {
+public class ListParser extends AbstractParser<List> {
     private Parser parser;
     private char collectionDelim;
     private char collectionBegin;
@@ -57,7 +57,7 @@ public class ListParser extends AbstractParser {
         csvp = new CsvParser(settings);
     }
 
-    public Object parseIt(String toparse) throws ParseException {
+    public List parseIt(String toparse) throws ParseException {
         if (null == toparse)
             return null;
         List<Object> elements = new ArrayList<Object>();

@@ -20,7 +20,7 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // BigInteger parser
-public class BigIntegerParser extends AbstractParser {
+public class BigIntegerParser extends AbstractParser<BigInteger> {
     public BigInteger parseIt(String toparse) throws NumberFormatException {
         if (null == toparse)
             return null;

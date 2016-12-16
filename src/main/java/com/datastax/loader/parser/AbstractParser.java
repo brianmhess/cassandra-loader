@@ -23,96 +23,20 @@ import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 
-public abstract class AbstractParser implements Parser {
-    public abstract Object parseIt(String toparse) throws ParseException;
+public abstract class AbstractParser<E> implements Parser<E> {
+    public abstract E parseIt(String toparse) throws ParseException;
+
     public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
         if (row.isNull(index))
             return null;
         return format(row.getObject(index));
     }
+
     public abstract String format(Object o);
 
-    public Object parse(String toparse) throws ParseException {
+    public E parse(String toparse) throws ParseException {
         String toparseit = unquote(toparse);
         return parseIt(toparseit);
-    }
-
-    public Object parse(IndexedLine il, String nullString, Character delim, 
-                        Character escape, Character quote, boolean last)
-        throws IOException, ParseException {
-        //if (last)
-        //    return parse(prepareToParse(il.remaining(), nullString, quote));
-        //return parse(getQuotedOrUnquoted(il, nullString, delim, escape, quote));
-        return parse(getQuotedOrUnquoted(il, nullString, delim, escape, quote));
-    }
-
-    public String prepareToParse(String retstring, String nullString, Character quote) {
-        if (retstring.startsWith(quote.toString()) 
-            && retstring.endsWith(quote.toString()))
-            //if ((quote == retstring.charAt(0)) 
-            //&& (quote == retstring.charAt(retstring.length() - 1)))
-            retstring = retstring.substring(1, retstring.length() - 1);
-        else 
-            retstring = retstring.trim();
-        if (null != nullString)
-            if (nullString.equalsIgnoreCase(retstring))
-                return null;    
-        return retstring;
-    }
-
-    public String getQuotedOrUnquoted(IndexedLine il, String nullString,
-                                      Character delim, Character escape, 
-                                      Character quote) 
-        throws IOException, ParseException {
-        String retstring;
-        if (null == delim) {
-            return null;
-        }
-        if (!il.hasNext())
-            return "";
-        char c = il.getNext();
-        if (c == delim) {
-            retstring = "";
-        }
-        else {
-            StringBuilder sb = new StringBuilder(10240).append(c);
-            String s = extractUntil(il, delim, escape, quote, (c == quote));
-            if (null == s) {
-                return null;
-            }
-            retstring = sb.append(s).toString();
-        }
-        return prepareToParse(retstring, nullString, quote);
-    }
-
-    public String extractUntil(IndexedLine il, Character delim, 
-                               Character escape, Character quote,
-                               boolean inquote)
-        throws IOException, ParseException {
-        if (null == delim) {
-            return null;
-        }
-        StringBuilder sb = new StringBuilder(10240);
-        char c;
-        while (il.hasNext()) {
-            c = il.getNext();
-            if ((c == delim) && (!inquote)) {
-                break;
-            }
-            sb.append(c);
-            if (null != quote) {
-                if (c == quote) {
-                    inquote = !inquote;
-                }
-            }
-            if (null != escape) {
-                if (c == escape) {
-                    c = il.getNext();
-                    sb.append(Character.toChars(c));
-                }
-            }
-        }
-        return sb.toString();
     }
 
     public static String quote(String instr) {

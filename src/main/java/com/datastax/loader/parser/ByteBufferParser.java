@@ -21,7 +21,7 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // ByteBuffer parser
-public class ByteBufferParser extends AbstractParser {
+public class ByteBufferParser extends AbstractParser<ByteBuffer> {
     public ByteBuffer parseIt(String toparse) {
         if (null == toparse)
             return null;

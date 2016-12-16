@@ -22,21 +22,26 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // Double parser - use the Number parser
-public class DoubleParser extends NumberParser {
+public class DoubleParser extends AbstractParser<Double> {
+    private NumberParser np;
     public DoubleParser() {
-        super();
+        np = new NumberParser();
     }
     
     public DoubleParser(Locale inLocale) {
-        super(inLocale);
+        np = new NumberParser(inLocale);
     }
 
     public DoubleParser(Locale inLocale, Boolean grouping) {
-        super(inLocale, grouping);
+        np = new NumberParser(inLocale, grouping);
     }
     
     public Double parseIt(String toparse) throws ParseException {
-        Number val = super.parseIt(toparse);
+        Number val = np.parseIt(toparse);
         return (null == val) ? null : val.doubleValue();
+    }
+
+    public String format(Object o) {
+        return np.format(o);
     }
 }

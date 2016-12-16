@@ -96,18 +96,7 @@ public class DelimParser {
         parsersSize = parsers.size();
     }
 
-    // This is where we apply rules like quoting, NULL, etc
-    private String prepareToParse(String toparse) {
-        String trimmedToParse = toparse.trim();
-        if (trimmedToParse.startsWith("\"") && trimmedToParse.endsWith("\""))
-            trimmedToParse = trimmedToParse.substring(1, trimmedToParse.length() - 1);
-        if (trimmedToParse.equals(nullString))
-            return null;
-        return trimmedToParse;
-    }
-
     public List<Object> parse(String line) {
-        //return parseComplex(line);
         return parseWithUnivocity(line);
     }
 
@@ -147,33 +136,6 @@ public class DelimParser {
             }
         }
 
-        return elements;
-    }
-
-    public List<Object> parseComplex(String line) {
-        elements.clear();
-        IndexedLine sr = new IndexedLine(line);
-        for (int i = 0; i < parsersSize; i++) {
-            try {
-                Object toAdd = parsers.get(i).parse(sr, nullString, delim, 
-                                                    escape, quote, 
-                                                    (parsersSize-1 == i));
-                if (!skip.get(i))
-                    elements.add(toAdd);
-            }
-            catch (NumberFormatException e) {
-                System.err.println(String.format("Invalid number in input number %d: %s", i, e.getMessage()));
-                return null;
-            }
-            catch (ParseException pe) {
-                System.err.println(String.format("Invalid format in input %d: %s", i, pe.getMessage()));
-                return null;
-            }
-            catch (IOException e) {
-                System.err.println(String.format("Invalid number of fields - ran out of string: %s", i, e.getMessage()));
-                return null;
-            }
-        }
         return elements;
     }
 

@@ -22,7 +22,7 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
 // String parser - simple
-public class StringParser extends AbstractParser {
+public class StringParser extends AbstractParser<String> {
     public String parseIt(String toparse) {
         return toparse;
     }
