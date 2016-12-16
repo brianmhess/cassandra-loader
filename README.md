@@ -200,6 +200,7 @@ OPTIONS:
   -charsPerColumn <chars>            Max number of chars per column [4096]
   -dateFormat <dateFormatString>     Date format [default for Locale.ENGLISH]
   -nullString <nullString>           String that signifies NULL [none]
+  -comment <commentString>           Comment symbol to use [none]
   -skipRows <skipRows>               Number of rows to skip [0]
   -skipCols <columnsToSkip>          Comma-separated list of columsn to skip in the input file
   -maxRows <maxRows>                 Maximum number of rows to read (-1 means all) [-1]
