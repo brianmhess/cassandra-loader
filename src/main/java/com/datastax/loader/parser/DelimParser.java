@@ -35,12 +35,14 @@ public class DelimParser {
     private char delim;
     private char quote;
     private char escape;
+    private char comment;
     private List<Boolean> skip;
 
     private CsvParser csvp = null;
 
     public static String DEFAULT_DELIMITER = ",";
     public static String DEFAULT_NULLSTRING = "";
+    public static String DEFAULT_COMMENT_STRING = "\0";
     public static int DEFAULT_CHARSPERCOLUMN = 4096;
 
     public DelimParser() {
@@ -48,11 +50,11 @@ public class DelimParser {
     }
 
     public DelimParser(String inDelimiter) {
-        this(inDelimiter, DEFAULT_CHARSPERCOLUMN, DEFAULT_NULLSTRING);
+        this(inDelimiter, DEFAULT_CHARSPERCOLUMN, DEFAULT_NULLSTRING, DEFAULT_COMMENT_STRING);
     }
 
     public DelimParser(String inDelimiter, int inCharsPerColumn,
-                       String inNullString) {
+                       String inNullString, String inComment) {
         parsers = new ArrayList<Parser>();
         elements = new ArrayList<Object>();
         skip = new ArrayList<Boolean>();
@@ -65,6 +67,10 @@ public class DelimParser {
             nullString = DEFAULT_NULLSTRING;
         else
             nullString = inNullString;
+        if (null == inComment)
+            comment = DEFAULT_COMMENT_STRING.charAt(0);
+        else
+            comment = inComment.charAt(0);
         charsPerColumn = inCharsPerColumn;
         delim = ("\\t".equals(delimiter)) ?  '\t' : delimiter.charAt(0);
         quote = '\"';
@@ -79,6 +85,7 @@ public class DelimParser {
         settings.getFormat().setCharToEscapeQuoteEscaping(escape);
         settings.setKeepQuotes(true);
         settings.setKeepEscapeSequences(true);
+        settings.getFormat().setComment(comment);
 
         csvp = new CsvParser(settings);
     }

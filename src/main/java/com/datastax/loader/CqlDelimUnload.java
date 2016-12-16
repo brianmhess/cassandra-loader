@@ -541,7 +541,7 @@ public class CqlDelimUnload {
 
         private boolean setup() throws IOException, ParseException {
             cdp = new CqlDelimParser(cqlSchema, delimiter, 4096, nullString, 
-                                     dateFormatString, 
+                                     null, dateFormatString, 
                                      boolStyle, locale, null, session, false);
             String select = cdp.generateSelect();
             String partitionKey = getPartitionKey(cdp, session);

@@ -127,6 +127,7 @@ public class CqlDelimLoad {
     private BooleanParser.BoolStyle boolStyle = null;
     private String dateFormatString = null;
     private String nullString = null;
+    private String commentString = null;
     private String delimiter = null;
     private int charsPerColumn = 4096;
 
@@ -146,6 +147,7 @@ public class CqlDelimLoad {
         usage.append("  -charsPerColumn <chars>            Max number of chars per column [4096]\n");
         usage.append("  -dateFormat <dateFormatString>     Date format [default for Locale.ENGLISH]\n");
         usage.append("  -nullString <nullString>           String that signifies NULL [none]\n");
+        usage.append("  -comment <commentString>           Comment symbol to use [none]\n");
         usage.append("  -skipRows <skipRows>               Number of rows to skip [0]\n");
         usage.append("  -skipCols <columnsToSkip>          Comma-separated list of columsn to skip in the input file\n");
         usage.append("  -maxRows <maxRows>                 Maximum number of rows to read (-1 means all) [-1]\n");
@@ -420,6 +422,7 @@ public class CqlDelimLoad {
         if (null != (tkey = amap.remove("-badDir")))        badDir = tkey;
         if (null != (tkey = amap.remove("-dateFormat")))    dateFormatString = tkey;
         if (null != (tkey = amap.remove("-nullString")))    nullString = tkey;
+        if (null != (tkey = amap.remove("-comment")))       commentString = tkey;
         if (null != (tkey = amap.remove("-delim")))         delimiter = tkey;
         if (null != (tkey = amap.remove("-numThreads")))    numThreads = Integer.parseInt(tkey);
         if (null != (tkey = amap.remove("-rate")))          rate = Double.parseDouble(tkey);
@@ -622,7 +625,8 @@ public class CqlDelimLoad {
             // One file/stdin to process
             executor = Executors.newSingleThreadExecutor();
             Callable<Long> worker = new CqlDelimLoadTask(cqlSchema, delimiter, 
-                                                         charsPerColumn,nullString,
+                                                         charsPerColumn, nullString,
+                                                         commentString,
                                                          dateFormatString, 
                                                          boolStyle, locale, 
                                                          maxErrors, skipRows,
@@ -646,6 +650,7 @@ public class CqlDelimLoad {
                 File tFile = fileList.pop();
                 Callable<Long> worker = new CqlDelimLoadTask(cqlSchema, delimiter,
                                                              charsPerColumn, nullString,
+                                                             commentString,
                                                              dateFormatString, 
                                                              boolStyle, locale, 
                                                              maxErrors, skipRows,
