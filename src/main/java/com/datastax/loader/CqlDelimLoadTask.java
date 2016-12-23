@@ -84,6 +84,7 @@ class CqlDelimLoadTask implements Callable<Long> {
     private Locale locale = null;
     private BooleanParser.BoolStyle boolStyle = null;
     private String dateFormatString = null;
+    private String localDateFormatString = null;
     private String nullString = null;
     private String commentString = null;
     private String delimiter = null;
@@ -101,7 +102,8 @@ class CqlDelimLoadTask implements Callable<Long> {
 
     public CqlDelimLoadTask(String inCqlSchema, String inDelimiter, 
                             int inCharsPerColumn,
-                            String inNullString, String inCommentString, String inDateFormatString,
+                            String inNullString, String inCommentString, 
+                            String inDateFormatString, String inLocalDateFormatString,
                             BooleanParser.BoolStyle inBoolStyle, 
                             Locale inLocale, 
                             long inMaxErrors, long inSkipRows, 
@@ -120,6 +122,7 @@ class CqlDelimLoadTask implements Callable<Long> {
         nullString = inNullString;
         commentString = inCommentString;
         dateFormatString = inDateFormatString;
+        localDateFormatString = inLocalDateFormatString;
         boolStyle = inBoolStyle;
         locale = inLocale;
         maxErrors = inMaxErrors;
@@ -183,14 +186,16 @@ class CqlDelimLoadTask implements Callable<Long> {
         if (format.equalsIgnoreCase("delim")) {
             cdp = new CqlDelimParser(cqlSchema, delimiter, charsPerColumn, 
                                      nullString, commentString,
-                                     dateFormatString, boolStyle, locale,
+                                     dateFormatString, localDateFormatString,
+                                     boolStyle, locale,
                                      skipCols, session, true);
         }
         else if (format.equalsIgnoreCase("jsonline")
                  || format.equalsIgnoreCase("jsonarray")) {
             cdp = new CqlDelimParser(keyspace, table, delimiter, charsPerColumn,
                                      nullString, commentString,
-                                     dateFormatString, boolStyle, locale, 
+                                     dateFormatString, localDateFormatString,
+                                     boolStyle, locale, 
                                      skipCols, session, true);
         }
 

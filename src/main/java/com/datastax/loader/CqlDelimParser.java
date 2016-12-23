@@ -26,6 +26,7 @@ import com.datastax.loader.parser.BigDecimalParser;
 import com.datastax.loader.parser.BigIntegerParser;
 import com.datastax.loader.parser.BooleanParser;
 import com.datastax.loader.parser.ByteBufferParser;
+import com.datastax.loader.parser.ByteParser;
 import com.datastax.loader.parser.DateParser;
 import com.datastax.loader.parser.DelimParser;
 import com.datastax.loader.parser.DoubleParser;
@@ -33,10 +34,12 @@ import com.datastax.loader.parser.FloatParser;
 import com.datastax.loader.parser.InetAddressParser;
 import com.datastax.loader.parser.IntegerParser;
 import com.datastax.loader.parser.ListParser;
+import com.datastax.loader.parser.LocalDateParser;
 import com.datastax.loader.parser.LongParser;
 import com.datastax.loader.parser.MapParser;
 import com.datastax.loader.parser.Parser;
 import com.datastax.loader.parser.SetParser;
+import com.datastax.loader.parser.ShortParser;
 import com.datastax.loader.parser.StringParser;
 import com.datastax.loader.parser.UUIDParser;
 
@@ -53,6 +56,9 @@ import java.util.regex.Pattern;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
+import com.univocity.parsers.csv.CsvParser;
+import com.univocity.parsers.csv.CsvParserSettings;
+
 public class CqlDelimParser {
     private Map<DataType.Name, Parser> pmap;
     private List<SchemaBits> sbl;
@@ -63,26 +69,30 @@ public class CqlDelimParser {
     private JSONParser jsonParser;
 
     public CqlDelimParser(String inCqlSchema, String inDelimiter, int inCharsPerColumn,
-                          String inNullString, String inCommentString, String inDateFormatString,
+                          String inNullString, String inCommentString, 
+                          String inDateFormatString, String inLocalDateFormatString,
                           BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
                           String skipList, Session session, boolean bLoader) 
         throws ParseException {
         // Optionally provide things for the line parser - date format, boolean format, locale
-        initPmap(inDateFormatString, inBoolStyle, inLocale, bLoader);
+        initPmap(inDateFormatString, inLocalDateFormatString, inBoolStyle, 
+                 inLocale, bLoader);
         processCqlSchema(inCqlSchema, session);
         createDelimParser(inDelimiter, inCharsPerColumn, inNullString, inCommentString, skipList);
     }   
 
     public CqlDelimParser(String inKeyspace, String inTable, String inDelimiter,
                           int inCharsPerColumn,
-                          String inNullString, String inCommentString, String inDateFormatString,
+                          String inNullString, String inCommentString, 
+                          String inDateFormatString, String inLocalDateFormatString,
                           BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
                           String skipList, Session session, boolean bLoader) 
         throws ParseException {
         // Optionally provide things for the line parser - date format, boolean format, locale
         keyspace = inKeyspace;
         tablename = inTable;
-        initPmap(inDateFormatString, inBoolStyle, inLocale, bLoader);
+        initPmap(inDateFormatString, inLocalDateFormatString, inBoolStyle, 
+                 inLocale, bLoader);
         processCqlSchema(session);
         createDelimParser(inDelimiter, inCharsPerColumn, inNullString, inCommentString,  skipList);
     }
@@ -103,9 +113,12 @@ public class CqlDelimParser {
     }
 
     // intialize the Parsers and the parser map
-    private void initPmap(String dateFormatString, BooleanParser.BoolStyle inBoolStyle, 
+    private void initPmap(String dateFormatString, String localDateFormatString,
+                          BooleanParser.BoolStyle inBoolStyle, 
                           Locale inLocale, boolean bLoader) {
         pmap = new HashMap<DataType.Name, Parser>();
+        Parser byteParser = new ByteParser(inLocale, bLoader);
+        Parser shortParser = new ShortParser(inLocale, bLoader);
         Parser integerParser = new IntegerParser(inLocale, bLoader);
         Parser longParser = new LongParser(inLocale, bLoader);
         Parser floatParser = new FloatParser(inLocale, bLoader);
@@ -118,20 +131,25 @@ public class CqlDelimParser {
         Parser byteBufferParser = new ByteBufferParser();
         Parser inetAddressParser = new InetAddressParser();
         Parser dateParser = new DateParser(dateFormatString);
+        Parser localDateParser = new LocalDateParser(localDateFormatString);
 
         pmap.put(DataType.Name.ASCII, stringParser);
         pmap.put(DataType.Name.BIGINT, longParser);
         pmap.put(DataType.Name.BLOB, byteBufferParser);
         pmap.put(DataType.Name.BOOLEAN, booleanParser);
         pmap.put(DataType.Name.COUNTER, longParser);
+        pmap.put(DataType.Name.DATE , localDateParser);
         pmap.put(DataType.Name.DECIMAL, bigDecimalParser);
         pmap.put(DataType.Name.DOUBLE, doubleParser);
         pmap.put(DataType.Name.FLOAT, floatParser);
         pmap.put(DataType.Name.INET, inetAddressParser);
         pmap.put(DataType.Name.INT, integerParser);
+        pmap.put(DataType.Name.SMALLINT , shortParser);
         pmap.put(DataType.Name.TEXT, stringParser);
+        pmap.put(DataType.Name.TIME , longParser);
         pmap.put(DataType.Name.TIMESTAMP, dateParser);
         pmap.put(DataType.Name.TIMEUUID, uuidParser);
+        pmap.put(DataType.Name.TINYINT , byteParser);
         pmap.put(DataType.Name.UUID, uuidParser);
         pmap.put(DataType.Name.VARCHAR, stringParser);
         pmap.put(DataType.Name.VARINT, bigIntegerParser);
@@ -140,15 +158,34 @@ public class CqlDelimParser {
 
     // Validate the CQL schema, extract the keyspace and tablename, and process the rest of the schema
     private void processCqlSchema(String cqlSchema, Session session) throws ParseException {
-        String kstnRegex = "^\\s*(\\\"?[A-Za-z0-9_]+\\\"?)\\.(\\\"?[A-Za-z0-9_]+\\\"?)\\s*[\\(]\\s*(\\\"?[A-Za-z0-9_]+\\\"?\\s*(,\\s*\\\"?[A-Za-z0-9_]+\\\"?\\s*)*)[\\)]\\s*$";
-        Pattern p = Pattern.compile(kstnRegex);
-        Matcher m = p.matcher(cqlSchema);
-        if (!m.find()) {
-            throw new ParseException("Badly formatted schema  " + cqlSchema, 0);
-        }
-        keyspace = m.group(1);
-        tablename = m.group(2);
-        String schemaString = m.group(3);
+        CsvParserSettings ks_settings = new CsvParserSettings();
+        ks_settings.getFormat().setLineSeparator("\n");
+        ks_settings.getFormat().setDelimiter('.');
+        ks_settings.getFormat().setQuote('\"');
+        ks_settings.getFormat().setQuoteEscape('\\');
+        ks_settings.getFormat().setCharToEscapeQuoteEscaping('\\');
+        ks_settings.setKeepQuotes(true);
+        ks_settings.setKeepEscapeSequences(true);
+        CsvParser ks_parser = new CsvParser(ks_settings);
+        String[] ks_elements = ks_parser.parseLine(cqlSchema);
+        keyspace = ks_elements[0];
+        String table_string = cqlSchema.substring(keyspace.length() + 1);
+
+        CsvParserSettings table_settings = new CsvParserSettings();
+        table_settings.getFormat().setLineSeparator("\n");
+        table_settings.getFormat().setDelimiter('(');
+        table_settings.getFormat().setQuote('\"');
+        table_settings.getFormat().setQuoteEscape('\\');
+        table_settings.getFormat().setCharToEscapeQuoteEscaping('\\');
+        table_settings.setKeepQuotes(true);
+        table_settings.setKeepEscapeSequences(true);
+        CsvParser table_parser = new CsvParser(table_settings);
+        String[] table_elements = table_parser.parseLine(table_string);
+        tablename = table_elements[0];
+        
+        String schemaString = table_string.substring(tablename.length() + 1, 
+                                                     table_string.length() - 1);
+
         sbl = schemaBits(schemaString, session);
     }
 
@@ -170,7 +207,16 @@ public class CqlDelimParser {
         }
         List<String> inList = new ArrayList<String>();
         if (null != in) {
-            String[] tlist = in.split(",");
+            CsvParserSettings settings = new CsvParserSettings();
+            settings.getFormat().setLineSeparator("\n");
+            settings.getFormat().setDelimiter(',');
+            settings.getFormat().setQuote('\"');
+            settings.getFormat().setQuoteEscape('\\');
+            settings.getFormat().setCharToEscapeQuoteEscaping('\\');
+            settings.setKeepQuotes(true);
+            settings.setKeepEscapeSequences(true);
+            CsvParser parser = new CsvParser(settings);
+            String[] tlist = parser.parseLine(in);
             for (int i = 0; i < tlist.length; i++)
                 inList.add(tlist[i].trim());
         }

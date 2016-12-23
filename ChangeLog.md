@@ -1,3 +1,8 @@
+## 0.0.24
+- Added support for DATE (and associated -localDateFormat option)
+- Added support for SHORTINT and TINYINT
+- Fixed an issue with special characters in column names (Issue 59)
+
 ## 0.0.23
 - Fixed case of commas in Map keys
 - Fixed keystore/truststore-pw typo (was pwd)

@@ -17,12 +17,12 @@ loading of various types of delimited files, including
 ### Downloading
 
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.23/cassandra-loader
+https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.24/cassandra-loader
 
 Get it with wget:
 
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.23/cassandra-loader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.24/cassandra-loader
 ```
 
 ### Building
@@ -189,7 +189,7 @@ When using `jsonline`, all JSON field names are case-sensitive.  When using `jso
 ## Usage Statement:
 
 ```
-version: 0.0.23
+version: 0.0.24
 Usage: -f <filename> -host <ipaddress> [OPTIONS]
 OPTIONS:
   -schema <schema>                   Table schema (when using delim)
@@ -198,7 +198,8 @@ OPTIONS:
   -configFile <filename>             File with configuration options
   -delim <delimiter>                 Delimiter to use [,]
   -charsPerColumn <chars>            Max number of chars per column [4096]
-  -dateFormat <dateFormatString>     Date format [default for Locale.ENGLISH]
+  -dateFormat <dateFormatString>     Date format for TIMESTAMP [default for Locale.ENGLISH]
+  -localDateFormat <formatString>    Date format for DATE [yyyy-MM-dd]
   -nullString <nullString>           String that signifies NULL [none]
   -comment <commentString>           Comment symbol to use [none]
   -skipRows <skipRows>               Number of rows to skip [0]
@@ -309,7 +310,7 @@ cassandra-unloader -f stdout -host host1 -schema "ks.table(a,b,c)" | cassandra-l
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.23/cassandra-unloader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.24/cassandra-unloader
 ```
 
 To build, run:
@@ -328,13 +329,14 @@ cassandra-unloader
 ###Usage statement:
 
 ```
-version: 0.0.23
+version: 0.0.24
 Usage: -f <outputStem> -host <ipaddress> -schema <schema> [OPTIONS]
 OPTIONS:
   -configFile <filename>             File with configuration options
   -format [delim|jsonline|jsonarray] Format of data: delimited or JSON [delim]
   -delim <delimiter>                 Delimiter to use [,]
-  -dateFormat <dateFormatString>     Date format [default for Locale.ENGLISH]
+  -dateFormat <dateFormatString>     Date format for TIMESTAMP [default for Locale.ENGLISH]
+  -localDateFormat <FormatString>    Date format for DATE [yyyy-MM-dd]
   -nullString <nullString>           String that signifies NULL [none]
   -port <portNumber>                 CQL Port Number [9042]
   -user <username>                   Cassandra username [none]

@@ -83,7 +83,7 @@ import com.codahale.metrics.Timer;
 import org.apache.commons.lang3.StringEscapeUtils;
 
 public class CqlDelimLoad {
-    private String version = "0.0.23";
+    private String version = "0.0.24";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -126,6 +126,7 @@ public class CqlDelimLoad {
     private Locale locale = null;
     private BooleanParser.BoolStyle boolStyle = null;
     private String dateFormatString = null;
+    private String localDateFormatString = "yyyy-MM-dd";
     private String nullString = null;
     private String commentString = null;
     private String delimiter = null;
@@ -145,7 +146,8 @@ public class CqlDelimLoad {
         usage.append("  -configFile <filename>             File with configuration options\n");
         usage.append("  -delim <delimiter>                 Delimiter to use [,]\n");
         usage.append("  -charsPerColumn <chars>            Max number of chars per column [4096]\n");
-        usage.append("  -dateFormat <dateFormatString>     Date format [default for Locale.ENGLISH]\n");
+        usage.append("  -dateFormat <dateFormatString>     Date format for TIMESTAMP [default for Locale.ENGLISH]\n");
+        usage.append("  -localDateFormat <formatString>    Date format for DATE [yyyy-MM-dd]\n");
         usage.append("  -nullString <nullString>           String that signifies NULL [none]\n");
         usage.append("  -comment <commentString>           Comment symbol to use [none]\n");
         usage.append("  -skipRows <skipRows>               Number of rows to skip [0]\n");
@@ -421,6 +423,7 @@ public class CqlDelimLoad {
         if (null != (tkey = amap.remove("-maxRows")))       maxRows = Integer.parseInt(tkey);
         if (null != (tkey = amap.remove("-badDir")))        badDir = tkey;
         if (null != (tkey = amap.remove("-dateFormat")))    dateFormatString = tkey;
+        if (null != (tkey = amap.remove("-dateFormat")))    localDateFormatString = tkey;
         if (null != (tkey = amap.remove("-nullString")))    nullString = tkey;
         if (null != (tkey = amap.remove("-comment")))       commentString = tkey;
         if (null != (tkey = amap.remove("-delim")))         delimiter = tkey;
@@ -628,6 +631,7 @@ public class CqlDelimLoad {
                                                          charsPerColumn, nullString,
                                                          commentString,
                                                          dateFormatString, 
+                                                         localDateFormatString, 
                                                          boolStyle, locale, 
                                                          maxErrors, skipRows,
                                                          skipCols,
@@ -652,6 +656,7 @@ public class CqlDelimLoad {
                                                              charsPerColumn, nullString,
                                                              commentString,
                                                              dateFormatString, 
+                                                             localDateFormatString, 
                                                              boolStyle, locale, 
                                                              maxErrors, skipRows,
                                                              skipCols,
