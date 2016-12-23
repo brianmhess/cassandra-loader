@@ -423,7 +423,7 @@ public class CqlDelimLoad {
         if (null != (tkey = amap.remove("-maxRows")))       maxRows = Integer.parseInt(tkey);
         if (null != (tkey = amap.remove("-badDir")))        badDir = tkey;
         if (null != (tkey = amap.remove("-dateFormat")))    dateFormatString = tkey;
-        if (null != (tkey = amap.remove("-dateFormat")))    localDateFormatString = tkey;
+        if (null != (tkey = amap.remove("-localDateFormat")))    localDateFormatString = tkey;
         if (null != (tkey = amap.remove("-nullString")))    nullString = tkey;
         if (null != (tkey = amap.remove("-comment")))       commentString = tkey;
         if (null != (tkey = amap.remove("-delim")))         delimiter = tkey;
