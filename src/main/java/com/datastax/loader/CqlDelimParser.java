@@ -158,34 +158,16 @@ public class CqlDelimParser {
 
     // Validate the CQL schema, extract the keyspace and tablename, and process the rest of the schema
     private void processCqlSchema(String cqlSchema, Session session) throws ParseException {
-        CsvParserSettings ks_settings = new CsvParserSettings();
-        ks_settings.getFormat().setLineSeparator("\n");
-        ks_settings.getFormat().setDelimiter('.');
-        ks_settings.getFormat().setQuote('\"');
-        ks_settings.getFormat().setQuoteEscape('\\');
-        ks_settings.getFormat().setCharToEscapeQuoteEscaping('\\');
-        ks_settings.setKeepQuotes(true);
-        ks_settings.setKeepEscapeSequences(true);
-        CsvParser ks_parser = new CsvParser(ks_settings);
-        String[] ks_elements = ks_parser.parseLine(cqlSchema);
-        keyspace = ks_elements[0];
-        String table_string = cqlSchema.substring(keyspace.length() + 1);
 
-        CsvParserSettings table_settings = new CsvParserSettings();
-        table_settings.getFormat().setLineSeparator("\n");
-        table_settings.getFormat().setDelimiter('(');
-        table_settings.getFormat().setQuote('\"');
-        table_settings.getFormat().setQuoteEscape('\\');
-        table_settings.getFormat().setCharToEscapeQuoteEscaping('\\');
-        table_settings.setKeepQuotes(true);
-        table_settings.setKeepEscapeSequences(true);
-        CsvParser table_parser = new CsvParser(table_settings);
-        String[] table_elements = table_parser.parseLine(table_string);
-        tablename = table_elements[0];
+        // Format: keyspace.table(schema)
+        int keyspaceEnd = cqlSchema.indexOf('.');
+        int tableEnd = cqlSchema.indexOf('(');
+        int schemaEnd = cqlSchema.lastIndexOf(')');
         
-        String schemaString = table_string.substring(tablename.length() + 1, 
-                                                     table_string.length() - 1);
-
+        keyspace = cqlSchema.substring(0, keyspaceEnd);
+        tablename = cqlSchema.substring(keyspaceEnd + 1, tableEnd);
+        String schemaString = cqlSchema.substring(tableEnd + 1, schemaEnd);
+        
         sbl = schemaBits(schemaString, session);
     }
 
