@@ -102,6 +102,7 @@ public class CqlDelimUnload {
     private String delimiter = null;
 
     private int numThreads = 5;
+    private int fetchSize = 0;
 
     private String usage() {
         StringBuilder usage = new StringBuilder("version: ").append(version).append("\n");
@@ -127,6 +128,7 @@ public class CqlDelimUnload {
         usage.append("  -beginToken <tokenString>          Begin token [none]\n");
         usage.append("  -endToken <tokenString>            End token [none]\n");
         usage.append("  -where <predicate>                 WHERE clause [none]\n");
+        usage.append("  -fetchSize <fetchSize>             Fetch size to use [0]\n");
         return usage.toString();
     }
     
@@ -138,7 +140,11 @@ public class CqlDelimUnload {
             return false;
         }
         if (numThreads < 1) {
-            System.err.println("Number of threads must be non-negative");
+            System.err.println("Number of threads must be positive");
+            return false;
+        }
+        if (fetchSize < 0) {
+            System.err.println("Fetch size must be non-negative");
             return false;
         }
         if ((null == username) && (null != password)) {
@@ -283,6 +289,7 @@ public class CqlDelimUnload {
         if (null != (tkey = amap.remove("-endToken")))      endToken = tkey;
         if (null != (tkey = amap.remove("-where")))         where = tkey;
         if (null != (tkey = amap.remove("-format")))        format = tkey;
+        if (null != (tkey = amap.remove("-fetchSize")))     fetchSize = Integer.parseInt(tkey);
         
         if (!amap.isEmpty()) {
             for (String k : amap.keySet())
@@ -390,7 +397,7 @@ public class CqlDelimUnload {
                                                       beginToken,
                                                       endToken, session,
                                                       consistencyLevel, where,
-                                                      format);
+                                                      format, fetchSize);
             Future<Long> res = executor.submit(worker);
             total = res.get();
             executor.shutdown();
@@ -441,7 +448,7 @@ public class CqlDelimUnload {
                                                           tBeginString,
                                                           tEndString, session,
                                                           consistencyLevel,
-                                                          where, format);
+                                                          where, format, fetchSize);
                 results.add(executor.submit(worker));
             }
             executor.shutdown();
@@ -490,6 +497,7 @@ public class CqlDelimUnload {
         private String where = null;
         private String dateFormatString = null;
         private String localDateFormatString = null;
+        private int fetchSize = 0;
 
         public ThreadExecute(String inCqlSchema, String inDelimiter, 
                              String inNullString, 
@@ -500,7 +508,7 @@ public class CqlDelimUnload {
                              PrintStream inWriter,
                              String inBeginToken, String inEndToken,
                              Session inSession, ConsistencyLevel inConsistencyLevel,
-                             String inWhere, String inFormat) {
+                             String inWhere, String inFormat, int inFetchSize) {
             super();
             cqlSchema = inCqlSchema;
             delimiter = inDelimiter;
@@ -516,6 +524,7 @@ public class CqlDelimUnload {
             consistencyLevel = inConsistencyLevel;
             where = inWhere;
             format = inFormat;
+            fetchSize = inFetchSize;
         }
 
         public Long call() throws IOException, ParseException {
@@ -586,6 +595,7 @@ public class CqlDelimUnload {
 
         private long execute() throws IOException {
             BoundStatement bound = statement.bind();
+            bound.setFetchSize(fetchSize);            
             ResultSet rs = session.execute(bound);
             numRead = 0;
             String s = null;
