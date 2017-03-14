@@ -1,3 +1,4 @@
+
 # CASSANDRA-LOADER
 
 ## Introduction
@@ -17,12 +18,12 @@ loading of various types of delimited files, including
 ### Downloading
 
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.24/cassandra-loader
+https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.25/cassandra-loader
 
 Get it with wget:
 
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.24/cassandra-loader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.25/cassandra-loader
 ```
 
 ### Building
@@ -189,7 +190,7 @@ When using `jsonline`, all JSON field names are case-sensitive.  When using `jso
 ## Usage Statement:
 
 ```
-version: 0.0.24
+version: 0.0.25
 Usage: -f <filename> -host <ipaddress> [OPTIONS]
 OPTIONS:
   -schema <schema>                   Table schema (when using delim)
@@ -310,7 +311,7 @@ cassandra-unloader -f stdout -host host1 -schema "ks.table(a,b,c)" | cassandra-l
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.24/cassandra-unloader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.25/cassandra-unloader
 ```
 
 To build, run:
@@ -352,6 +353,7 @@ OPTIONS:
   -beginToken <tokenString>          Begin token [none]
   -endToken <tokenString>            End token [none]
   -where <predicate>                 WHERE clause [none]
+  -fetchSize <fetchSize>             Fetch size to use [0]
 ```
 
 A few simple examples using the `-where` are as follows:

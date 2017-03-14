@@ -1,7 +1,7 @@
 apply plugin: 'java'
 apply plugin: 'application'
 
-def versionNum = '0.0.24'
+def versionNum = '0.0.25'
 
 allprojects {
     tasks.withType(JavaCompile) {

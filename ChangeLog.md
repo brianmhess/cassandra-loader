@@ -1,3 +1,6 @@
+## 0.0.25
+- Added support for Fetch Size in cassandra-unloader
+
 ## 0.0.24
 - Added support for DATE (and associated -localDateFormat option)
 - Added support for SHORTINT and TINYINT
