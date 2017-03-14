@@ -84,102 +84,107 @@ import org.apache.commons.lang3.StringEscapeUtils;
 
 public class CqlDelimLoad {
     private String version = "0.0.24";
-    private String host = null;
-    private int port = 9042;
-    private String username = null;
-    private String password = null;
-    private String truststorePath = null;
-    private String truststorePwd = null;
-    private String keystorePath = null;
-    private String keystorePwd = null;
+    //private String host = null;
+    //private int port = 9042;
+    //private String username = null;
+    //private String password = null;
+    //private String truststorePath = null;
+    //private String truststorePwd = null;
+    //private String keystorePath = null;
+    //private String keystorePwd = null;
     private Cluster cluster = null;
     private Session session = null;
-    private ConsistencyLevel consistencyLevel = ConsistencyLevel.LOCAL_ONE;
-    private int numFutures = 1000;
-    private int inNumFutures = -1;
-    private int queryTimeout = 2;
-    private long maxInsertErrors = 10;
-    private int numRetries = 1;
+    //private ConsistencyLevel consistencyLevel = ConsistencyLevel.LOCAL_ONE;
+    //private int numFutures = 1000;
+    //private int inNumFutures = -1;
+    //private int queryTimeout = 2;
+    //private long maxInsertErrors = 10;
+    //private int numRetries = 1;
     private double rate = 50000.0;
     private long progressRate = 100000;
     private RateLimiter rateLimiter = null;
     private String rateFile = null;
     private PrintStream rateStream = null;
 
-    private String cqlSchema = null;
-    private String table = null;
-    private String keyspace = null;
-    private String format = "delim";
+    //private String cqlSchema = null;
+    //private String table = null;
+    //private String keyspace = null;
+    //private String format = "delim";
 
-    private long maxErrors = 10;
-    private long skipRows = 0;
-    private String skipCols = null;
+    //private long maxErrors = 10;
+    //private long skipRows = 0;
+    //private String skipCols = null;
     
-    private long maxRows = -1;
-    private String badDir = ".";
+    //private long maxRows = -1;
+    //private String badDir = ".";
     private String filename = null;
     public static String STDIN = "stdin";
     public static String STDERR = "stderr";
-    private String successDir = null;
-    private String failureDir = null;
+    //private String successDir = null;
+    //private String failureDir = null;
 
-    private Locale locale = null;
-    private BooleanParser.BoolStyle boolStyle = null;
-    private String dateFormatString = null;
-    private String localDateFormatString = "yyyy-MM-dd";
-    private String nullString = null;
-    private String commentString = null;
-    private String delimiter = null;
-    private int charsPerColumn = 4096;
+    //private Locale locale = null;
+    //private BooleanParser.BoolStyle boolStyle = null;
+    //private String dateFormatString = null;
+    //private String localDateFormatString = "yyyy-MM-dd";
+    //private String nullString = null;
+    //private String commentString = null;
+    //private String delimiter = null;
+    //private int charsPerColumn = 4096;
 
     private int numThreads = Runtime.getRuntime().availableProcessors();
-    private int batchSize = 1;
-    private boolean nullsUnset = false;
+    //private int batchSize = 1;
+    //private boolean nullsUnset = false;
+
+    private CassandraCluster cassandraClusterParameters = new CassandraCluster();
+    private CqlDelimLoadTaskParameters cqlDelimLoadTaskParameters = new CqlDelimLoadTaskParamaters();
 
     private String usage() {
         StringBuilder usage = new StringBuilder("version: ").append(version).append("\n");
         usage.append("Usage: -f <filename> -host <ipaddress> [OPTIONS]\n");
         usage.append("OPTIONS:\n");
-        usage.append("  -schema <schema>                   Table schema (when using delim)\n");
-        usage.append("  -table <tableName>                 Table name (when using json)\n");
-        usage.append("  -keyspace <keyspaceName>           Keyspace name (when using json)\n");
+        //usage.append("  -schema <schema>                   Table schema (when using delim)\n");
+        //usage.append("  -table <tableName>                 Table name (when using json)\n");
+        //usage.append("  -keyspace <keyspaceName>           Keyspace name (when using json)\n");
         usage.append("  -configFile <filename>             File with configuration options\n");
-        usage.append("  -delim <delimiter>                 Delimiter to use [,]\n");
-        usage.append("  -charsPerColumn <chars>            Max number of chars per column [4096]\n");
-        usage.append("  -dateFormat <dateFormatString>     Date format for TIMESTAMP [default for Locale.ENGLISH]\n");
-        usage.append("  -localDateFormat <formatString>    Date format for DATE [yyyy-MM-dd]\n");
-        usage.append("  -nullString <nullString>           String that signifies NULL [none]\n");
-        usage.append("  -comment <commentString>           Comment symbol to use [none]\n");
-        usage.append("  -skipRows <skipRows>               Number of rows to skip [0]\n");
-        usage.append("  -skipCols <columnsToSkip>          Comma-separated list of columsn to skip in the input file\n");
-        usage.append("  -maxRows <maxRows>                 Maximum number of rows to read (-1 means all) [-1]\n");
-        usage.append("  -maxErrors <maxErrors>             Maximum parse errors to endure [10]\n");
-        usage.append("  -badDir <badDirectory>             Directory for where to place badly parsed rows. [none]\n");
-        usage.append("  -port <portNumber>                 CQL Port Number [9042]\n");
-        usage.append("  -user <username>                   Cassandra username [none]\n");
-        usage.append("  -pw <password>                     Password for user [none]\n");
-        usage.append("  -ssl-truststore-path <path>        Path to SSL truststore [none]\n");
-        usage.append("  -ssl-truststore-pw <pwd>           Password for SSL truststore [none]\n");
-        usage.append("  -ssl-keystore-path <path>          Path to SSL keystore [none]\n");
-        usage.append("  -ssl-keystore-pw <pwd>             Password for SSL keystore [none]\n");
-        usage.append("  -consistencyLevel <CL>             Consistency level [LOCAL_ONE]\n");
-        usage.append("  -numFutures <numFutures>           Number of CQL futures to keep in flight [1000]\n");
-        usage.append("  -batchSize <batchSize>             Number of INSERTs to batch together [1]\n");
-        usage.append("  -decimalDelim <decimalDelim>       Decimal delimiter [.] Other option is ','\n");
-        usage.append("  -boolStyle <boolStyleString>       Style for booleans [TRUE_FALSE]\n");
+        //usage.append("  -delim <delimiter>                 Delimiter to use [,]\n");
+        //usage.append("  -charsPerColumn <chars>            Max number of chars per column [4096]\n");
+        //usage.append("  -dateFormat <dateFormatString>     Date format for TIMESTAMP [default for Locale.ENGLISH]\n");
+        //usage.append("  -localDateFormat <formatString>    Date format for DATE [yyyy-MM-dd]\n");
+        //usage.append("  -nullString <nullString>           String that signifies NULL [none]\n");
+        //usage.append("  -comment <commentString>           Comment symbol to use [none]\n");
+        //usage.append("  -skipRows <skipRows>               Number of rows to skip [0]\n");
+        //usage.append("  -skipCols <columnsToSkip>          Comma-separated list of columsn to skip in the input file\n");
+        //usage.append("  -maxRows <maxRows>                 Maximum number of rows to read (-1 means all) [-1]\n");
+        //usage.append("  -maxErrors <maxErrors>             Maximum parse errors to endure [10]\n");
+        //usage.append("  -badDir <badDirectory>             Directory for where to place badly parsed rows. [none]\n");
+        //usage.append("  -port <portNumber>                 CQL Port Number [9042]\n");
+        //usage.append("  -user <username>                   Cassandra username [none]\n");
+        //usage.append("  -pw <password>                     Password for user [none]\n");
+        //usage.append("  -ssl-truststore-path <path>        Path to SSL truststore [none]\n");
+        //usage.append("  -ssl-truststore-pw <pwd>           Password for SSL truststore [none]\n");
+        //usage.append("  -ssl-keystore-path <path>          Path to SSL keystore [none]\n");
+        //usage.append("  -ssl-keystore-pw <pwd>             Password for SSL keystore [none]\n");
+        //usage.append("  -consistencyLevel <CL>             Consistency level [LOCAL_ONE]\n");
+        //usage.append("  -numFutures <numFutures>           Number of CQL futures to keep in flight [1000]\n");
+        //usage.append("  -batchSize <batchSize>             Number of INSERTs to batch together [1]\n");
+        //usage.append("  -decimalDelim <decimalDelim>       Decimal delimiter [.] Other option is ','\n");
+        //usage.append("  -boolStyle <boolStyleString>       Style for booleans [TRUE_FALSE]\n");
         usage.append("  -numThreads <numThreads>           Number of concurrent threads (files) to load [num cores]\n");
-        usage.append("  -queryTimeout <# seconds>          Query timeout (in seconds) [2]\n");
-        usage.append("  -numRetries <numRetries>           Number of times to retry the INSERT [1]\n");
-        usage.append("  -maxInsertErrors <# errors>        Maximum INSERT errors to endure [10]\n");
+        //usage.append("  -queryTimeout <# seconds>          Query timeout (in seconds) [2]\n");
+        //usage.append("  -numRetries <numRetries>           Number of times to retry the INSERT [1]\n");
+        //usage.append("  -maxInsertErrors <# errors>        Maximum INSERT errors to endure [10]\n");
         usage.append("  -rate <rows-per-second>            Maximum insert rate [50000]\n");
         usage.append("  -progressRate <num txns>           How often to report the insert rate [100000]\n");
         usage.append("  -rateFile <filename>               Where to print the rate statistics\n");
-        usage.append("  -successDir <dir>                  Directory where to move successfully loaded files\n");
-        usage.append("  -failureDir <dir>                  Directory where to move files that did not successfully load\n");
-        usage.append("  -nullsUnset [false|true]           Treat nulls as unset [faslse]\n");
-        usage.append("  -format [delim|jsonline|jsonarray] Format of data: delimited or JSON [delim]\n");
-        usage.append("  -table <tableName>                 Table name (when using JSON)\n");
-        usage.append("  -keyspace <keyspaceName>           Keyspace name (when using JSON)\n");
+        //usage.append("  -successDir <dir>                  Directory where to move successfully loaded files\n");
+        //usage.append("  -failureDir <dir>                  Directory where to move files that did not successfully load\n");
+        //usage.append("  -nullsUnset [false|true]           Treat nulls as unset [faslse]\n");
+        //usage.append("  -format [delim|jsonline|jsonarray] Format of data: delimited or JSON [delim]\n");
+        //usage.append("  -table <tableName>                 Table name (when using JSON)\n");
+        //usage.append("  -keyspace <keyspaceName>           Keyspace name (when using JSON)\n");
+        usage.append(cassandraClusterParameters.usage());
+        usage.append(cqlDelimLoadTaskParameters.usage());
 
         usage.append("\n\nExamples:\n");
         usage.append("cassandra-loader -f /path/to/file.csv -host localhost -schema \"test.test3(a, b, c)\"\n");
@@ -189,6 +194,7 @@ public class CqlDelimLoad {
     }
     
     private boolean validateArgs() {
+        /*
         if (format.equalsIgnoreCase("delim")) {
             if (null == cqlSchema) {
                 System.err.println("If you specify format " + format + " you must provide a schema");
@@ -249,6 +255,7 @@ public class CqlDelimLoad {
             System.err.println("Maximum number of parse errors must be non-negative");
             return false;
         }
+        */
         if (0 > progressRate) {
             System.err.println("Progress rate must be non-negative");
             return false;
@@ -271,6 +278,7 @@ public class CqlDelimLoad {
                 }
             }
         }
+        /*
         if (null != successDir) {
             if (STDIN.equalsIgnoreCase(filename)) {
                 System.err.println("Cannot specify -successDir with stdin");
@@ -333,12 +341,14 @@ public class CqlDelimLoad {
             }
         }
 
-        if (0 > rate) {
-            System.err.println("Rate must be positive");
-            return false;
-        }
         if (0 > charsPerColumn) {
             System.err.println("charsPerColumn must be positive");
+            return false;
+        }
+        */
+
+        if (0 > rate) {
+            System.err.println("Rate must be positive");
             return false;
         }
 
@@ -387,11 +397,13 @@ public class CqlDelimLoad {
             if (!processConfigFile(tkey, amap))
                 return false;
 
+        /*
         host = amap.remove("-host");
         if (null == host) { // host is required
             System.err.println("Must provide a host");
             return false;
         }
+        */
 
         filename = amap.remove("-f");
         if (null == filename) { // filename is required
@@ -399,60 +411,65 @@ public class CqlDelimLoad {
             return false;
         }
 
-        if (null != (tkey = amap.remove("-format")))        format = tkey;
-        if (null != (tkey = amap.remove("-schema")))        cqlSchema = tkey;
-        if (null != (tkey = amap.remove("-table")))         table = tkey;
-        if (null != (tkey = amap.remove("-keyspace")))      keyspace = tkey;
+        //if (null != (tkey = amap.remove("-format")))        format = tkey;
+        //if (null != (tkey = amap.remove("-schema")))        cqlSchema = tkey;
+        //if (null != (tkey = amap.remove("-table")))         table = tkey;
+        //if (null != (tkey = amap.remove("-keyspace")))      keyspace = tkey;
 
-        if (null != (tkey = amap.remove("-port")))          port = Integer.parseInt(tkey);
-        if (null != (tkey = amap.remove("-user")))          username = tkey;
-        if (null != (tkey = amap.remove("-pw")))            password = tkey;
-        if (null != (tkey = amap.remove("-ssl-truststore-path"))) truststorePath = tkey;
-        if (null != (tkey = amap.remove("-ssl-truststore-pw")))  truststorePwd = tkey;
-        if (null != (tkey = amap.remove("-ssl-keystore-path")))   keystorePath = tkey;
-        if (null != (tkey = amap.remove("-ssl-keystore-pw")))    keystorePwd = tkey;
-        if (null != (tkey = amap.remove("-consistencyLevel"))) consistencyLevel = ConsistencyLevel.valueOf(tkey);
-        if (null != (tkey = amap.remove("-numFutures")))    inNumFutures = Integer.parseInt(tkey);
-        if (null != (tkey = amap.remove("-batchSize")))     batchSize = Integer.parseInt(tkey);
-        if (null != (tkey = amap.remove("-queryTimeout")))  queryTimeout = Integer.parseInt(tkey);
-        if (null != (tkey = amap.remove("-maxInsertErrors"))) maxInsertErrors = Long.parseLong(tkey);
-        if (null != (tkey = amap.remove("-numRetries")))    numRetries = Integer.parseInt(tkey);
-        if (null != (tkey = amap.remove("-maxErrors")))     maxErrors = Long.parseLong(tkey);
-        if (null != (tkey = amap.remove("-skipRows")))      skipRows = Integer.parseInt(tkey);
-        if (null != (tkey = amap.remove("-skipCols")))      skipCols = tkey;
-        if (null != (tkey = amap.remove("-maxRows")))       maxRows = Integer.parseInt(tkey);
-        if (null != (tkey = amap.remove("-badDir")))        badDir = tkey;
-        if (null != (tkey = amap.remove("-dateFormat")))    dateFormatString = tkey;
-        if (null != (tkey = amap.remove("-localDateFormat")))    localDateFormatString = tkey;
-        if (null != (tkey = amap.remove("-nullString")))    nullString = tkey;
-        if (null != (tkey = amap.remove("-comment")))       commentString = tkey;
-        if (null != (tkey = amap.remove("-delim")))         delimiter = tkey;
+        //if (null != (tkey = amap.remove("-port")))          port = Integer.parseInt(tkey);
+        //if (null != (tkey = amap.remove("-user")))          username = tkey;
+        //if (null != (tkey = amap.remove("-pw")))            password = tkey;
+        //if (null != (tkey = amap.remove("-ssl-truststore-path"))) truststorePath = tkey;
+        //if (null != (tkey = amap.remove("-ssl-truststore-pw")))  truststorePwd = tkey;
+        //if (null != (tkey = amap.remove("-ssl-keystore-path")))   keystorePath = tkey;
+        //if (null != (tkey = amap.remove("-ssl-keystore-pw")))    keystorePwd = tkey;
+        //if (null != (tkey = amap.remove("-consistencyLevel"))) consistencyLevel = ConsistencyLevel.valueOf(tkey);
+        //if (null != (tkey = amap.remove("-numFutures")))    inNumFutures = Integer.parseInt(tkey);
+        //if (null != (tkey = amap.remove("-batchSize")))     batchSize = Integer.parseInt(tkey);
+        //if (null != (tkey = amap.remove("-queryTimeout")))  queryTimeout = Integer.parseInt(tkey);
+        //if (null != (tkey = amap.remove("-maxInsertErrors"))) maxInsertErrors = Long.parseLong(tkey);
+        //if (null != (tkey = amap.remove("-numRetries")))    numRetries = Integer.parseInt(tkey);
+        //if (null != (tkey = amap.remove("-maxErrors")))     maxErrors = Long.parseLong(tkey);
+        //if (null != (tkey = amap.remove("-skipRows")))      skipRows = Integer.parseInt(tkey);
+        //if (null != (tkey = amap.remove("-skipCols")))      skipCols = tkey;
+        //if (null != (tkey = amap.remove("-maxRows")))       maxRows = Integer.parseInt(tkey);
+        //if (null != (tkey = amap.remove("-badDir")))        badDir = tkey;
+        //if (null != (tkey = amap.remove("-dateFormat")))    dateFormatString = tkey;
+        //if (null != (tkey = amap.remove("-localDateFormat")))    localDateFormatString = tkey;
+        //if (null != (tkey = amap.remove("-nullString")))    nullString = tkey;
+        //if (null != (tkey = amap.remove("-comment")))       commentString = tkey;
+        //if (null != (tkey = amap.remove("-delim")))         delimiter = tkey;
         if (null != (tkey = amap.remove("-numThreads")))    numThreads = Integer.parseInt(tkey);
         if (null != (tkey = amap.remove("-rate")))          rate = Double.parseDouble(tkey);
         if (null != (tkey = amap.remove("-progressRate")))  progressRate = Long.parseLong(tkey);
         if (null != (tkey = amap.remove("-rateFile")))      rateFile = tkey;
-        if (null != (tkey = amap.remove("-successDir")))    successDir = tkey;
-        if (null != (tkey = amap.remove("-failureDir")))    failureDir = tkey;
-        if (null != (tkey = amap.remove("-decimalDelim"))) {
-            if (tkey.equals(","))
-                locale = Locale.FRANCE;
-        }
-        if (null != (tkey = amap.remove("-boolStyle"))) {
-            boolStyle = BooleanParser.getBoolStyle(tkey);
-            if (null == boolStyle) {
-                System.err.println("Bad boolean style.  Options are: " + BooleanParser.getOptions());
-                return false;
-            }
-        }
-        if (null != (tkey = amap.remove("-nullsUnset")))    nullsUnset = Boolean.parseBoolean(tkey);
-        if (null != (tkey = amap.remove("-charsPerColumn"))) charsPerColumn = Integer.parseInt(tkey);
+        //if (null != (tkey = amap.remove("-successDir")))    successDir = tkey;
+        //if (null != (tkey = amap.remove("-failureDir")))    failureDir = tkey;
+        //if (null != (tkey = amap.remove("-decimalDelim"))) {
+        //    if (tkey.equals(","))
+        //        locale = Locale.FRANCE;
+        //}
+        //if (null != (tkey = amap.remove("-boolStyle"))) {
+        //  boolStyle = BooleanParser.getBoolStyle(tkey);
+        //  if (null == boolStyle) {
+        //      System.err.println("Bad boolean style.  Options are: " + BooleanParser.getOptions());
+        //      return false;
+        //  }
+        //}
+        //if (null != (tkey = amap.remove("-nullsUnset")))    nullsUnset = Boolean.parseBoolean(tkey);
+        //if (null != (tkey = amap.remove("-charsPerColumn"))) charsPerColumn = Integer.parseInt(tkey);
 
-        if (-1 == maxRows)
-            maxRows = Long.MAX_VALUE;
-        if (-1 == maxErrors)
-            maxErrors = Long.MAX_VALUE;
-        if (-1 == maxInsertErrors)
-            maxInsertErrors = Long.MAX_VALUE;
+        //if (-1 == maxRows)
+        //    maxRows = Long.MAX_VALUE;
+        //if (-1 == maxErrors)
+        //    maxErrors = Long.MAX_VALUE;
+        //if (-1 == maxInsertErrors)
+        //    maxInsertErrors = Long.MAX_VALUE;
+
+        if (!cassandraClusterParamaters.parseArgs(amap))
+            return false;
+        if (!cqlDelimLoadTaskParameters.parseArgs(amap))
+            return false;
         
         if (!amap.isEmpty()) {
             for (String k : amap.keySet())
@@ -460,13 +477,13 @@ public class CqlDelimLoad {
             return false;
         }
 
-        if (0 < inNumFutures)
-            numFutures = inNumFutures / numThreads;
+        //if (0 < inNumFutures)
+        //    numFutures = inNumFutures / numThreads;
 
-        if (null != keyspace)
-            keyspace = quote(keyspace);
-        if (null != table)
-            table = quote(table);
+        //if (null != keyspace)
+        //    keyspace = quote(keyspace);
+        //if (null != table)
+        //    table = quote(table);
 
         return validateArgs();
     }
@@ -478,6 +495,7 @@ public class CqlDelimLoad {
         return "\"" + ret + "\"";
     }
 
+    /*
     private SSLOptions createSSLOptions() 
         throws KeyStoreException, FileNotFoundException, IOException, NoSuchAlgorithmException, 
                KeyManagementException, CertificateException, UnrecoverableKeyException {
@@ -504,6 +522,7 @@ public class CqlDelimLoad {
 
         return JdkSSLOptions.builder().withSSLContext(sslContext).build();
     }
+    */
 
     private boolean setup() 
         throws IOException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException,
