@@ -15,27 +15,13 @@
  */
 package com.datastax.loader;
 
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Session;
-import com.datastax.loader.futures.FutureManager;
-import com.datastax.loader.futures.PrintingFutureSet;
-import com.datastax.loader.futures.JsonPrintingFutureSet;
-import com.datastax.loader.parser.BooleanParser;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileInputStream;
-import java.io.InputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.nio.file.Files;
@@ -49,6 +35,22 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipException;
+import java.util.zip.ZipInputStream;
+
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
+import com.datastax.driver.core.BatchStatement;
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Session;
+import com.datastax.loader.futures.FutureManager;
+import com.datastax.loader.futures.JsonPrintingFutureSet;
+import com.datastax.loader.futures.PrintingFutureSet;
+import com.datastax.loader.parser.BooleanParser;
 
 class CqlDelimLoadTask implements Callable<Long> {
     private String BADPARSE = ".BADPARSE";
@@ -100,17 +102,17 @@ class CqlDelimLoadTask implements Callable<Long> {
     private String table = null;
     private JSONArray jsonArray;
 
-    public CqlDelimLoadTask(String inCqlSchema, String inDelimiter, 
+    public CqlDelimLoadTask(String inCqlSchema, String inDelimiter,
                             int inCharsPerColumn,
-                            String inNullString, String inCommentString, 
+                            String inNullString, String inCommentString,
                             String inDateFormatString, String inLocalDateFormatString,
-                            BooleanParser.BoolStyle inBoolStyle, 
-                            Locale inLocale, 
-                            long inMaxErrors, long inSkipRows, 
+                            BooleanParser.BoolStyle inBoolStyle,
+                            Locale inLocale,
+                            long inMaxErrors, long inSkipRows,
                             String inSkipCols, long inMaxRows,
                             String inBadDir, File inFile,
                             Session inSession, ConsistencyLevel inCl,
-                            int inNumFutures, int inBatchSize, int inNumRetries, 
+                            int inNumFutures, int inBatchSize, int inNumRetries,
                             int inQueryTimeout, long inMaxInsertErrors,
                             String inSuccessDir, String inFailureDir,
                             boolean inNullsUnset, String inFormat,
@@ -163,7 +165,11 @@ class CqlDelimLoadTask implements Callable<Long> {
                 is = new GZIPInputStream(new FileInputStream(infile));
             }
             catch (ZipException e) {
-                is = new FileInputStream(infile);
+                if (infile.getName().endsWith(".zip")) {
+                    is = new ZipInputStream(new FileInputStream(infile));
+                } else {
+                    is = new FileInputStream(infile);
+                }
             }
             reader = new BufferedReader(new InputStreamReader(is));
             readerName = infile.getName();
@@ -184,7 +190,7 @@ class CqlDelimLoadTask implements Callable<Long> {
         }
 
         if (format.equalsIgnoreCase("delim")) {
-            cdp = new CqlDelimParser(cqlSchema, delimiter, charsPerColumn, 
+            cdp = new CqlDelimParser(cqlSchema, delimiter, charsPerColumn,
                                      nullString, commentString,
                                      dateFormatString, localDateFormatString,
                                      boolStyle, locale,
@@ -195,7 +201,7 @@ class CqlDelimLoadTask implements Callable<Long> {
             cdp = new CqlDelimParser(keyspace, table, delimiter, charsPerColumn,
                                      nullString, commentString,
                                      dateFormatString, localDateFormatString,
-                                     boolStyle, locale, 
+                                     boolStyle, locale,
                                      skipCols, session, true);
         }
 
@@ -206,18 +212,18 @@ class CqlDelimLoadTask implements Callable<Long> {
         batch = new BatchStatement(BatchStatement.Type.UNLOGGED);
         batchString = new StringBuilder();
         if (format.equalsIgnoreCase("delim")) {
-            fm = new PrintingFutureSet(numFutures, queryTimeout, 
-                                       maxInsertErrors, logPrinter, 
+            fm = new PrintingFutureSet(numFutures, queryTimeout,
+                                       maxInsertErrors, logPrinter,
                                        badInsertPrinter);
         }
         else if (format.equalsIgnoreCase("jsonline")
                  || format.equalsIgnoreCase("jsonarray")) {
-            fm = new JsonPrintingFutureSet(numFutures, queryTimeout, 
-                                       maxInsertErrors, logPrinter, 
+            fm = new JsonPrintingFutureSet(numFutures, queryTimeout,
+                                       maxInsertErrors, logPrinter,
                                        badInsertPrinter);
         }
     }
-        
+
     private void cleanup(boolean success) throws IOException {
         if (null != badParsePrinter) {
             if (format.equalsIgnoreCase("jsonarray"))
@@ -235,7 +241,7 @@ class CqlDelimLoadTask implements Callable<Long> {
             if (null != successDir) {
                 Path src = infile.toPath();
                 Path dst = Paths.get(successDir);
-                Files.move(src, dst.resolve(src.getFileName()), 
+                Files.move(src, dst.resolve(src.getFileName()),
                            StandardCopyOption.REPLACE_EXISTING);
             }
         }
@@ -243,7 +249,7 @@ class CqlDelimLoadTask implements Callable<Long> {
             if (null != failureDir) {
                 Path src = infile.toPath();
                 Path dst = Paths.get(failureDir);
-                Files.move(src, dst.resolve(src.getFileName()), 
+                Files.move(src, dst.resolve(src.getFileName()),
                            StandardCopyOption.REPLACE_EXISTING);
             }
         }
