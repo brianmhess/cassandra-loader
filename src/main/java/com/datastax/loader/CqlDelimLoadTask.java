@@ -29,13 +29,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
-import java.util.zip.ZipInputStream;
+import java.util.zip.ZipFile;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -76,6 +79,7 @@ class CqlDelimLoadTask implements Callable<Long> {
     private PrintStream badInsertPrinter = null;
     private PrintStream logPrinter = null;
     private String logFname = "";
+    List<InputStream> isList =  new ArrayList<>();
     private BufferedReader reader;
     private File infile;
     private int numFutures;
@@ -156,29 +160,26 @@ class CqlDelimLoadTask implements Callable<Long> {
 
     private void setup() throws IOException, ParseException, org.json.simple.parser.ParseException {
         if (null == infile) {
-            reader = new BufferedReader(new InputStreamReader(System.in));
+            isList.add(System.in);
             readerName = "stdin";
         }
         else {
-            InputStream is =  null;
             try {
-                is = new GZIPInputStream(new FileInputStream(infile));
+                isList.add(new GZIPInputStream(new FileInputStream(infile)));
             }
             catch (ZipException e) {
-                if (infile.getName().endsWith(".zip")) {
-                    is = new ZipInputStream(new FileInputStream(infile));
-                } else {
-                    is = new FileInputStream(infile);
+                try {
+                    ZipFile zipFile = new ZipFile(infile);
+                    Enumeration<? extends ZipEntry> entries = zipFile.entries();
+                    while(entries.hasMoreElements()){
+                        ZipEntry entry = entries.nextElement();
+                        isList.add(zipFile.getInputStream(entry));
+                    }
+                } catch (ZipException z) {
+                    isList.add(new FileInputStream(infile));
                 }
             }
-            reader = new BufferedReader(new InputStreamReader(is));
             readerName = infile.getName();
-        }
-
-        //setup json reader
-        if(format.equalsIgnoreCase("jsonarray")){
-            JSONParser parser = new JSONParser();
-            jsonArray= (JSONArray) parser.parse(reader);
         }
 
         // Prepare Badfile
@@ -293,111 +294,118 @@ class CqlDelimLoadTask implements Callable<Long> {
         return retval;
     }
 
-    private long execute() throws IOException {
+    private long execute() throws IOException, org.json.simple.parser.ParseException {
         String line = null;
         int lineNumber = 0;
         long numInserted = 0;
         int numErrors = 0;
-        int curBatch = 0;
-        BoundStatement bind = null;
         List<Object> elements = null;
 
         System.err.println("*** Processing " + readerName);
-        if (format.equalsIgnoreCase("delim")
-            || format.equalsIgnoreCase("jsonline")) {
-            while ((line = reader.readLine()) != null) {
-                lineNumber++;
-                if (skipRows > 0) {
-                    skipRows--;
-                    continue;
-                }
-                if (maxRows-- < 0)
-                    break;
+        if (isList != null && !isList.isEmpty()){
+            for (InputStream is:
+                    isList) {
+                reader = new BufferedReader(new InputStreamReader(is));
+                if (format.equalsIgnoreCase("delim")
+                        || format.equalsIgnoreCase("jsonline")) {
+                    while ((line = reader.readLine()) != null) {
+                        lineNumber++;
+                        if (skipRows > 0) {
+                            skipRows--;
+                            continue;
+                        }
+                        if (maxRows-- < 0)
+                            break;
 
-                if (0 == line.trim().length())
-                    continue;
+                        if (0 == line.trim().length())
+                            continue;
 
-                elements = null;
-                if (format.equalsIgnoreCase("delim"))
-                    elements = cdp.parse(line);
-                else if (format.equalsIgnoreCase("jsonline"))
-                    elements = cdp.parseJson(line);
-                if (null != elements) {
-                    int ret = sendInsert(elements, line);
-                    if (-2 == ret) {
-                        cleanup(false);
-                        return -2;
-                    }
-                    numInserted += ret;
-                }
-                else {
-                    if (null != logPrinter) {
-                        logPrinter.println(String.format("Error parsing line %d in %s: %s", lineNumber, readerName, line));
-                    }
-                    System.err.println(String.format("Error parsing line %d in %s: %s", lineNumber, readerName, line));
-                    if (null != badParsePrinter) {
-                        badParsePrinter.println(line);
-                    }
-                    numErrors++;
-                    if (maxErrors <= numErrors) {
-                        if (null != logPrinter) {
-                            logPrinter.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
+                        if (format.equalsIgnoreCase("delim"))
+                            elements = cdp.parse(line);
+                        else if (format.equalsIgnoreCase("jsonline"))
+                            elements = cdp.parseJson(line);
+                        if (null != elements) {
+                            int ret = sendInsert(elements, line);
+                            if (-2 == ret) {
+                                cleanup(false);
+                                return -2;
+                            }
+                            numInserted += ret;
+                        } else {
+                            if (null != logPrinter) {
+                                logPrinter.println(String.format("Error parsing line %d in %s: %s", lineNumber, readerName, line));
+                            }
+                            System.err.println(String.format("Error parsing line %d in %s: %s", lineNumber, readerName, line));
+                            if (null != badParsePrinter) {
+                                badParsePrinter.println(line);
+                            }
+                            numErrors++;
+                            if (maxErrors <= numErrors) {
+                                if (null != logPrinter) {
+                                    logPrinter.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
+                                }
+                                System.err.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
+                                cleanup(false);
+                                return -1;
+                            }
                         }
-                        System.err.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
-                        cleanup(false);
-                        return -1;
                     }
-                }
+                } // if (format.equalsIgnoreCase("delim"))
+                else if (format.equalsIgnoreCase("jsonarray")) {
+                    boolean firstBadJson = true;
+                    String badJsonDelim = "[\n";
+                    List<String> columnBackbone = cdp.getColumnNames();
+                    int columnCount = columnBackbone.size();
+
+                    //setup json reader
+                    JSONParser parser = new JSONParser();
+                    jsonArray = (JSONArray) parser.parse(reader);
+
+                    for (Object o : jsonArray) {
+                        JSONObject jsonRow = (JSONObject) o;
+                        String[] jsonElements = new String[columnCount];
+                        jsonElements[0] = jsonRow.get(columnBackbone.get(0)).toString();
+                        for (int i = 1; i < columnCount; i++) {
+                            if (null != jsonRow.get(columnBackbone.get(i))) {
+                                jsonElements[i] = jsonRow.get(columnBackbone.get(i)).toString();
+                            } else {
+                                jsonElements[i] = null;
+                            }
+                        }
+                        if (null != (elements = cdp.parse(jsonElements))) {
+                            int ret = sendInsert(elements, line);
+                            if (-2 == ret) {
+                                cleanup(false);
+                                return -2;
+                            }
+                            numInserted += ret;
+                        } else {
+                            String badString = jsonRow.toJSONString();
+                            if (null != logPrinter) {
+                                logPrinter.println(String.format("Error parsing JSON item %d in %s: %s", lineNumber, readerName, badString));
+                            }
+                            System.err.println(String.format("Error parsing JSON item %d in %s: %s", lineNumber, readerName, badString));
+                            if (null != badParsePrinter) {
+                                badParsePrinter.println(badJsonDelim + badString);
+                                if (firstBadJson) {
+                                    firstBadJson = false;
+                                    badJsonDelim = ",\n";
+                                }
+                            }
+                            numErrors++;
+                            if (maxErrors <= numErrors) {
+                                if (null != logPrinter) {
+                                    logPrinter.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
+                                }
+                                System.err.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
+                                cleanup(false);
+                                return -1;
+                            }
+                        }
+                    }
+                }// if (format.equalsIgnoreCase("json"))
             }
-        } // if (format.equalsIgnoreCase("delim"))
-        else if (format.equalsIgnoreCase("jsonarray")) {
-            boolean firstBadJson = true;
-            String badJsonDelim = "[\n";
-            List<String> columnBackbone = cdp.getColumnNames();
-            int columnCount = columnBackbone.size();
-            for (Object o : jsonArray) {
-                JSONObject jsonRow = (JSONObject) o;
-                String[] jsonElements = new String[columnCount];
-                jsonElements[0] = jsonRow.get(columnBackbone.get(0)).toString();
-                for (int i = 1; i < columnCount; i++) {
-                    if (null != jsonRow.get(columnBackbone.get(i))) {
-                        jsonElements[i] = jsonRow.get(columnBackbone.get(i)).toString();
-                    } else {
-                        jsonElements[i] = null;
-                    }
-                }
-                if (null != (elements = cdp.parse(jsonElements))) {
-                    int ret = sendInsert(elements, line);
-                    if (-2 == ret) {
-                        cleanup(false);
-                        return -2;
-                    }
-                    numInserted += ret;
-                } else {
-                    String badString = jsonRow.toJSONString();
-                    if (null != logPrinter) {
-                        logPrinter.println(String.format("Error parsing JSON item %d in %s: %s", lineNumber, readerName, badString));
-                    }
-                    System.err.println(String.format("Error parsing JSON item %d in %s: %s", lineNumber, readerName, badString));
-                    if (null != badParsePrinter) {
-                        badParsePrinter.println(badJsonDelim + badString);
-                        if (firstBadJson) {
-                            firstBadJson = false;
-                            badJsonDelim = ",\n";
-                        }
-                    }
-                    numErrors++;
-                    if (maxErrors <= numErrors) {
-                        if (null != logPrinter) {
-                            logPrinter.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
-                        }
-                        System.err.println(String.format("Maximum number of errors exceeded (%d) for %s", numErrors, readerName));
-                        cleanup(false);
-                        return -1;
-                    }
-                }
-            }
-        }// if (format.equalsIgnoreCase("json"))
+        }
 
         // Send last partially filled batch
         if ((batchSize > 1) && (batch.size() > 0)) {
