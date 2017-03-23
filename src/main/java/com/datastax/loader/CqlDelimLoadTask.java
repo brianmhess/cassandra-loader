@@ -79,7 +79,7 @@ class CqlDelimLoadTask implements Callable<Long> {
     private PrintStream badInsertPrinter = null;
     private PrintStream logPrinter = null;
     private String logFname = "";
-    List<InputStream> isList =  new ArrayList<>();
+    private List<InputStream> isList =  new ArrayList<>();
     private BufferedReader reader;
     private File infile;
     private int numFutures;
