@@ -241,7 +241,7 @@ cassandra-loader -f /path/to/directory -host 1.2.3.4 -schema "test.test3(a, b, c
 cassandra-loader -f stdin -host localhost -schema "test.test3(a, b, c)" -user myuser -pw mypassword
 ```
 
-##Examples:
+## Examples:
 
 Load file /path/to/file.csv into the test3 table in the test keyspace using
 the cluster at localhost.  Use the default options:
@@ -266,7 +266,7 @@ password:
 cassandra-loader -f stdin -host localhost -schema "test.test3(a, b, c)" -user myuser -pw mypassword
 ```
 
-##Sample
+## Sample
 
 Included here is a set of sample data.  It is in the sample/ directory.
 You can set up the table and keyspace by running:
@@ -327,7 +327,7 @@ To run cassandra-unloader, simply run the cassandra-unloader executable
 cassandra-unloader
 ```
 
-###Usage statement:
+### Usage statement:
 
 ```
 version: 0.0.24
