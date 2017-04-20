@@ -91,6 +91,7 @@ class CqlDelimLoadTask implements Callable<Long> {
     private BooleanParser.BoolStyle boolStyle = null;
     private String dateFormatString = null;
     private String localDateFormatString = null;
+    private String colDateFormatString = null;
     private String nullString = null;
     private String commentString = null;
     private String delimiter = null;
@@ -110,6 +111,7 @@ class CqlDelimLoadTask implements Callable<Long> {
                             int inCharsPerColumn,
                             String inNullString, String inCommentString,
                             String inDateFormatString, String inLocalDateFormatString,
+                            String inColDateFormatString,
                             BooleanParser.BoolStyle inBoolStyle,
                             Locale inLocale,
                             long inMaxErrors, long inSkipRows,
@@ -129,6 +131,7 @@ class CqlDelimLoadTask implements Callable<Long> {
         commentString = inCommentString;
         dateFormatString = inDateFormatString;
         localDateFormatString = inLocalDateFormatString;
+        colDateFormatString = inColDateFormatString;
         boolStyle = inBoolStyle;
         locale = inLocale;
         maxErrors = inMaxErrors;
@@ -193,7 +196,7 @@ class CqlDelimLoadTask implements Callable<Long> {
         if (format.equalsIgnoreCase("delim")) {
             cdp = new CqlDelimParser(cqlSchema, delimiter, charsPerColumn,
                                      nullString, commentString,
-                                     dateFormatString, localDateFormatString,
+                                     dateFormatString, localDateFormatString, colDateFormatString,
                                      boolStyle, locale,
                                      skipCols, session, true);
         }
@@ -201,7 +204,7 @@ class CqlDelimLoadTask implements Callable<Long> {
                  || format.equalsIgnoreCase("jsonarray")) {
             cdp = new CqlDelimParser(keyspace, table, delimiter, charsPerColumn,
                                      nullString, commentString,
-                                     dateFormatString, localDateFormatString,
+                                     dateFormatString, localDateFormatString, colDateFormatString,
                                      boolStyle, locale,
                                      skipCols, session, true);
         }
@@ -320,8 +323,9 @@ class CqlDelimLoadTask implements Callable<Long> {
                         if (0 == line.trim().length())
                             continue;
 
-                        if (format.equalsIgnoreCase("delim"))
+                        if (format.equalsIgnoreCase("delim")) {
                             elements = cdp.parse(line);
+                        }
                         else if (format.equalsIgnoreCase("jsonline"))
                             elements = cdp.parseJson(line);
                         if (null != elements) {
