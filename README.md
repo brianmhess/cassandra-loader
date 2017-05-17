@@ -89,7 +89,7 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
  `-user`          | Username           | none                       | Cassandra username
  `-pw`            | Password           | none                       | Cassandra password
  `-ssl-truststore-path` | Truststore Path     | none                | Path to SSL truststore
- `-ssl-truststore-pwd`  | Truststore Password | none                | Password to SSL truststore
+ `-ssl-truststore-pw`  | Truststore Password | none                | Password to SSL truststore
  `-ssl-keystore-path`   | Keystore Path       | none                | Path to SSL keystore
  `-ssl-keystore-path`   | Keystore Password   | none                | Password to SSL keystore
  `-consistencyLevel`    | Consistency Level   | ONE                 | CQL Consistency Level
