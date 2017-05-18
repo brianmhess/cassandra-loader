@@ -166,6 +166,7 @@ public class CqlDelimParser {
         ks_settings.getFormat().setCharToEscapeQuoteEscaping('\\');
         ks_settings.setKeepQuotes(true);
         ks_settings.setKeepEscapeSequences(true);
+        ks_settings.setMaxCharsPerColumn(-1);
         CsvParser ks_parser = new CsvParser(ks_settings);
         String[] ks_elements = ks_parser.parseLine(cqlSchema);
         keyspace = ks_elements[0];
@@ -179,6 +180,7 @@ public class CqlDelimParser {
         table_settings.getFormat().setCharToEscapeQuoteEscaping('\\');
         table_settings.setKeepQuotes(true);
         table_settings.setKeepEscapeSequences(true);
+        table_settings.setMaxCharsPerColumn(-1);
         CsvParser table_parser = new CsvParser(table_settings);
         String[] table_elements = table_parser.parseLine(table_string);
         tablename = table_elements[0];
@@ -215,6 +217,7 @@ public class CqlDelimParser {
             settings.getFormat().setCharToEscapeQuoteEscaping('\\');
             settings.setKeepQuotes(true);
             settings.setKeepEscapeSequences(true);
+	    settings.setMaxCharsPerColumn(-1);
             CsvParser parser = new CsvParser(settings);
             String[] tlist = parser.parseLine(in);
             for (int i = 0; i < tlist.length; i++)
