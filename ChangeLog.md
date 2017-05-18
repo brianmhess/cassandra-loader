@@ -1,3 +1,6 @@
+## 0.0.26
+- Fixed issue with long schemas (Issue 65)
+
 ## 0.0.25
 - Added support for Fetch Size in cassandra-unloader
 

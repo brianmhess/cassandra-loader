@@ -83,7 +83,7 @@ import com.codahale.metrics.Timer;
 import org.apache.commons.lang3.StringEscapeUtils;
 
 public class CqlDelimLoad {
-    private String version = "0.0.25";
+    private String version = "0.0.26";
     private String host = null;
     private int port = 9042;
     private String username = null;
