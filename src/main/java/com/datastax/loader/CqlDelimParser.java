@@ -15,12 +15,23 @@
  */
 package com.datastax.loader;
 
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
 import com.datastax.driver.core.ColumnMetadata;
 import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TableMetadata;
-import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 import com.datastax.loader.parser.BigDecimalParser;
 import com.datastax.loader.parser.BigIntegerParser;
@@ -42,20 +53,6 @@ import com.datastax.loader.parser.SetParser;
 import com.datastax.loader.parser.ShortParser;
 import com.datastax.loader.parser.StringParser;
 import com.datastax.loader.parser.UUIDParser;
-
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 
@@ -67,32 +64,35 @@ public class CqlDelimParser {
     private String tablename;
     private DelimParser delimParser;
     private JSONParser jsonParser;
+    private ColDateFormat cdf;
 
     public CqlDelimParser(String inCqlSchema, String inDelimiter, int inCharsPerColumn,
-                          String inNullString, String inCommentString, 
-                          String inDateFormatString, String inLocalDateFormatString,
+                          String inNullString, String inCommentString,
+                          String inDateFormatString, String inLocalDateFormatString, String inColDateFormatString,
                           BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
-                          String skipList, Session session, boolean bLoader) 
+                          String skipList, Session session, boolean bLoader)
         throws ParseException {
         // Optionally provide things for the line parser - date format, boolean format, locale
-        initPmap(inDateFormatString, inLocalDateFormatString, inBoolStyle, 
+        initPmap(inDateFormatString, inLocalDateFormatString, inColDateFormatString, inBoolStyle,
                  inLocale, bLoader);
+        initColDate(inColDateFormatString);
         processCqlSchema(inCqlSchema, session);
         createDelimParser(inDelimiter, inCharsPerColumn, inNullString, inCommentString, skipList);
-    }   
+    }
 
     public CqlDelimParser(String inKeyspace, String inTable, String inDelimiter,
                           int inCharsPerColumn,
-                          String inNullString, String inCommentString, 
-                          String inDateFormatString, String inLocalDateFormatString,
+                          String inNullString, String inCommentString,
+                          String inDateFormatString, String inLocalDateFormatString, String inColDateFormatString,
                           BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
-                          String skipList, Session session, boolean bLoader) 
+                          String skipList, Session session, boolean bLoader)
         throws ParseException {
         // Optionally provide things for the line parser - date format, boolean format, locale
         keyspace = inKeyspace;
         tablename = inTable;
-        initPmap(inDateFormatString, inLocalDateFormatString, inBoolStyle, 
+        initPmap(inDateFormatString, inLocalDateFormatString, inColDateFormatString , inBoolStyle,
                  inLocale, bLoader);
+        initColDate(inColDateFormatString);
         processCqlSchema(session);
         createDelimParser(inDelimiter, inCharsPerColumn, inNullString, inCommentString,  skipList);
     }
@@ -112,9 +112,15 @@ public class CqlDelimParser {
         public Parser parser;
     }
 
+    // used internally to store schema information
+    private class ColDateFormat {
+        public String columnName;
+        public String dateFormat;
+    }
+
     // intialize the Parsers and the parser map
-    private void initPmap(String dateFormatString, String localDateFormatString,
-                          BooleanParser.BoolStyle inBoolStyle, 
+    private void initPmap(String dateFormatString, String localDateFormatString, String colDateFormatString,
+                          BooleanParser.BoolStyle inBoolStyle,
                           Locale inLocale, boolean bLoader) {
         pmap = new HashMap<DataType.Name, Parser>();
         Parser byteParser = new ByteParser(inLocale, bLoader);
@@ -184,8 +190,8 @@ public class CqlDelimParser {
         CsvParser table_parser = new CsvParser(table_settings);
         String[] table_elements = table_parser.parseLine(table_string);
         tablename = table_elements[0];
-        
-        String schemaString = table_string.substring(tablename.length() + 1, 
+
+        String schemaString = table_string.substring(tablename.length() + 1,
                                                      table_string.length() - 1);
 
         sbl = schemaBits(schemaString, session);
@@ -246,7 +252,7 @@ public class CqlDelimParser {
                     DataType.Name listType = dt.getTypeArguments().get(0).getName();
                     Parser listParser = pmap.get(listType);
                     if (null == listParser) {
-                        throw new ParseException("List data type not recognized (" 
+                        throw new ParseException("List data type not recognized ("
                                                  + listType + ")", i);
                     }
                     sb.parser = new ListParser(listParser, ',', '[', ']');
@@ -255,7 +261,7 @@ public class CqlDelimParser {
                     DataType.Name setType = dt.getTypeArguments().get(0).getName();
                     Parser setParser = pmap.get(setType);
                     if (null == setParser) {
-                        throw new ParseException("Set data type not recognized (" 
+                        throw new ParseException("Set data type not recognized ("
                                                  + setType + ")", i);
                     }
                     sb.parser = new SetParser(setParser, ',', '{', '}');
@@ -264,21 +270,25 @@ public class CqlDelimParser {
                     DataType.Name keyType = dt.getTypeArguments().get(0).getName();
                     Parser keyParser = pmap.get(keyType);
                     if (null == keyParser) {
-                        throw new ParseException("Map key data type not recognized (" 
+                        throw new ParseException("Map key data type not recognized ("
                                                  + keyType + ")", i);
                     }
                     DataType.Name valueType = dt.getTypeArguments().get(1).getName();
                     Parser valueParser = pmap.get(valueType);
                     if (null == valueParser) {
-                        throw new ParseException("Map value data type not recognized (" 
+                        throw new ParseException("Map value data type not recognized ("
                                                  + valueType + ")", i);
                     }
                     sb.parser = new MapParser(keyParser, valueParser, ',', '{', '}', ':');
                 }
                 else {
-                    throw new ParseException("Collection data type not recognized (" 
+                    throw new ParseException("Collection data type not recognized ("
                                              + sb.datatype + ")", i);
                 }
+            }
+            else if (null != cdf && sb.name.equalsIgnoreCase(cdf.columnName) && sb.datatype.toString().equalsIgnoreCase(DataType.Name.TIMESTAMP.toString())) {
+                Parser colDateParser = new DateParser(cdf.dateFormat);
+                sb.parser = colDateParser;
             }
             else {
                 sb.parser = pmap.get(sb.datatype);
@@ -298,7 +308,7 @@ public class CqlDelimParser {
         delimParser = new DelimParser(delimiter, charsPerColumn, nullString, commentString);
         for (int i = 0; i < sbl.size(); i++)
             delimParser.add(sbl.get(i).parser);
-        if (null != skipList) {
+            if (null != skipList) {
             for (String s : skipList.split(",")) {
                 delimParser.addSkip(Integer.parseInt(s.trim()));
             }
@@ -306,6 +316,15 @@ public class CqlDelimParser {
         jsonParser = new JSONParser();
     }
 
+    private void initColDate(String inColDateFormatString) {
+        if (null != inColDateFormatString) {
+            cdf = new ColDateFormat();
+            String[] colDate = inColDateFormatString.split(",");
+
+            cdf.columnName = colDate[0];
+            cdf.dateFormat = colDate[1];
+        }
+    }
     // Convenience method to return the INSERT statement for a PreparedStatement.
     public String generateInsert() {
         String insert = "INSERT INTO " + keyspace + "." + tablename + "(" + sbl.get(0).name;

@@ -15,62 +15,57 @@
  */
 package com.datastax.loader;
 
-import com.datastax.loader.parser.BooleanParser;
-
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Deque;
-import java.util.ArrayDeque;
-import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.math.BigInteger;
-import java.io.FileOutputStream;
 import java.io.BufferedOutputStream;
-import java.io.PrintStream;
-import java.io.File;
 import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.InputStreamReader;
-import java.io.InputStream;
+import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.FileNotFoundException;
-import java.text.ParseException;
-import java.security.KeyStore;
-import java.security.SecureRandom;
-import java.security.KeyStoreException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
+import java.math.BigInteger;
 import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.ColumnMetadata;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.PoolingOptions;
-import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ColumnMetadata;
 import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.HostDistance;
+import com.datastax.driver.core.JdkSSLOptions;
+import com.datastax.driver.core.PoolingOptions;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.SSLOptions;
-import com.datastax.driver.core.JdkSSLOptions;
-import com.datastax.driver.core.policies.TokenAwarePolicy;
-import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
+import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.QueryValidationException;
+import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
+import com.datastax.driver.core.policies.TokenAwarePolicy;
+import com.datastax.loader.parser.BooleanParser;
 
 
 public class CqlDelimUnload {
@@ -131,7 +126,7 @@ public class CqlDelimUnload {
         usage.append("  -fetchSize <fetchSize>             Fetch size to use [0]\n");
         return usage.toString();
     }
-    
+
     private boolean validateArgs() {
         if (!format.equalsIgnoreCase("delim")
             && !format.equalsIgnoreCase("jsonline")
@@ -200,7 +195,7 @@ public class CqlDelimUnload {
 
         return true;
     }
-    
+
     private boolean processConfigFile(String fname, Map<String, String> amap)
         throws IOException, FileNotFoundException {
         File cFile = new File(fname);
@@ -290,7 +285,7 @@ public class CqlDelimUnload {
         if (null != (tkey = amap.remove("-where")))         where = tkey;
         if (null != (tkey = amap.remove("-format")))        format = tkey;
         if (null != (tkey = amap.remove("-fetchSize")))     fetchSize = Integer.parseInt(tkey);
-        
+
         if (!amap.isEmpty()) {
             for (String k : amap.keySet())
                 System.err.println("Unrecognized option: " + k);
@@ -356,8 +351,8 @@ public class CqlDelimUnload {
         if (null != cluster)
             cluster.close();
     }
-    
-    public boolean run(String[] args) 
+
+    public boolean run(String[] args)
         throws IOException, ParseException, InterruptedException, ExecutionException,
                KeyStoreException, NoSuchAlgorithmException, KeyManagementException,
                CertificateException, UnrecoverableKeyException {
@@ -381,19 +376,19 @@ public class CqlDelimUnload {
             beginToken = null;
             endToken = null;
         }
-        
+
         // Launch Threads
         ExecutorService executor;
         long total = 0;
         if (null != pstream) {
             // One file/stdin to process
             executor = Executors.newSingleThreadExecutor();
-            Callable<Long> worker = new ThreadExecute(cqlSchema, delimiter, 
+            Callable<Long> worker = new ThreadExecute(cqlSchema, delimiter,
                                                       nullString,
-                                                      dateFormatString, 
-                                                      localDateFormatString, 
-                                                      boolStyle, locale, 
-                                                      pstream, 
+                                                      dateFormatString,
+                                                      localDateFormatString,
+                                                      boolStyle, locale,
+                                                      pstream,
                                                       beginToken,
                                                       endToken, session,
                                                       consistencyLevel, where,
@@ -439,12 +434,12 @@ public class CqlDelimUnload {
                 String tBeginString = beginList.get(mype);
                 String tEndString = endList.get(mype);
                 pstream = new PrintStream(new BufferedOutputStream(new FileOutputStream(filename + "." + mype)));
-                Callable<Long> worker = new ThreadExecute(cqlSchema, delimiter, 
+                Callable<Long> worker = new ThreadExecute(cqlSchema, delimiter,
                                                           nullString,
-                                                          dateFormatString, 
-                                                          localDateFormatString, 
-                                                          boolStyle, locale, 
-                                                          pstream, 
+                                                          dateFormatString,
+                                                          localDateFormatString,
+                                                          boolStyle, locale,
+                                                          pstream,
                                                           tBeginString,
                                                           tEndString, session,
                                                           consistencyLevel,
@@ -463,7 +458,7 @@ public class CqlDelimUnload {
         return true;
     }
 
-    public static void main(String[] args) 
+    public static void main(String[] args)
         throws IOException, ParseException, InterruptedException, ExecutionException,
                KeyStoreException, NoSuchAlgorithmException, UnrecoverableKeyException,
                CertificateException, KeyManagementException  {
@@ -499,12 +494,12 @@ public class CqlDelimUnload {
         private String localDateFormatString = null;
         private int fetchSize = 0;
 
-        public ThreadExecute(String inCqlSchema, String inDelimiter, 
-                             String inNullString, 
+        public ThreadExecute(String inCqlSchema, String inDelimiter,
+                             String inNullString,
                              String inDateFormatString,
                              String inLocalDateFormatString,
-                             BooleanParser.BoolStyle inBoolStyle, 
-                             Locale inLocale, 
+                             BooleanParser.BoolStyle inBoolStyle,
+                             Locale inLocale,
                              PrintStream inWriter,
                              String inBeginToken, String inEndToken,
                              Session inSession, ConsistencyLevel inConsistencyLevel,
@@ -558,14 +553,14 @@ public class CqlDelimUnload {
         }
 
         private boolean setup() throws IOException, ParseException {
-            cdp = new CqlDelimParser(cqlSchema, delimiter, 4096, nullString, 
-                                     null, dateFormatString, localDateFormatString,
+            cdp = new CqlDelimParser(cqlSchema, delimiter, 4096, nullString,
+                                     null, dateFormatString, localDateFormatString, null,
                                      boolStyle, locale, null, session, false);
             String select = cdp.generateSelect();
             String partitionKey = getPartitionKey(cdp, session);
             if (null != beginToken) {
-                select = select + " WHERE Token(" + partitionKey + ") > " 
-                    + beginToken + " AND Token(" + partitionKey + ") <= " 
+                select = select + " WHERE Token(" + partitionKey + ") > "
+                    + beginToken + " AND Token(" + partitionKey + ") <= "
                     + endToken;
                 if (null != where)
                     select = select + " AND " + where;
@@ -587,7 +582,7 @@ public class CqlDelimUnload {
             statement.setConsistencyLevel(consistencyLevel);
             return true;
         }
-        
+
         private void cleanup() throws IOException {
             writer.flush();
             writer.close();
@@ -595,7 +590,7 @@ public class CqlDelimUnload {
 
         private long execute() throws IOException {
             BoundStatement bound = statement.bind();
-            bound.setFetchSize(fetchSize);            
+            bound.setFetchSize(fetchSize);
             ResultSet rs = session.execute(bound);
             numRead = 0;
             String s = null;
