@@ -18,12 +18,12 @@ loading of various types of delimited files, including
 ### Downloading
 
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.26/cassandra-loader
+https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.27/cassandra-loader
 
 Get it with wget:
 
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.26/cassandra-loader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.27/cassandra-loader
 ```
 
 ### Building
@@ -97,6 +97,7 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
  `-numFutures`    | Number of Futures  | 1000                       | Number of Java driver futures in flight.
  `-numRetries`    | Number of retries  | 1                          | Number of times to retry the INSERT before declaring defeat.
  `-queryTimeout`  | Timeout in seconds | 2                          | Amount of time to wait for a query to finish before timing out.
+ `-ttl`           | Time To Live       | none                       | TTL to use when inserting these rows
  `-delim`         | Delimiter          | ,                          | Delimiter to use
  `-charsPerColumn`| Characters per column | 4096                    | Maximum characters per column
  `-nullString`    | Null String        | &lt;empty string&gt;             | String to represent NULL data
@@ -190,7 +191,7 @@ When using `jsonline`, all JSON field names are case-sensitive.  When using `jso
 ## Usage Statement:
 
 ```
-version: 0.0.26
+version: 0.0.27
 Usage: -f <filename> -host <ipaddress> [OPTIONS]
 OPTIONS:
   -schema <schema>                   Table schema (when using delim)
@@ -233,6 +234,7 @@ OPTIONS:
   -format [delim|jsonline|jsonarray] Format of data: delimited or JSON [delim]
   -table <tableName>                 Table name (when using JSON)
   -keyspace <keyspaceName>           Keyspace name (when using JSON)
+  -ttl <TTL>                         TTL for all rows in this invocation [unset]
 
 
 Examples:
@@ -311,7 +313,7 @@ cassandra-unloader -f stdout -host host1 -schema "ks.table(a,b,c)" | cassandra-l
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.26/cassandra-unloader
+wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.27/cassandra-unloader
 ```
 
 To build, run:
@@ -330,7 +332,7 @@ cassandra-unloader
 ###Usage statement:
 
 ```
-version: 0.0.24
+version: 0.0.27
 Usage: -f <outputStem> -host <ipaddress> -schema <schema> [OPTIONS]
 OPTIONS:
   -configFile <filename>             File with configuration options

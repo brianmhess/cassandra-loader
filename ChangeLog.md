@@ -1,3 +1,6 @@
+## 0.0.27
+- Added support for specifying a TTL (Issue 67)
+
 ## 0.0.26
 - Fixed issue with long schemas (Issue 65)
 

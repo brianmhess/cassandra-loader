@@ -67,14 +67,14 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.SSLOptions;
-import com.datastax.driver.core.JdkSSLOptions;
+import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 import com.datastax.driver.core.exceptions.QueryValidationException;
 
 
 public class CqlDelimUnload {
-    private String version = "0.0.26";
+    private String version = "0.0.27";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -323,7 +323,7 @@ public class CqlDelimUnload {
                         tmf != null ? tmf.getTrustManagers() : null,
                         new SecureRandom());
 
-        return JdkSSLOptions.builder().withSSLContext(sslContext).build();
+        return RemoteEndpointAwareJdkSSLOptions.builder().withSSLContext(sslContext).build();
     }
 
     private void setup()
@@ -560,7 +560,7 @@ public class CqlDelimUnload {
         private boolean setup() throws IOException, ParseException {
             cdp = new CqlDelimParser(cqlSchema, delimiter, 4096, nullString, 
                                      null, dateFormatString, localDateFormatString,
-                                     boolStyle, locale, null, session, false);
+                                     boolStyle, locale, null, session, false, -1);
             String select = cdp.generateSelect();
             String partitionKey = getPartitionKey(cdp, session);
             if (null != beginToken) {

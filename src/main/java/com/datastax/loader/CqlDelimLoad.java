@@ -75,7 +75,7 @@ import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.SSLOptions;
-import com.datastax.driver.core.JdkSSLOptions;
+import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
@@ -83,7 +83,7 @@ import com.codahale.metrics.Timer;
 import org.apache.commons.lang3.StringEscapeUtils;
 
 public class CqlDelimLoad {
-    private String version = "0.0.26";
+    private String version = "0.0.27";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -105,6 +105,8 @@ public class CqlDelimLoad {
     private RateLimiter rateLimiter = null;
     private String rateFile = null;
     private PrintStream rateStream = null;
+    private Integer inTtl = null;
+    private int ttl = -1;
 
     private String cqlSchema = null;
     private String table = null;
@@ -180,6 +182,7 @@ public class CqlDelimLoad {
         usage.append("  -format [delim|jsonline|jsonarray] Format of data: delimited or JSON [delim]\n");
         usage.append("  -table <tableName>                 Table name (when using JSON)\n");
         usage.append("  -keyspace <keyspaceName>           Keyspace name (when using JSON)\n");
+        usage.append("  -ttl <TTL>                         TTL for all rows in this invocation [unset]\n");
 
         usage.append("\n\nExamples:\n");
         usage.append("cassandra-loader -f /path/to/file.csv -host localhost -schema \"test.test3(a, b, c)\"\n");
@@ -253,7 +256,7 @@ public class CqlDelimLoad {
             System.err.println("Progress rate must be non-negative");
             return false;
         }
-        if (numThreads < 1) {
+        if (1 > numThreads) {
             System.err.println("Number of threads must be non-negative");
             return false;
         }
@@ -430,6 +433,7 @@ public class CqlDelimLoad {
         if (null != (tkey = amap.remove("-numThreads")))    numThreads = Integer.parseInt(tkey);
         if (null != (tkey = amap.remove("-rate")))          rate = Double.parseDouble(tkey);
         if (null != (tkey = amap.remove("-progressRate")))  progressRate = Long.parseLong(tkey);
+        if (null != (tkey = amap.remove("-ttl")))           inTtl = new Integer(tkey);
         if (null != (tkey = amap.remove("-rateFile")))      rateFile = tkey;
         if (null != (tkey = amap.remove("-successDir")))    successDir = tkey;
         if (null != (tkey = amap.remove("-failureDir")))    failureDir = tkey;
@@ -462,6 +466,14 @@ public class CqlDelimLoad {
 
         if (0 < inNumFutures)
             numFutures = inNumFutures / numThreads;
+	if (null != inTtl) {
+	    if (1 > inTtl.intValue()) {
+		System.err.println("TTL must be greater than 1");
+		return false;
+	    }
+	    else
+		ttl = inTtl.intValue();
+	}
 
         if (null != keyspace)
             keyspace = quote(keyspace);
@@ -502,7 +514,7 @@ public class CqlDelimLoad {
                         tmf != null ? tmf.getTrustManagers() : null, 
                         new SecureRandom());
 
-        return JdkSSLOptions.builder().withSSLContext(sslContext).build();
+        return RemoteEndpointAwareJdkSSLOptions.builder().withSSLContext(sslContext).build();
     }
 
     private boolean setup() 
@@ -642,7 +654,7 @@ public class CqlDelimLoad {
                                                          maxInsertErrors, 
                                                          successDir, failureDir,
                                                          nullsUnset, format,
-                                                         keyspace, table);
+                                                         keyspace, table, ttl);
             Future<Long> res = executor.submit(worker);
             total = res.get();
             executor.shutdown();
@@ -669,7 +681,7 @@ public class CqlDelimLoad {
                                                              maxInsertErrors, 
                                                              successDir, failureDir,
                                                              nullsUnset, format,
-                                                             keyspace, table);
+                                                             keyspace, table, ttl);
                 results.add(executor.submit(worker));
             }
             executor.shutdown();

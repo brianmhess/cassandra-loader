@@ -79,6 +79,7 @@ class CqlDelimLoadTask implements Callable<Long> {
     private int numFutures;
     private int batchSize;
     private long numInserted;
+    private int ttl = -1;
 
     private String cqlSchema;
     private Locale locale = null;
@@ -114,7 +115,7 @@ class CqlDelimLoadTask implements Callable<Long> {
                             int inQueryTimeout, long inMaxInsertErrors,
                             String inSuccessDir, String inFailureDir,
                             boolean inNullsUnset, String inFormat,
-                            String inKeyspace, String inTable) {
+                            String inKeyspace, String inTable, int inTtl) {
         super();
         cqlSchema = inCqlSchema;
         delimiter = inDelimiter;
@@ -144,6 +145,7 @@ class CqlDelimLoadTask implements Callable<Long> {
         format = inFormat;
         keyspace = inKeyspace;
         table = inTable;
+	ttl = inTtl;
     }
 
     public Long call() throws IOException, ParseException, org.json.simple.parser.ParseException {
@@ -188,7 +190,7 @@ class CqlDelimLoadTask implements Callable<Long> {
                                      nullString, commentString,
                                      dateFormatString, localDateFormatString,
                                      boolStyle, locale,
-                                     skipCols, session, true);
+                                     skipCols, session, true, ttl);
         }
         else if (format.equalsIgnoreCase("jsonline")
                  || format.equalsIgnoreCase("jsonarray")) {
@@ -196,7 +198,7 @@ class CqlDelimLoadTask implements Callable<Long> {
                                      nullString, commentString,
                                      dateFormatString, localDateFormatString,
                                      boolStyle, locale, 
-                                     skipCols, session, true);
+                                     skipCols, session, true, ttl);
         }
 
         insert = cdp.generateInsert();

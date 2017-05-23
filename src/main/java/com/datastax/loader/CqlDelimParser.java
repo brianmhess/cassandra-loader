@@ -67,14 +67,16 @@ public class CqlDelimParser {
     private String tablename;
     private DelimParser delimParser;
     private JSONParser jsonParser;
+    private int ttl = -1;
 
     public CqlDelimParser(String inCqlSchema, String inDelimiter, int inCharsPerColumn,
                           String inNullString, String inCommentString, 
                           String inDateFormatString, String inLocalDateFormatString,
                           BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
-                          String skipList, Session session, boolean bLoader) 
+                          String skipList, Session session, boolean bLoader, int inTtl) 
         throws ParseException {
         // Optionally provide things for the line parser - date format, boolean format, locale
+	ttl = inTtl;
         initPmap(inDateFormatString, inLocalDateFormatString, inBoolStyle, 
                  inLocale, bLoader);
         processCqlSchema(inCqlSchema, session);
@@ -86,9 +88,10 @@ public class CqlDelimParser {
                           String inNullString, String inCommentString, 
                           String inDateFormatString, String inLocalDateFormatString,
                           BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
-                          String skipList, Session session, boolean bLoader) 
+                          String skipList, Session session, boolean bLoader, int inTtl) 
         throws ParseException {
         // Optionally provide things for the line parser - date format, boolean format, locale
+	ttl = inTtl;
         keyspace = inKeyspace;
         tablename = inTable;
         initPmap(inDateFormatString, inLocalDateFormatString, inBoolStyle, 
@@ -315,6 +318,8 @@ public class CqlDelimParser {
             qmarks = qmarks + ", ?";
         }
         insert = insert + ") VALUES (" + qmarks + ")";
+	if (0 < ttl)
+	    insert = insert + " USING TTL " + ttl;
         return insert;
     }
 
