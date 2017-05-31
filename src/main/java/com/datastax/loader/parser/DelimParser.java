@@ -86,6 +86,7 @@ public class DelimParser {
         settings.setKeepQuotes(true);
         settings.setKeepEscapeSequences(true);
         settings.getFormat().setComment(comment);
+        settings.setNullValue(DEFAULT_NULLSTRING);
 
         csvp = new CsvParser(settings);
     }
