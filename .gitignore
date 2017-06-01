@@ -1,8 +1,16 @@
+!.gitignore
+
+out/
 build/
+gradle/
 .gradle/
+.idea/
 *~
 *.jar
 cassandra-loader
 *.BADINSERT
 *.BADPARSE
 *.LOG
+*.iml
+/gradlew
+/gradlew.bat

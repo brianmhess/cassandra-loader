@@ -23,15 +23,12 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.HashSet;
-import java.util.Deque;
-import java.util.ArrayDeque;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.math.BigInteger;
 import java.io.FileOutputStream;
 import java.io.BufferedOutputStream;
@@ -39,7 +36,6 @@ import java.io.PrintStream;
 import java.io.File;
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.io.InputStreamReader;
 import java.io.InputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -71,10 +67,11 @@ import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 import com.datastax.driver.core.exceptions.QueryValidationException;
+import com.datastax.loader.parser.ByteBufferParser;
 
 
 public class CqlDelimUnload {
-    private String version = "0.0.27";
+    private String version = "0.0.28";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -96,6 +93,7 @@ public class CqlDelimUnload {
 
     private Locale locale = null;
     private BooleanParser.BoolStyle boolStyle = null;
+    private ByteBufferParser.BlobFormat blobFormat = null;
     private String dateFormatString = null;
     private String localDateFormatString = "yyyy-MM-dd";
     private String nullString = null;
@@ -124,6 +122,7 @@ public class CqlDelimUnload {
         usage.append("  -consistencyLevel <CL>             Consistency level [LOCAL_ONE]\n");
         usage.append("  -decimalDelim <decimalDelim>       Decimal delimiter [.] Other option is ','\n");
         usage.append("  -boolStyle <boolStyleString>       Style for booleans [TRUE_FALSE]\n");
+        usage.append("  -blobFormat [base64|hex]           Format of blobs: base-64 encoded or hex string [base64]\n");
         usage.append("  -numThreads <numThreads>           Number of concurrent threads to unload [5]\n");
         usage.append("  -beginToken <tokenString>          Begin token [none]\n");
         usage.append("  -endToken <tokenString>            End token [none]\n");
@@ -284,6 +283,13 @@ public class CqlDelimUnload {
                 return false;
             }
         }
+        if (null != (tkey = amap.remove("-blobFormat"))) {
+            blobFormat = ByteBufferParser.getBlobFormat(tkey);
+            if (null == blobFormat) {
+                System.err.println("Bad blob format.  Options are: " + ByteBufferParser.getOptions());
+                return false;
+            }
+        }
         if (null != (tkey = amap.remove("-numThreads")))    numThreads = Integer.parseInt(tkey);
         if (null != (tkey = amap.remove("-beginToken")))    beginToken = tkey;
         if (null != (tkey = amap.remove("-endToken")))      endToken = tkey;
@@ -392,7 +398,9 @@ public class CqlDelimUnload {
                                                       nullString,
                                                       dateFormatString, 
                                                       localDateFormatString, 
-                                                      boolStyle, locale, 
+                                                      boolStyle,
+                    blobFormat,
+                                                      locale,
                                                       pstream, 
                                                       beginToken,
                                                       endToken, session,
@@ -443,7 +451,9 @@ public class CqlDelimUnload {
                                                           nullString,
                                                           dateFormatString, 
                                                           localDateFormatString, 
-                                                          boolStyle, locale, 
+                                                          boolStyle,
+                        blobFormat,
+                                                          locale,
                                                           pstream, 
                                                           tBeginString,
                                                           tEndString, session,
@@ -486,6 +496,7 @@ public class CqlDelimUnload {
         private String format = "delim";
         private Locale locale = null;
         private BooleanParser.BoolStyle boolStyle = null;
+        private ByteBufferParser.BlobFormat blobFormat = null;
         private String nullString = null;
         private String delimiter = null;
 
@@ -503,7 +514,8 @@ public class CqlDelimUnload {
                              String inNullString, 
                              String inDateFormatString,
                              String inLocalDateFormatString,
-                             BooleanParser.BoolStyle inBoolStyle, 
+                             BooleanParser.BoolStyle inBoolStyle,
+                             ByteBufferParser.BlobFormat inBlobFormat,
                              Locale inLocale, 
                              PrintStream inWriter,
                              String inBeginToken, String inEndToken,
@@ -516,6 +528,7 @@ public class CqlDelimUnload {
             dateFormatString = inDateFormatString;
             localDateFormatString = inLocalDateFormatString;
             boolStyle = inBoolStyle;
+            blobFormat = inBlobFormat;
             locale = inLocale;
             beginToken = inBeginToken;
             endToken = inEndToken;
@@ -560,7 +573,8 @@ public class CqlDelimUnload {
         private boolean setup() throws IOException, ParseException {
             cdp = new CqlDelimParser(cqlSchema, delimiter, 4096, nullString, 
                                      null, dateFormatString, localDateFormatString,
-                                     boolStyle, locale, null, session, false, -1);
+                                     boolStyle, blobFormat, locale, null,
+                                     session, false, -1);
             String select = cdp.generateSelect();
             String partitionKey = getPartitionKey(cdp, session);
             if (null != beginToken) {

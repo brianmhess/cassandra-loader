@@ -50,8 +50,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -72,13 +70,15 @@ public class CqlDelimParser {
     public CqlDelimParser(String inCqlSchema, String inDelimiter, int inCharsPerColumn,
                           String inNullString, String inCommentString, 
                           String inDateFormatString, String inLocalDateFormatString,
-                          BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
-                          String skipList, Session session, boolean bLoader, int inTtl) 
+                          BooleanParser.BoolStyle inBoolStyle, ByteBufferParser.BlobFormat inBlobFormat,
+                          Locale inLocale, String skipList,
+                          Session session, boolean bLoader, int inTtl)
         throws ParseException {
         // Optionally provide things for the line parser - date format, boolean format, locale
 	ttl = inTtl;
-        initPmap(inDateFormatString, inLocalDateFormatString, inBoolStyle, 
-                 inLocale, bLoader);
+        initPmap(inDateFormatString, inLocalDateFormatString,
+                inBoolStyle, inBlobFormat,
+                inLocale, bLoader);
         processCqlSchema(inCqlSchema, session);
         createDelimParser(inDelimiter, inCharsPerColumn, inNullString, inCommentString, skipList);
     }   
@@ -87,15 +87,17 @@ public class CqlDelimParser {
                           int inCharsPerColumn,
                           String inNullString, String inCommentString, 
                           String inDateFormatString, String inLocalDateFormatString,
-                          BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
-                          String skipList, Session session, boolean bLoader, int inTtl) 
+                          BooleanParser.BoolStyle inBoolStyle, ByteBufferParser.BlobFormat inBlobFormat,
+                          Locale inLocale, String skipList,
+                          Session session, boolean bLoader, int inTtl)
         throws ParseException {
         // Optionally provide things for the line parser - date format, boolean format, locale
 	ttl = inTtl;
         keyspace = inKeyspace;
         tablename = inTable;
-        initPmap(inDateFormatString, inLocalDateFormatString, inBoolStyle, 
-                 inLocale, bLoader);
+        initPmap(inDateFormatString, inLocalDateFormatString,
+                inBoolStyle, inBlobFormat,
+                inLocale, bLoader);
         processCqlSchema(session);
         createDelimParser(inDelimiter, inCharsPerColumn, inNullString, inCommentString,  skipList);
     }
@@ -117,7 +119,8 @@ public class CqlDelimParser {
 
     // intialize the Parsers and the parser map
     private void initPmap(String dateFormatString, String localDateFormatString,
-                          BooleanParser.BoolStyle inBoolStyle, 
+                          BooleanParser.BoolStyle inBoolStyle,
+                          ByteBufferParser.BlobFormat inBlobFormat,
                           Locale inLocale, boolean bLoader) {
         pmap = new HashMap<DataType.Name, Parser>();
         Parser byteParser = new ByteParser(inLocale, bLoader);
@@ -131,7 +134,7 @@ public class CqlDelimParser {
         Parser uuidParser = new UUIDParser();
         Parser bigDecimalParser = new BigDecimalParser();
         Parser bigIntegerParser = new BigIntegerParser();
-        Parser byteBufferParser = new ByteBufferParser();
+        Parser byteBufferParser = new ByteBufferParser(inBlobFormat);
         Parser inetAddressParser = new InetAddressParser();
         Parser dateParser = new DateParser(dateFormatString);
         Parser localDateParser = new LocalDateParser(localDateFormatString);

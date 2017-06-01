@@ -16,11 +16,7 @@
 package com.datastax.loader;
 
 import com.datastax.loader.parser.BooleanParser;
-import com.datastax.loader.futures.FutureManager;
-import com.datastax.loader.futures.PrintingFutureSet;
 
-import java.util.List;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
@@ -35,11 +31,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.io.File;
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -48,10 +42,6 @@ import java.io.BufferedOutputStream;
 import java.io.PrintStream;
 import java.io.FileNotFoundException;
 import java.text.ParseException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.security.KeyStoreException;
@@ -68,22 +58,17 @@ import com.datastax.driver.core.Metrics;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.PoolingOptions;
-import com.datastax.driver.core.ProtocolOptions;
 import com.datastax.driver.core.HostDistance;
-import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
-import com.codahale.metrics.Timer;
-import org.apache.commons.lang3.StringEscapeUtils;
+import com.datastax.loader.parser.ByteBufferParser;
 
 public class CqlDelimLoad {
-    private String version = "0.0.27";
+    private String version = "0.0.28";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -127,6 +112,7 @@ public class CqlDelimLoad {
 
     private Locale locale = null;
     private BooleanParser.BoolStyle boolStyle = null;
+    private ByteBufferParser.BlobFormat blobFormat = null;
     private String dateFormatString = null;
     private String localDateFormatString = "yyyy-MM-dd";
     private String nullString = null;
@@ -169,6 +155,7 @@ public class CqlDelimLoad {
         usage.append("  -batchSize <batchSize>             Number of INSERTs to batch together [1]\n");
         usage.append("  -decimalDelim <decimalDelim>       Decimal delimiter [.] Other option is ','\n");
         usage.append("  -boolStyle <boolStyleString>       Style for booleans [TRUE_FALSE]\n");
+        usage.append("  -blobFormat [base64|hex]           Format of blobs: base-64 encoded or hex string [base64]\n");
         usage.append("  -numThreads <numThreads>           Number of concurrent threads (files) to load [num cores]\n");
         usage.append("  -queryTimeout <# seconds>          Query timeout (in seconds) [2]\n");
         usage.append("  -numRetries <numRetries>           Number of times to retry the INSERT [1]\n");
@@ -178,7 +165,7 @@ public class CqlDelimLoad {
         usage.append("  -rateFile <filename>               Where to print the rate statistics\n");
         usage.append("  -successDir <dir>                  Directory where to move successfully loaded files\n");
         usage.append("  -failureDir <dir>                  Directory where to move files that did not successfully load\n");
-        usage.append("  -nullsUnset [false|true]           Treat nulls as unset [faslse]\n");
+        usage.append("  -nullsUnset [false|true]           Treat nulls as unset [false]\n");
         usage.append("  -format [delim|jsonline|jsonarray] Format of data: delimited or JSON [delim]\n");
         usage.append("  -table <tableName>                 Table name (when using JSON)\n");
         usage.append("  -keyspace <keyspaceName>           Keyspace name (when using JSON)\n");
@@ -448,6 +435,13 @@ public class CqlDelimLoad {
                 return false;
             }
         }
+        if (null != (tkey = amap.remove("-blobFormat"))) {
+            blobFormat = ByteBufferParser.getBlobFormat(tkey);
+            if (null == blobFormat) {
+                System.err.println("Bad blob format.  Options are: " + ByteBufferParser.getOptions());
+                return false;
+            }
+        }
         if (null != (tkey = amap.remove("-nullsUnset")))    nullsUnset = Boolean.parseBoolean(tkey);
         if (null != (tkey = amap.remove("-charsPerColumn"))) charsPerColumn = Integer.parseInt(tkey);
 
@@ -644,7 +638,9 @@ public class CqlDelimLoad {
                                                          commentString,
                                                          dateFormatString, 
                                                          localDateFormatString, 
-                                                         boolStyle, locale, 
+                                                         boolStyle,
+                    blobFormat,
+                                                         locale,
                                                          maxErrors, skipRows,
                                                          skipCols,
                                                          maxRows, badDir, infile, 
@@ -669,7 +665,9 @@ public class CqlDelimLoad {
                                                              commentString,
                                                              dateFormatString, 
                                                              localDateFormatString, 
-                                                             boolStyle, locale, 
+                                                             boolStyle,
+                        blobFormat,
+                                                             locale,
                                                              maxErrors, skipRows,
                                                              skipCols,
                                                              maxRows, badDir, tFile, 

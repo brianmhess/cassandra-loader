@@ -25,6 +25,7 @@ import com.datastax.loader.futures.FutureManager;
 import com.datastax.loader.futures.PrintingFutureSet;
 import com.datastax.loader.futures.JsonPrintingFutureSet;
 import com.datastax.loader.parser.BooleanParser;
+import com.datastax.loader.parser.ByteBufferParser;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -84,6 +85,7 @@ class CqlDelimLoadTask implements Callable<Long> {
     private String cqlSchema;
     private Locale locale = null;
     private BooleanParser.BoolStyle boolStyle = null;
+    private ByteBufferParser.BlobFormat blobFormat = null;
     private String dateFormatString = null;
     private String localDateFormatString = null;
     private String nullString = null;
@@ -105,7 +107,8 @@ class CqlDelimLoadTask implements Callable<Long> {
                             int inCharsPerColumn,
                             String inNullString, String inCommentString, 
                             String inDateFormatString, String inLocalDateFormatString,
-                            BooleanParser.BoolStyle inBoolStyle, 
+                            BooleanParser.BoolStyle inBoolStyle,
+                            ByteBufferParser.BlobFormat inBlobFormat,
                             Locale inLocale, 
                             long inMaxErrors, long inSkipRows, 
                             String inSkipCols, long inMaxRows,
@@ -125,6 +128,7 @@ class CqlDelimLoadTask implements Callable<Long> {
         dateFormatString = inDateFormatString;
         localDateFormatString = inLocalDateFormatString;
         boolStyle = inBoolStyle;
+        blobFormat = inBlobFormat;
         locale = inLocale;
         maxErrors = inMaxErrors;
         skipRows = inSkipRows;
@@ -189,16 +193,18 @@ class CqlDelimLoadTask implements Callable<Long> {
             cdp = new CqlDelimParser(cqlSchema, delimiter, charsPerColumn, 
                                      nullString, commentString,
                                      dateFormatString, localDateFormatString,
-                                     boolStyle, locale,
-                                     skipCols, session, true, ttl);
+                                     boolStyle, blobFormat,
+                                     locale, skipCols,
+                                     session, true, ttl);
         }
         else if (format.equalsIgnoreCase("jsonline")
                  || format.equalsIgnoreCase("jsonarray")) {
             cdp = new CqlDelimParser(keyspace, table, delimiter, charsPerColumn,
                                      nullString, commentString,
                                      dateFormatString, localDateFormatString,
-                                     boolStyle, locale, 
-                                     skipCols, session, true, ttl);
+                                     boolStyle, blobFormat,
+                                     locale, skipCols,
+                                     session, true, ttl);
         }
 
         insert = cdp.generateInsert();
