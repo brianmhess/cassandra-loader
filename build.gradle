@@ -15,6 +15,11 @@ task loader(type: Exec) {
     commandLine './src/make/buildit.sh'
 }
 
+task deleter(type: Exec) {
+    dependsOn << 'uberdeleter'
+    commandLine './src/make/deleter.sh'
+}
+
 task unloader(type: Exec) {
     dependsOn << 'uberunloader'
     commandLine './src/make/unloader.sh'
@@ -50,6 +55,20 @@ task uberloader(type: Jar) {
         attributes "Main-Class" : 'com.datastax.loader.CqlDelimLoad'
     }
     baseName = 'cassandra-loader-uber'
+    version =  versionNum
+}
+
+task uberdeleter(type: Jar) {
+    dependsOn << 'compileJava'
+    from "src/main/resources/logback.xml"
+    from files(sourceSets.main.output.classesDir)
+    from(configurations.runtime.asFileTree.files.collect { zipTree(it) }) {
+        exclude "META-INF/**"
+    }
+    manifest {
+        attributes "Main-Class" : 'com.datastax.loader.CqlDelimDelete'
+    }
+    baseName = 'cassandra-deleter-uber'
     version =  versionNum
 }
 

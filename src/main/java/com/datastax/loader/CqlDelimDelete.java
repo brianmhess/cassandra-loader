@@ -16,11 +16,7 @@
 package com.datastax.loader;
 
 import com.datastax.loader.parser.BooleanParser;
-import com.datastax.loader.futures.FutureManager;
-import com.datastax.loader.futures.PrintingFutureSet;
 
-import java.util.List;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
@@ -35,11 +31,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.io.File;
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -48,10 +42,6 @@ import java.io.BufferedOutputStream;
 import java.io.PrintStream;
 import java.io.FileNotFoundException;
 import java.text.ParseException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.security.KeyStoreException;
@@ -68,21 +58,14 @@ import com.datastax.driver.core.Metrics;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.PoolingOptions;
-import com.datastax.driver.core.ProtocolOptions;
 import com.datastax.driver.core.HostDistance;
-import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
-import com.codahale.metrics.Timer;
-import org.apache.commons.lang3.StringEscapeUtils;
-
-public class CqlDelimLoad {
+public class CqlDelimDelete {
     private String version = "0.0.27";
     private String host = null;
     private int port = 9042;
@@ -94,11 +77,11 @@ public class CqlDelimLoad {
     private String keystorePwd = null;
     private Cluster cluster = null;
     private Session session = null;
-    private ConsistencyLevel consistencyLevel = ConsistencyLevel.LOCAL_ONE;
+    private ConsistencyLevel consistencyLevel = ConsistencyLevel.QUORUM;
     private int numFutures = 1000;
     private int inNumFutures = -1;
     private int queryTimeout = 2;
-    private long maxInsertErrors = 10;
+    private long maxDeleteErrors = 10;
     private int numRetries = 1;
     private double rate = 50000.0;
     private long progressRate = 100000;
@@ -116,7 +99,7 @@ public class CqlDelimLoad {
     private long maxErrors = 10;
     private long skipRows = 0;
     private String skipCols = null;
-    
+
     private long maxRows = -1;
     private String badDir = ".";
     private String filename = null;
@@ -166,15 +149,15 @@ public class CqlDelimLoad {
         usage.append("  -ssl-keystore-pw <pwd>             Password for SSL keystore [none]\n");
         usage.append("  -consistencyLevel <CL>             Consistency level [LOCAL_ONE]\n");
         usage.append("  -numFutures <numFutures>           Number of CQL futures to keep in flight [1000]\n");
-        usage.append("  -batchSize <batchSize>             Number of INSERTs to batch together [1]\n");
+        usage.append("  -batchSize <batchSize>             Number of DELETEs to batch together [1]\n");
         usage.append("  -decimalDelim <decimalDelim>       Decimal delimiter [.] Other option is ','\n");
         usage.append("  -boolStyle <boolStyleString>       Style for booleans [TRUE_FALSE]\n");
         usage.append("  -numThreads <numThreads>           Number of concurrent threads (files) to load [num cores]\n");
         usage.append("  -queryTimeout <# seconds>          Query timeout (in seconds) [2]\n");
-        usage.append("  -numRetries <numRetries>           Number of times to retry the INSERT [1]\n");
-        usage.append("  -maxInsertErrors <# errors>        Maximum INSERT errors to endure [10]\n");
-        usage.append("  -rate <rows-per-second>            Maximum insert rate [50000]\n");
-        usage.append("  -progressRate <num txns>           How often to report the insert rate [100000]\n");
+        usage.append("  -numRetries <numRetries>           Number of times to retry the DELETE [1]\n");
+        usage.append("  -maxDeleteErrors <# errors>        Maximum DELETE errors to endure [10]\n");
+        usage.append("  -rate <rows-per-second>            Maximum delete rate [50000]\n");
+        usage.append("  -progressRate <num txns>           How often to report the delete rate [100000]\n");
         usage.append("  -rateFile <filename>               Where to print the rate statistics\n");
         usage.append("  -successDir <dir>                  Directory where to move successfully loaded files\n");
         usage.append("  -failureDir <dir>                  Directory where to move files that did not successfully load\n");
@@ -185,12 +168,12 @@ public class CqlDelimLoad {
         usage.append("  -ttl <TTL>                         TTL for all rows in this invocation [unset]\n");
 
         usage.append("\n\nExamples:\n");
-        usage.append("cassandra-loader -f /path/to/file.csv -host localhost -schema \"test.test3(a, b, c)\"\n");
-        usage.append("cassandra-loader -f /path/to/directory -host 1.2.3.4 -schema \"test.test3(a, b, c)\" -delim \"\\t\" -numThreads 10\n");
-        usage.append("cassandra-loader -f stdin -host localhost -schema \"test.test3(a, b, c)\" -user myuser -pw mypassword\n");
+        usage.append("cassandra-deleter -f /path/to/file.csv -host localhost -schema \"test.test3(a, b, c)\"\n");
+        usage.append("cassandra-deleter -f /path/to/directory -host 1.2.3.4 -schema \"test.test3(a, b, c)\" -delim \"\\t\" -numThreads 10\n");
+        usage.append("cassandra-deleter -f stdin -host localhost -schema \"test.test3(a, b, c)\" -user myuser -pw mypassword\n");
         return usage.toString();
     }
-    
+
     private boolean validateArgs() {
         if (format.equalsIgnoreCase("delim")) {
             if (null == cqlSchema) {
@@ -202,8 +185,8 @@ public class CqlDelimLoad {
             if (null != table)
                 System.err.println("Format is " + format + ", ignoring table");
         }
-        else if (format.equalsIgnoreCase("jsonline") 
-                 || format.equalsIgnoreCase("jsonarray")) {
+        else if (format.equalsIgnoreCase("jsonline")
+                || format.equalsIgnoreCase("jsonarray")) {
             if (null == keyspace) {
                 System.err.println("If you specify format " + format + " you must provide a keyspace");
                 return false;
@@ -232,8 +215,8 @@ public class CqlDelimLoad {
             System.err.println("Query timeout must be positive");
             return false;
         }
-        if (0 > maxInsertErrors) {
-            System.err.println("Maximum number of insert errors must be non-negative");
+        if (0 > maxDeleteErrors) {
+            System.err.println("Maximum number of delete errors must be non-negative");
             return false;
         }
         if (0 > numRetries) {
@@ -349,7 +332,7 @@ public class CqlDelimLoad {
     }
 
     private boolean processConfigFile(String fname, Map<String, String> amap)
-        throws IOException, FileNotFoundException {
+            throws IOException, FileNotFoundException {
         File cFile = new File(fname);
         if (!cFile.isFile()) {
             System.err.println("Configuration File must be a file");
@@ -370,7 +353,7 @@ public class CqlDelimLoad {
         }
         return true;
     }
-    
+
     private boolean parseArgs(String[] args) throws IOException, FileNotFoundException {
         String tkey;
         if (args.length == 0) {
@@ -418,7 +401,7 @@ public class CqlDelimLoad {
         if (null != (tkey = amap.remove("-numFutures")))    inNumFutures = Integer.parseInt(tkey);
         if (null != (tkey = amap.remove("-batchSize")))     batchSize = Integer.parseInt(tkey);
         if (null != (tkey = amap.remove("-queryTimeout")))  queryTimeout = Integer.parseInt(tkey);
-        if (null != (tkey = amap.remove("-maxInsertErrors"))) maxInsertErrors = Long.parseLong(tkey);
+        if (null != (tkey = amap.remove("-maxDeleteErrors"))) maxDeleteErrors = Long.parseLong(tkey);
         if (null != (tkey = amap.remove("-numRetries")))    numRetries = Integer.parseInt(tkey);
         if (null != (tkey = amap.remove("-maxErrors")))     maxErrors = Long.parseLong(tkey);
         if (null != (tkey = amap.remove("-skipRows")))      skipRows = Integer.parseInt(tkey);
@@ -455,9 +438,9 @@ public class CqlDelimLoad {
             maxRows = Long.MAX_VALUE;
         if (-1 == maxErrors)
             maxErrors = Long.MAX_VALUE;
-        if (-1 == maxInsertErrors)
-            maxInsertErrors = Long.MAX_VALUE;
-        
+        if (-1 == maxDeleteErrors)
+            maxDeleteErrors = Long.MAX_VALUE;
+
         if (!amap.isEmpty()) {
             for (String k : amap.keySet())
                 System.err.println("Unrecognized option: " + k);
@@ -466,14 +449,14 @@ public class CqlDelimLoad {
 
         if (0 < inNumFutures)
             numFutures = inNumFutures / numThreads;
-	if (null != inTtl) {
-	    if (1 > inTtl.intValue()) {
-		System.err.println("TTL must be greater than 1");
-		return false;
-	    }
-	    else
-		ttl = inTtl.intValue();
-	}
+        if (null != inTtl) {
+            if (1 > inTtl.intValue()) {
+                System.err.println("TTL must be greater than 1");
+                return false;
+            }
+            else
+                ttl = inTtl.intValue();
+        }
 
         if (null != keyspace)
             keyspace = quote(keyspace);
@@ -490,36 +473,36 @@ public class CqlDelimLoad {
         return "\"" + ret + "\"";
     }
 
-    private SSLOptions createSSLOptions() 
-        throws KeyStoreException, FileNotFoundException, IOException, NoSuchAlgorithmException, 
-               KeyManagementException, CertificateException, UnrecoverableKeyException {
+    private SSLOptions createSSLOptions()
+            throws KeyStoreException, FileNotFoundException, IOException, NoSuchAlgorithmException,
+            KeyManagementException, CertificateException, UnrecoverableKeyException {
         TrustManagerFactory tmf = null;
         KeyStore tks = KeyStore.getInstance("JKS");
-        tks.load((InputStream) new FileInputStream(new File(truststorePath)), 
+        tks.load((InputStream) new FileInputStream(new File(truststorePath)),
                 truststorePwd.toCharArray());
         tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(tks);
-    
+
         KeyManagerFactory kmf = null;
         if (null != keystorePath) {
             KeyStore kks = KeyStore.getInstance("JKS");
-            kks.load((InputStream) new FileInputStream(new File(keystorePath)), 
+            kks.load((InputStream) new FileInputStream(new File(keystorePath)),
                     keystorePwd.toCharArray());
             kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
             kmf.init(kks, keystorePwd.toCharArray());
         }
 
         SSLContext sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(kmf != null? kmf.getKeyManagers() : null, 
-                        tmf != null ? tmf.getTrustManagers() : null, 
-                        new SecureRandom());
+        sslContext.init(kmf != null? kmf.getKeyManagers() : null,
+                tmf != null ? tmf.getTrustManagers() : null,
+                new SecureRandom());
 
         return RemoteEndpointAwareJdkSSLOptions.builder().withSSLContext(sslContext).build();
     }
 
-    private boolean setup() 
-        throws IOException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException,
-               CertificateException, UnrecoverableKeyException {
+    private boolean setup()
+            throws IOException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException,
+            CertificateException, UnrecoverableKeyException {
         // Connect to Cassandra
         Session tsession = null;
         try {
@@ -529,12 +512,12 @@ public class CqlDelimLoad {
 //            pOpts.setMaxConnectionsPerHost(HostDistance.LOCAL, 15);
             pOpts.setConnectionsPerHost(HostDistance.LOCAL, 2,8); // 2 and 8 are cqlsh defaults
             Cluster.Builder clusterBuilder = Cluster.builder()
-                .addContactPoint(host)
-                .withPort(port)
-               // .withCompression(ProtocolOptions.Compression.LZ4)
-                .withPoolingOptions(pOpts)
-                .withLoadBalancingPolicy(new TokenAwarePolicy( DCAwareRoundRobinPolicy.builder().build()))
-                ;
+                    .addContactPoint(host)
+                    .withPort(port)
+                    // .withCompression(ProtocolOptions.Compression.LZ4)
+                    .withPoolingOptions(pOpts)
+                    .withLoadBalancingPolicy(new TokenAwarePolicy( DCAwareRoundRobinPolicy.builder().build()))
+                    ;
 
             if (null != username)
                 clusterBuilder = clusterBuilder.withCredentials(username, password);
@@ -559,8 +542,8 @@ public class CqlDelimLoad {
         }
 
         if ((0 > cluster.getConfiguration().getProtocolOptions()
-             .getProtocolVersion().compareTo(ProtocolVersion.V4))
-            && nullsUnset) {
+                .getProtocolVersion().compareTo(ProtocolVersion.V4))
+                && nullsUnset) {
             System.err.println("Cannot use nullsUnset with ProtocolVersion less than V4 (prior to Cassandra 3.0");
             cleanup();
             return false;
@@ -593,11 +576,11 @@ public class CqlDelimLoad {
         if (null != cluster)
             cluster.close();
     }
-    
-    public boolean run(String[] args) 
-        throws IOException, ParseException, InterruptedException, ExecutionException, KeyStoreException,
-               NoSuchAlgorithmException, KeyManagementException, CertificateException, 
-               UnrecoverableKeyException {
+
+    public boolean run(String[] args)
+            throws IOException, ParseException, InterruptedException, ExecutionException, KeyStoreException,
+            NoSuchAlgorithmException, KeyManagementException, CertificateException,
+            UnrecoverableKeyException {
         if (false == parseArgs(args)) {
             System.err.println("Bad arguments");
             System.err.println(usage());
@@ -607,7 +590,7 @@ public class CqlDelimLoad {
         // Setup
         if (false == setup())
             return false;
-        
+
         // open file
         Deque<File> fileList = new ArrayDeque<File>();
         File infile = null;
@@ -625,12 +608,12 @@ public class CqlDelimLoad {
                 if (inFileList.length < 1)
                     throw new IOException("directory is empty");
                 onefile = false;
-                Arrays.sort(inFileList, 
-                            new Comparator<File>() {
-                                public int compare(File f1, File f2) {
-                                    return f1.getName().compareTo(f2.getName());
-                                }
-                            });
+                Arrays.sort(inFileList,
+                        new Comparator<File>() {
+                            public int compare(File f1, File f2) {
+                                return f1.getName().compareTo(f2.getName());
+                            }
+                        });
                 for (int i = 0; i < inFileList.length; i++)
                     fileList.push(inFileList[i]);
             }
@@ -642,22 +625,22 @@ public class CqlDelimLoad {
         if (onefile) {
             // One file/stdin to process
             executor = Executors.newSingleThreadExecutor();
-            Callable<Long> worker = new CqlDelimLoadTask(cqlSchema, delimiter, 
-                                                         charsPerColumn, nullString,
-                                                         commentString,
-                                                         dateFormatString, 
-                                                         localDateFormatString, 
-                                                         boolStyle, locale, 
-                                                         maxErrors, skipRows,
-                                                         skipCols,
-                                                         maxRows, badDir, infile, 
-                                                         session, consistencyLevel,
-                                                         numFutures, batchSize,
-                                                         numRetries, queryTimeout,
-                                                         maxInsertErrors, 
-                                                         successDir, failureDir,
-                                                         nullsUnset, format,
-                                                         keyspace, table, ttl);
+            Callable<Long> worker = new CqlDelimDeleteTask(cqlSchema, delimiter,
+                    charsPerColumn, nullString,
+                    commentString,
+                    dateFormatString,
+                    localDateFormatString,
+                    boolStyle, locale,
+                    maxErrors, skipRows,
+                    skipCols,
+                    maxRows, badDir, infile,
+                    session, consistencyLevel,
+                    numFutures, batchSize,
+                    numRetries, queryTimeout,
+                    maxDeleteErrors,
+                    successDir, failureDir,
+                    nullsUnset, format,
+                    keyspace, table, ttl);
             Future<Long> res = executor.submit(worker);
             total = res.get();
             executor.shutdown();
@@ -667,24 +650,24 @@ public class CqlDelimLoad {
             Set<Future<Long>> results = new HashSet<Future<Long>>();
             while (!fileList.isEmpty()) {
                 File tFile = fileList.pop();
-                Callable<Long> worker = new CqlDelimLoadTask(cqlSchema, delimiter,
-                                                             charsPerColumn, nullString,
-                                                             commentString,
-                                                             dateFormatString, 
-                                                             localDateFormatString, 
-                                                             boolStyle, locale, 
-                                                             maxErrors, skipRows,
-                                                             skipCols,
-                                                             maxRows, badDir, tFile, 
-                                                             session,
-                                                             consistencyLevel,
-                                                             numFutures, batchSize,
-                                                             numRetries, 
-                                                             queryTimeout,
-                                                             maxInsertErrors, 
-                                                             successDir, failureDir,
-                                                             nullsUnset, format,
-                                                             keyspace, table, ttl);
+                Callable<Long> worker = new CqlDelimDeleteTask(cqlSchema, delimiter,
+                        charsPerColumn, nullString,
+                        commentString,
+                        dateFormatString,
+                        localDateFormatString,
+                        boolStyle, locale,
+                        maxErrors, skipRows,
+                        skipCols,
+                        maxRows, badDir, tFile,
+                        session,
+                        consistencyLevel,
+                        numFutures, batchSize,
+                        numRetries,
+                        queryTimeout,
+                        maxDeleteErrors,
+                        successDir, failureDir,
+                        nullsUnset, format,
+                        keyspace, table, ttl);
                 results.add(executor.submit(worker));
             }
             executor.shutdown();
@@ -694,16 +677,16 @@ public class CqlDelimLoad {
 
         // Cleanup
         cleanup();
-        //System.err.println("Total rows inserted: " + total);
+        //System.err.println("Total rows deleted: " + total);
 
         return true;
     }
 
-    public static void main(String[] args) 
-        throws IOException, ParseException, InterruptedException, ExecutionException, 
-               KeyStoreException, NoSuchAlgorithmException, UnrecoverableKeyException, 
-               CertificateException, KeyManagementException {
-        CqlDelimLoad cdl = new CqlDelimLoad();
+    public static void main(String[] args)
+            throws IOException, ParseException, InterruptedException, ExecutionException,
+            KeyStoreException, NoSuchAlgorithmException, UnrecoverableKeyException,
+            CertificateException, KeyManagementException {
+        CqlDelimDelete cdl = new CqlDelimDelete();
         boolean success = cdl.run(args);
         if (success) {
             System.exit(0);
