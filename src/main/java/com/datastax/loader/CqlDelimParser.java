@@ -332,6 +332,17 @@ public class CqlDelimParser {
         return select;
     }
 
+    public String generateDelete() {
+        String delete = "DELETE ";
+//        + sbl.get(0).name;
+//        for (int i = 1; i < sbl.size(); i++) {
+//            delete = delete + ", " + sbl.get(i).name;
+//        }
+        delete += " FROM " + keyspace + "." + tablename;
+        delete += " WHERE " + sbl.get(0).name + " = " + "?";
+        return delete;
+    }
+
     public String getKeyspace() {
         return keyspace;
     }
