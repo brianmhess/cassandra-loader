@@ -685,8 +685,13 @@ public class CqlDelimLoad {
                 results.add(executor.submit(worker));
             }
             executor.shutdown();
-            for (Future<Long> res : results)
+            for (Future<Long> res : results){
+                if (res.get() <= 0) {
+                    cleanup();
+                    return false;
+                }
                 total += res.get();
+            }
         }
 
         // Cleanup
