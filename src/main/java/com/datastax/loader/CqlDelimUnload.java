@@ -463,16 +463,25 @@ public class CqlDelimUnload {
         return true;
     }
 
-    public static void main(String[] args) 
-        throws IOException, ParseException, InterruptedException, ExecutionException,
-               KeyStoreException, NoSuchAlgorithmException, UnrecoverableKeyException,
-               CertificateException, KeyManagementException  {
-        CqlDelimUnload cdu = new CqlDelimUnload();
-        boolean success = cdu.run(args);
+    public static void main(String[] args) {
+    	boolean success;
+    	
+    	// If we don't catch all exceptions and force a System.exit(), it's possible there will be
+    	// executor threads stuck in "a waiting for more tasks" state that will never exit.
+        try {
+            CqlDelimUnload cdu = new CqlDelimUnload();
+            success = cdu.run(args);
+        } catch (IOException | ParseException | InterruptedException | ExecutionException |
+                 KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException |
+                 CertificateException | KeyManagementException e) {
+            success = false;
+            System.err.println("Fatal Exception: " + e.getMessage());
+        }
+        
         if (success) {
             System.exit(0);
         } else {
-            System.exit(-1);
+            System.exit(1);
         }
     }
 
