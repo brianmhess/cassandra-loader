@@ -36,6 +36,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CancellationException;
 import java.io.File;
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -684,9 +685,47 @@ public class CqlDelimLoad {
                                                              keyspace, table, ttl);
                 results.add(executor.submit(worker));
             }
+            
+            // stop accepting new tasks
             executor.shutdown();
-            for (Future<Long> res : results)
+            
+            // wait for existing tasks to finish while checking occasionally to see if any of them failed
+            // if any tasks fail bail out
+            while (!executor.awaitTermination(60, java.util.concurrent.TimeUnit.SECONDS)) {
+            	for (Future<Long> res : results){
+            		if (res.isDone()) {
+            			long result_num = 0;
+
+            			try {
+            				result_num = res.get();
+            			} catch (CancellationException | ExecutionException e) {
+            				// thread died if either of these exceptions happened, so kill everything and bail out
+            				System.err.println("Failing early due to an exception in one of the loader threads...");
+            				executor.shutdownNow();
+            				cleanup();
+            				throw e;
+            			} catch (InterruptedException e) {
+            				// we don't care if we were interrupted while trying to get the result
+            			}
+
+            			if (result_num <= 0) {
+            				// one of the threads failed, so kill everything and bail out
+            				System.err.println("Failing early due to a problem with one of the loader threads...");
+            				executor.shutdownNow();
+            				cleanup();
+            				return false;
+            			}
+            		}
+            	}
+            }
+
+            for (Future<Long> res : results){
+                if (res.get() <= 0) {
+                    cleanup();
+                    return false;
+                }
                 total += res.get();
+            }
         }
 
         // Cleanup
