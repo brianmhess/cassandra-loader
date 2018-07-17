@@ -432,28 +432,34 @@ public class CqlDelimUnload {
                 // (?) Should there be an option for numThreads-per-range?
                 // (?) Should there be an option for numThreads=numRanges
             }
-
-            executor = Executors.newFixedThreadPool(numThreads);
-            Set<Future<Long>> results = new HashSet<Future<Long>>();
-            for (int mype = 0; mype < numThreads; mype++) {
-                String tBeginString = beginList.get(mype);
-                String tEndString = endList.get(mype);
-                pstream = new PrintStream(new BufferedOutputStream(new FileOutputStream(filename + "." + mype)));
-                Callable<Long> worker = new ThreadExecute(cqlSchema, delimiter, 
-                                                          nullString,
-                                                          dateFormatString, 
-                                                          localDateFormatString, 
-                                                          boolStyle, locale, 
-                                                          pstream, 
-                                                          tBeginString,
-                                                          tEndString, session,
-                                                          consistencyLevel,
-                                                          where, format, fetchSize);
-                results.add(executor.submit(worker));
+            try{
+                executor = Executors.newFixedThreadPool(numThreads);
+                Set<Future<Long>> results = new HashSet<Future<Long>>();
+                for (int mype = 0; mype < numThreads; mype++) {
+                    String tBeginString = beginList.get(mype);
+                    String tEndString = endList.get(mype);
+                    final BufferedOutputStream bufferedOutputStream= new BufferedOutputStream(new FileOutputStream(filename + "." + mype));
+                    pstream = new PrintStream(bufferedOutputStream);
+                    Callable<Long> worker = new ThreadExecute(cqlSchema, delimiter,
+                        nullString,
+                        dateFormatString,
+                        localDateFormatString,
+                        boolStyle, locale,
+                        pstream,
+                        tBeginString,
+                        tEndString, session,
+                        consistencyLevel,
+                        where, format, fetchSize);
+                    results.add(executor.submit(worker));
+                }
+                executor.shutdown();
+                for (Future<Long> res : results)
+                    total += res.get();
+            }catch (final Exception e){
+                System.err.println(e.getStackTrace());
+                System.exit(1);
             }
-            executor.shutdown();
-            for (Future<Long> res : results)
-                total += res.get();
+
         }
         System.err.println("Total rows retrieved: " + total);
 
