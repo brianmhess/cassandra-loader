@@ -456,7 +456,7 @@ public class CqlDelimUnload {
                 for (Future<Long> res : results)
                     total += res.get();
             }catch (final Exception e){
-                System.err.println(e.getStackTrace());
+                System.err.println(e.getMessage());
                 System.exit(1);
             }
 
