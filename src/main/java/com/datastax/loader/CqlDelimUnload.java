@@ -15,8 +15,10 @@
  */
 package com.datastax.loader;
 
+import com.datastax.driver.core.SocketOptions;
 import com.datastax.loader.parser.BooleanParser;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
@@ -75,7 +77,7 @@ import com.datastax.driver.core.exceptions.QueryValidationException;
 
 public class CqlDelimUnload {
     private String version = "0.0.27";
-    private String host = null;
+    private String[] hosts = null;
     private int port = 9042;
     private String username = null;
     private String password = null;
@@ -243,11 +245,12 @@ public class CqlDelimUnload {
             if (!processConfigFile(tkey, amap))
                 return false;
 
-        host = amap.remove("-host");
-        if (null == host) { // host is required
+        String hostString = amap.remove("-host");
+        if (null == hostString) { // host is required
             System.err.println("Must provide a host");
             return false;
         }
+        hosts = hostString.split(",");
 
         filename = amap.remove("-f");
         if (null == filename) { // filename is required
@@ -333,15 +336,21 @@ public class CqlDelimUnload {
         PoolingOptions pOpts = new PoolingOptions();
         pOpts.setCoreConnectionsPerHost(HostDistance.LOCAL, 4);
         pOpts.setMaxConnectionsPerHost(HostDistance.LOCAL, 4);
-        Cluster.Builder clusterBuilder = Cluster.builder()
-            .addContactPoint(host)
+        final Cluster.Builder clusterBuilder = Cluster.builder()
             .withPort(port)
             .withPoolingOptions(pOpts)
-            .withLoadBalancingPolicy(new TokenAwarePolicy( DCAwareRoundRobinPolicy.builder().build()));
+            .withLoadBalancingPolicy(new TokenAwarePolicy( DCAwareRoundRobinPolicy.builder().build()))
+            .withSocketOptions(
+                new SocketOptions()
+                    .setConnectTimeoutMillis(20_000)
+                    .setReadTimeoutMillis(65_000));
+        long numOfHostsAdded = Arrays.stream(hosts).map(host -> clusterBuilder.addContactPoint(host)).count();
+        System.out.println("Found hosts = " + numOfHostsAdded );
+
         if (null != username)
-            clusterBuilder = clusterBuilder.withCredentials(username, password);
+            clusterBuilder.withCredentials(username, password);
         if (null != truststorePath)
-            clusterBuilder = clusterBuilder.withSSL(createSSLOptions());
+            clusterBuilder.withSSL(createSSLOptions());
 
         cluster = clusterBuilder.build();
         if (null == cluster) {
@@ -432,28 +441,34 @@ public class CqlDelimUnload {
                 // (?) Should there be an option for numThreads-per-range?
                 // (?) Should there be an option for numThreads=numRanges
             }
-
-            executor = Executors.newFixedThreadPool(numThreads);
-            Set<Future<Long>> results = new HashSet<Future<Long>>();
-            for (int mype = 0; mype < numThreads; mype++) {
-                String tBeginString = beginList.get(mype);
-                String tEndString = endList.get(mype);
-                pstream = new PrintStream(new BufferedOutputStream(new FileOutputStream(filename + "." + mype)));
-                Callable<Long> worker = new ThreadExecute(cqlSchema, delimiter, 
-                                                          nullString,
-                                                          dateFormatString, 
-                                                          localDateFormatString, 
-                                                          boolStyle, locale, 
-                                                          pstream, 
-                                                          tBeginString,
-                                                          tEndString, session,
-                                                          consistencyLevel,
-                                                          where, format, fetchSize);
-                results.add(executor.submit(worker));
+            try{
+                executor = Executors.newFixedThreadPool(numThreads);
+                Set<Future<Long>> results = new HashSet<Future<Long>>();
+                for (int mype = 0; mype < numThreads; mype++) {
+                    String tBeginString = beginList.get(mype);
+                    String tEndString = endList.get(mype);
+                    final BufferedOutputStream bufferedOutputStream= new BufferedOutputStream(new FileOutputStream(filename + "." + mype));
+                    pstream = new PrintStream(bufferedOutputStream);
+                    Callable<Long> worker = new ThreadExecute(cqlSchema, delimiter,
+                        nullString,
+                        dateFormatString,
+                        localDateFormatString,
+                        boolStyle, locale,
+                        pstream,
+                        tBeginString,
+                        tEndString, session,
+                        consistencyLevel,
+                        where, format, fetchSize);
+                    results.add(executor.submit(worker));
+                }
+                executor.shutdown();
+                for (Future<Long> res : results)
+                    total += res.get();
+            }catch (final Exception e){
+                System.err.println(e.getMessage());
+                System.exit(1);
             }
-            executor.shutdown();
-            for (Future<Long> res : results)
-                total += res.get();
+
         }
         System.err.println("Total rows retrieved: " + total);
 
@@ -595,7 +610,7 @@ public class CqlDelimUnload {
 
         private long execute() throws IOException {
             BoundStatement bound = statement.bind();
-            bound.setFetchSize(fetchSize);            
+            bound.setFetchSize(fetchSize);
             ResultSet rs = session.execute(bound);
             numRead = 0;
             String s = null;
