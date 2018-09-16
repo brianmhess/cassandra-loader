@@ -97,7 +97,7 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
  `-numFutures`    | Number of Futures  | 1000                       | Number of Java driver futures in flight.
  `-numRetries`    | Number of retries  | 1                          | Number of times to retry the INSERT before declaring defeat.
  `-queryTimeout`  | Timeout in seconds | 2                          | Amount of time to wait for a query to finish before timing out.
- `-ttl`           | Time To Live       | none                       | TTL to use when inserting these rows
+ `-ttl`           | TimeToLive in secs | none                       | TTL (in secs) to use when inserting these rows
  `-delim`         | Delimiter          | ,                          | Delimiter to use
  `-charsPerColumn`| Characters per column | 4096                    | Maximum characters per column
  `-nullString`    | Null String        | &lt;empty string&gt;             | String to represent NULL data
@@ -234,7 +234,7 @@ OPTIONS:
   -format [delim|jsonline|jsonarray] Format of data: delimited or JSON [delim]
   -table <tableName>                 Table name (when using JSON)
   -keyspace <keyspaceName>           Keyspace name (when using JSON)
-  -ttl <TTL>                         TTL for all rows in this invocation [unset]
+  -ttl <TTL>                         TTL (in seconds) for all rows in this invocation [unset]
 
 
 Examples:
