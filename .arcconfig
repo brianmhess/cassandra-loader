@@ -1,0 +1,8 @@
+{
+  "phabricator.uri" : "https://phabricator.dev.yugabyte.com/",
+  "repository.callsign": "CQLLDR",
+  "git:arc.feature.start.default" : "master",
+  "arc.land.onto.default": "master",
+  "arc.land.remote.default": "origin",
+  "arc.feature.start.default" : "master"
+}
