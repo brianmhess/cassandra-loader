@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.yugabyte:cassandra-driver-core:3.2.0-yb-15'
+    compile 'com.yugabyte:cassandra-driver-core:3.2.0-yb-19'
     compile 'org.xerial.snappy:snappy-java:1.0.5'
     compile 'net.jpountz.lz4:lz4:1.2.0'
     compile 'ch.qos.logback:logback-classic:1.1.3'

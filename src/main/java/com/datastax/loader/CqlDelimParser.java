@@ -12,6 +12,23 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ *
+ *
+ * The following only applies to changes made to this file as part of YugaByte development.
+ *
+ * Portions Copyright (c) YugaByte, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied.  See the License for the specific language governing permissions and limitations
+ * under the License.
+ *
  */
 package com.datastax.loader;
 
@@ -33,6 +50,7 @@ import com.datastax.loader.parser.DoubleParser;
 import com.datastax.loader.parser.FloatParser;
 import com.datastax.loader.parser.InetAddressParser;
 import com.datastax.loader.parser.IntegerParser;
+import com.datastax.loader.parser.JsonParser;
 import com.datastax.loader.parser.ListParser;
 import com.datastax.loader.parser.LocalDateParser;
 import com.datastax.loader.parser.LongParser;
@@ -135,6 +153,7 @@ public class CqlDelimParser {
         Parser inetAddressParser = new InetAddressParser();
         Parser dateParser = new DateParser(dateFormatString);
         Parser localDateParser = new LocalDateParser(localDateFormatString);
+        Parser jsonParser = new JsonParser();
 
         pmap.put(DataType.Name.ASCII, stringParser);
         pmap.put(DataType.Name.BIGINT, longParser);
@@ -156,6 +175,7 @@ public class CqlDelimParser {
         pmap.put(DataType.Name.UUID, uuidParser);
         pmap.put(DataType.Name.VARCHAR, stringParser);
         pmap.put(DataType.Name.VARINT, bigIntegerParser);
+        pmap.put(DataType.Name.JSON, jsonParser);
 
     }
 
