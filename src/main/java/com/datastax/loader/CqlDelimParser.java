@@ -22,26 +22,7 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
-import com.datastax.loader.parser.BigDecimalParser;
-import com.datastax.loader.parser.BigIntegerParser;
-import com.datastax.loader.parser.BooleanParser;
-import com.datastax.loader.parser.ByteBufferParser;
-import com.datastax.loader.parser.ByteParser;
-import com.datastax.loader.parser.DateParser;
-import com.datastax.loader.parser.DelimParser;
-import com.datastax.loader.parser.DoubleParser;
-import com.datastax.loader.parser.FloatParser;
-import com.datastax.loader.parser.InetAddressParser;
-import com.datastax.loader.parser.IntegerParser;
-import com.datastax.loader.parser.ListParser;
-import com.datastax.loader.parser.LocalDateParser;
-import com.datastax.loader.parser.LongParser;
-import com.datastax.loader.parser.MapParser;
-import com.datastax.loader.parser.Parser;
-import com.datastax.loader.parser.SetParser;
-import com.datastax.loader.parser.ShortParser;
-import com.datastax.loader.parser.StringParser;
-import com.datastax.loader.parser.UUIDParser;
+import com.datastax.loader.parser.*;
 
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -72,12 +53,15 @@ public class CqlDelimParser {
     public CqlDelimParser(String inCqlSchema, String inDelimiter, int inCharsPerColumn,
                           String inNullString, String inCommentString, 
                           String inDateFormatString, String inLocalDateFormatString,
+                          boolean inLocalTimeAsLong, String inLocalTimeFormatString,
                           BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
                           String skipList, Session session, boolean bLoader, int inTtl) 
         throws ParseException {
         // Optionally provide things for the line parser - date format, boolean format, locale
 	ttl = inTtl;
-        initPmap(inDateFormatString, inLocalDateFormatString, inBoolStyle, 
+        initPmap(inDateFormatString, inLocalDateFormatString,
+                 inLocalTimeAsLong, inLocalTimeFormatString,
+                 inBoolStyle,
                  inLocale, bLoader);
         processCqlSchema(inCqlSchema, session);
         createDelimParser(inDelimiter, inCharsPerColumn, inNullString, inCommentString, skipList);
@@ -87,6 +71,7 @@ public class CqlDelimParser {
                           int inCharsPerColumn,
                           String inNullString, String inCommentString, 
                           String inDateFormatString, String inLocalDateFormatString,
+                          boolean inLocalTimeAsLong, String inLocalTimeFormatString,
                           BooleanParser.BoolStyle inBoolStyle, Locale inLocale,
                           String skipList, Session session, boolean bLoader, int inTtl) 
         throws ParseException {
@@ -94,7 +79,9 @@ public class CqlDelimParser {
 	ttl = inTtl;
         keyspace = inKeyspace;
         tablename = inTable;
-        initPmap(inDateFormatString, inLocalDateFormatString, inBoolStyle, 
+        initPmap(inDateFormatString, inLocalDateFormatString,
+                 inLocalTimeAsLong, inLocalTimeFormatString,
+                 inBoolStyle,
                  inLocale, bLoader);
         processCqlSchema(session);
         createDelimParser(inDelimiter, inCharsPerColumn, inNullString, inCommentString,  skipList);
@@ -117,6 +104,7 @@ public class CqlDelimParser {
 
     // intialize the Parsers and the parser map
     private void initPmap(String dateFormatString, String localDateFormatString,
+                          boolean localTimeAsLong, String localTimeFormatString,
                           BooleanParser.BoolStyle inBoolStyle, 
                           Locale inLocale, boolean bLoader) {
         pmap = new HashMap<DataType.Name, Parser>();
@@ -135,6 +123,8 @@ public class CqlDelimParser {
         Parser inetAddressParser = new InetAddressParser();
         Parser dateParser = new DateParser(dateFormatString);
         Parser localDateParser = new LocalDateParser(localDateFormatString);
+        Parser localTimeParser = new LocalTimeParser(localTimeFormatString);
+        Parser timeParser = localTimeAsLong ? longParser : localTimeParser;
 
         pmap.put(DataType.Name.ASCII, stringParser);
         pmap.put(DataType.Name.BIGINT, longParser);
@@ -149,7 +139,7 @@ public class CqlDelimParser {
         pmap.put(DataType.Name.INT, integerParser);
         pmap.put(DataType.Name.SMALLINT , shortParser);
         pmap.put(DataType.Name.TEXT, stringParser);
-        pmap.put(DataType.Name.TIME , longParser);
+        pmap.put(DataType.Name.TIME , timeParser);
         pmap.put(DataType.Name.TIMESTAMP, dateParser);
         pmap.put(DataType.Name.TIMEUUID, uuidParser);
         pmap.put(DataType.Name.TINYINT , byteParser);
