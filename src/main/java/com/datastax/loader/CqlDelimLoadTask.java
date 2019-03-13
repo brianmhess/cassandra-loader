@@ -86,6 +86,8 @@ class CqlDelimLoadTask implements Callable<Long> {
     private BooleanParser.BoolStyle boolStyle = null;
     private String dateFormatString = null;
     private String localDateFormatString = null;
+    private boolean localTimeAsLong = true;
+    private String localTimeFormatString = null;
     private String nullString = null;
     private String commentString = null;
     private String delimiter = null;
@@ -105,6 +107,7 @@ class CqlDelimLoadTask implements Callable<Long> {
                             int inCharsPerColumn,
                             String inNullString, String inCommentString, 
                             String inDateFormatString, String inLocalDateFormatString,
+                            boolean inLocalTimeAsLong, String inLocalTimeFormatString,
                             BooleanParser.BoolStyle inBoolStyle, 
                             Locale inLocale, 
                             long inMaxErrors, long inSkipRows, 
@@ -124,6 +127,8 @@ class CqlDelimLoadTask implements Callable<Long> {
         commentString = inCommentString;
         dateFormatString = inDateFormatString;
         localDateFormatString = inLocalDateFormatString;
+        localTimeAsLong = inLocalTimeAsLong;
+        localTimeFormatString = inLocalTimeFormatString;
         boolStyle = inBoolStyle;
         locale = inLocale;
         maxErrors = inMaxErrors;
@@ -189,6 +194,7 @@ class CqlDelimLoadTask implements Callable<Long> {
             cdp = new CqlDelimParser(cqlSchema, delimiter, charsPerColumn, 
                                      nullString, commentString,
                                      dateFormatString, localDateFormatString,
+                                     localTimeAsLong, localTimeFormatString,
                                      boolStyle, locale,
                                      skipCols, session, true, ttl);
         }
@@ -197,6 +203,7 @@ class CqlDelimLoadTask implements Callable<Long> {
             cdp = new CqlDelimParser(keyspace, table, delimiter, charsPerColumn,
                                      nullString, commentString,
                                      dateFormatString, localDateFormatString,
+                                     localTimeAsLong, localTimeFormatString,
                                      boolStyle, locale, 
                                      skipCols, session, true, ttl);
         }

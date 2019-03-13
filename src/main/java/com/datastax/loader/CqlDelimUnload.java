@@ -98,6 +98,8 @@ public class CqlDelimUnload {
     private BooleanParser.BoolStyle boolStyle = null;
     private String dateFormatString = null;
     private String localDateFormatString = "yyyy-MM-dd";
+    private boolean localTimeAsLong = true;
+    private String localTimeFormatString = null;
     private String nullString = null;
     private String delimiter = null;
 
@@ -113,6 +115,7 @@ public class CqlDelimUnload {
         usage.append("  -delim <delimiter>                 Delimiter to use [,]\n");
         usage.append("  -dateFormat <dateFormatString>     Date format for TIMESTAMP [default for Locale.ENGLISH]\n");
         usage.append("  -localDateFormat <FormatString>    Date format for DATE [yyyy-MM-dd]\n");
+        usage.append("  -localTimeFormat [long|iso|<fmt>]  Time format for TIME [long]\n");
         usage.append("  -nullString <nullString>           String that signifies NULL [none]\n");
         usage.append("  -port <portNumber>                 CQL Port Number [9042]\n");
         usage.append("  -user <username>                   Cassandra username [none]\n");
@@ -271,6 +274,18 @@ public class CqlDelimUnload {
         if (null != (tkey = amap.remove("-consistencyLevel"))) consistencyLevel = ConsistencyLevel.valueOf(tkey);
         if (null != (tkey = amap.remove("-dateFormat")))    dateFormatString = tkey;
         if (null != (tkey = amap.remove("-localDateFormat")))    localDateFormatString = tkey;
+        if (null != (tkey = amap.remove("-localTimeFormat"))) {
+            if (tkey.equals("long")) {
+                localTimeAsLong = true;
+                localTimeFormatString = null;
+            } else if (tkey.equals("iso")) {
+                localTimeAsLong = false;
+                localTimeFormatString = null;
+            } else {
+                localTimeAsLong = false;
+                localTimeFormatString = tkey;
+            }
+        }
         if (null != (tkey = amap.remove("-nullString")))    nullString = tkey;
         if (null != (tkey = amap.remove("-delim")))         delimiter = tkey;
         if (null != (tkey = amap.remove("-decimalDelim"))) {
@@ -391,7 +406,8 @@ public class CqlDelimUnload {
             Callable<Long> worker = new ThreadExecute(cqlSchema, delimiter, 
                                                       nullString,
                                                       dateFormatString, 
-                                                      localDateFormatString, 
+                                                      localDateFormatString,
+                                                      localTimeAsLong, localTimeFormatString,
                                                       boolStyle, locale, 
                                                       pstream, 
                                                       beginToken,
@@ -442,7 +458,8 @@ public class CqlDelimUnload {
                 Callable<Long> worker = new ThreadExecute(cqlSchema, delimiter, 
                                                           nullString,
                                                           dateFormatString, 
-                                                          localDateFormatString, 
+                                                          localDateFormatString,
+                                                          localTimeAsLong, localTimeFormatString,
                                                           boolStyle, locale, 
                                                           pstream, 
                                                           tBeginString,
@@ -497,12 +514,15 @@ public class CqlDelimUnload {
         private String where = null;
         private String dateFormatString = null;
         private String localDateFormatString = null;
+        private boolean localTimeAsLong = true;
+        private String localTimeFormatString = null;
         private int fetchSize = 0;
 
         public ThreadExecute(String inCqlSchema, String inDelimiter, 
                              String inNullString, 
                              String inDateFormatString,
                              String inLocalDateFormatString,
+                             boolean inLocalTimeAsLong, String inLocalTimeFormatString,
                              BooleanParser.BoolStyle inBoolStyle, 
                              Locale inLocale, 
                              PrintStream inWriter,
@@ -515,6 +535,8 @@ public class CqlDelimUnload {
             nullString = inNullString;
             dateFormatString = inDateFormatString;
             localDateFormatString = inLocalDateFormatString;
+            localTimeAsLong = inLocalTimeAsLong;
+            localTimeFormatString = inLocalTimeFormatString;
             boolStyle = inBoolStyle;
             locale = inLocale;
             beginToken = inBeginToken;
@@ -560,6 +582,7 @@ public class CqlDelimUnload {
         private boolean setup() throws IOException, ParseException {
             cdp = new CqlDelimParser(cqlSchema, delimiter, 4096, nullString, 
                                      null, dateFormatString, localDateFormatString,
+                                     localTimeAsLong, localTimeFormatString,
                                      boolStyle, locale, null, session, false, -1);
             String select = cdp.generateSelect();
             String partitionKey = getPartitionKey(cdp, session);

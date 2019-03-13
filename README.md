@@ -104,6 +104,7 @@ cassandra-loader -f myFileToLoad.csv -host 1.2.3.4 -schema "test.ltest(a, b, c, 
  `-boolStyle`     | Boolean Style      | TRUE_FALSE                 | String for boolean values.  Options are "1_0", "Y_N", "T_F", "YES_NO", "TRUE_FALSE".
  `-decimalDelim`  | Decimal delimiter  | .                          | Delimiter for decimal values.  Options are "." or ","
  `-dateFormat`    | Date Format String | default for Locale.ENGLISH | Date format string as specified in the SimpleDateFormat Java class: http://docs.oracle.com/javase/7/docs/api/java/text/SimpleDateFormat.html
+ `-localTimeFormat`| Time Format String| long                       | Time format string may be "long" (nanoseconds since midnight), "iso" (ISO_LOCAL_TIME predefined format) or a format string as specified in: https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html  
  `-skipRows`      | Rows to skip       | 0                          | Number of rows to skip at the beginning of the file
  `-skipCols`      | Columns to skip    | &lt;not set&gt;                  | Comma-separated list of columns to skip loading (0-counted)
  `-maxRows`       | Max rows to read   | -1                         | Maximum rows to read (after optional skipping of rows).  -1 signifies all rows.
@@ -202,6 +203,7 @@ OPTIONS:
   -charsPerColumn <chars>            Max number of chars per column [4096]
   -dateFormat <dateFormatString>     Date format for TIMESTAMP [default for Locale.ENGLISH]
   -localDateFormat <formatString>    Date format for DATE [yyyy-MM-dd]
+  -localTimeFormat [long|iso|<fmt>]  Time format for TIME [long]
   -nullString <nullString>           String that signifies NULL [none]
   -comment <commentString>           Comment symbol to use [none]
   -skipRows <skipRows>               Number of rows to skip [0]
@@ -340,6 +342,7 @@ OPTIONS:
   -delim <delimiter>                 Delimiter to use [,]
   -dateFormat <dateFormatString>     Date format for TIMESTAMP [default for Locale.ENGLISH]
   -localDateFormat <FormatString>    Date format for DATE [yyyy-MM-dd]
+  -localTimeFormat [long|iso|<fmt>]  Time format for TIME [long]
   -nullString <nullString>           String that signifies NULL [none]
   -port <portNumber>                 CQL Port Number [9042]
   -user <username>                   Cassandra username [none]
