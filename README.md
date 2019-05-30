@@ -313,7 +313,7 @@ cassandra-unloader -f stdout -host host1 -schema "ks.table(a,b,c)" | cassandra-l
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-loader/releases/download/v0.0.27/cassandra-unloader
+wget https://github.com/YugaByte/cassandra-loader/releases/download/v0.0.27-yb-2/cassandra-unloader
 ```
 
 To build, run:
