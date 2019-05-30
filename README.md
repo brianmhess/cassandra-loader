@@ -205,7 +205,7 @@ OPTIONS:
   -nullString <nullString>           String that signifies NULL [none]
   -comment <commentString>           Comment symbol to use [none]
   -skipRows <skipRows>               Number of rows to skip [0]
-  -skipCols <columnsToSkip>          Comma-separated list of columsn to skip in the input file
+  -skipCols <columnsToSkip>          Comma-separated list of 0-indexed columns to skip in the input file
   -maxRows <maxRows>                 Maximum number of rows to read (-1 means all) [-1]
   -maxErrors <maxErrors>             Maximum parse errors to endure [10]
   -badDir <badDirectory>             Directory for where to place badly parsed rows. [none]
