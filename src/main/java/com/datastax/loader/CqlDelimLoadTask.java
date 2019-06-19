@@ -159,6 +159,12 @@ class CqlDelimLoadTask implements Callable<Long> {
             reader = new BufferedReader(new InputStreamReader(System.in));
             readerName = "stdin";
         }
+        // Support for named pipes - must not be gzipped - like stdin
+        else if (!infile.isFile()) {
+            InputStream is = new FileInputStream(infile);
+            reader = new BufferedReader(new InputStreamReader(is));
+            readerName = infile.getName();
+        }
         else {
             InputStream is =  null;
             try {
