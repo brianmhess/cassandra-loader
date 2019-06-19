@@ -262,8 +262,13 @@ public class CqlDelimLoad {
         }
         if (!STDIN.equalsIgnoreCase(filename)) {
             File infile = new File(filename);
-            if ((!infile.isFile()) && (!infile.isDirectory())) {
-                System.err.println("The -f argument needs to be a file or a directory");
+            // Support for named pipes - Support -f as long as readable
+            // if ((!infile.isFile()) && (!infile.isDirectory())) {
+            //     System.err.println("The -f argument needs to be a file or a directory");
+            //     return false;
+            // }
+            if (!infile.canRead()) {
+                System.err.println("The -f argument needs to be readable");
                 return false;
             }
             if (infile.isDirectory()) {
@@ -615,9 +620,11 @@ public class CqlDelimLoad {
         }
         else {
             infile = new File(filename);
-            if (infile.isFile()) {
-            }
-            else {
+            // Support for named pipes - Do directory stuff only if file is a directory
+            // if (infile.isFile()) {
+            // }
+            // else {
+            if (infile.isDirectory()) {
                 inFileList = infile.listFiles();
                 if (inFileList.length < 1)
                     throw new IOException("directory is empty");
