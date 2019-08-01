@@ -175,7 +175,7 @@ the command line.  The format is one switch and option per line:
 ### Miscelaneous
 
 numFutures is a way to control the level of parallelism, but at some point 
-too many will actually slow down the load.  The default of 500 is a decent 
+too many will actually slow down the load.  The default of 1000 is a decent 
 place to start.
 
 If you use quoted strings, you need to use double-quotes.  To escape a double-quote inside a quoted string, use the backslash to escape it ("\"").  To create a backslash inside a quoted string, use two backslashes in a row ("\\").  If you quote your string, it will not be trimmed, but if you do not quote your string it will be trimmed.
